@@ -549,6 +549,7 @@ public final class FunctionRegistry {
 
     system.registerGenericUDAF("row_number", new GenericUDAFRowNumber());
     system.registerGenericUDAF("rank", new GenericUDAFRank());
+    system.registerGenericUDAF("rankwg", new GenericUDAFRankWG());
     system.registerGenericUDAF("dense_rank", new GenericUDAFDenseRank());
     system.registerGenericUDAF("percent_rank", new GenericUDAFPercentRank());
     system.registerGenericUDAF("cume_dist", new GenericUDAFCumeDist());
