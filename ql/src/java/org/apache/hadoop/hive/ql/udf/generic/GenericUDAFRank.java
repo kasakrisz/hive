@@ -45,19 +45,27 @@ import org.apache.hadoop.io.IntWritable;
   supportsWindow = false,
   pivotResult = true,
   rankingFunction = true,
-  impliesOrder = true)
+  impliesOrder = false,
+  supportsWithinGroup = true)
 public class GenericUDAFRank extends AbstractGenericUDAFResolver {
 
   static final Logger LOG = LoggerFactory.getLogger(GenericUDAFRank.class.getName());
 
   @Override
-  public GenericUDAFEvaluator getEvaluator(TypeInfo[] parameters) throws SemanticException {
+  public GenericUDAFEvaluator getEvaluator(GenericUDAFParameterInfo info) throws SemanticException {
+    if (info.isWindowing()) {
+      return getWindowingEvaluator(info.getParameterObjectInspectors());
+    }
+    return getHypotheticalSetEvaluator(info.getParameterObjectInspectors());
+  }
+
+  public GenericUDAFEvaluator getWindowingEvaluator(ObjectInspector[] parameters) throws SemanticException {
     if (parameters.length < 1) {
       throw new UDFArgumentTypeException(parameters.length - 1,
         "One or more arguments are expected.");
     }
     for (int i = 0; i < parameters.length; i++) {
-      ObjectInspector oi = TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(parameters[i]);
+      ObjectInspector oi = parameters[i];
       if (!ObjectInspectorUtils.compareSupported(oi)) {
         throw new UDFArgumentTypeException(i,
           "Cannot support comparison of map<> type or complex type containing map<>.");
@@ -68,6 +76,23 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
 
   protected GenericUDAFAbstractRankEvaluator createEvaluator() {
     return new GenericUDAFRankEvaluator();
+  }
+
+  public GenericUDAFEvaluator getHypotheticalSetEvaluator(ObjectInspector[] parameters) throws SemanticException {
+//    if (parameters.length < 1) {
+//      throw new UDFArgumentTypeException(parameters.length - 1,
+//              "One or more arguments are expected.");
+//    }
+//    for (int i = 0; i < parameters.length; i++) {
+//      ObjectInspector oi = parameters[i];
+//      if (!ObjectInspectorUtils.compareSupported(oi)) {
+//        throw new UDFArgumentTypeException(i,
+//                "Cannot support comparison of map<> type or complex type containing map<>.");
+//      }
+//    }
+//    return createEvaluator();
+    // TODO: check parameters
+    return new GenericUDAFHypotheticalSetRankEvaluator();
   }
 
   static class RankBuffer implements AggregationBuffer {
