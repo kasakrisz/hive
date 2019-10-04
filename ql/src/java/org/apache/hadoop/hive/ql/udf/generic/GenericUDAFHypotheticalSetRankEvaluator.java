@@ -17,11 +17,15 @@
  */
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorUtils;
 import org.apache.hadoop.io.IntWritable;
 
 public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluator {
@@ -61,8 +65,12 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     if (parameters[0] == null)
       return;
 
+    HiveDecimal columnValue = PrimitiveObjectInspectorUtils.getHiveDecimal(parameters[0], (PrimitiveObjectInspector) inputOI[0]);
+    HiveDecimal rankOf = PrimitiveObjectInspectorUtils.getHiveDecimal(parameters[1], (PrimitiveObjectInspector) inputOI[1]);
+
     int c = ObjectInspectorUtils.compare(parameters[0], inputOI[0], parameters[1], inputOI[1]);
-    if (c < 0) {
+//    if (c < 0) {
+    if (columnValue.compareTo(rankOf) < 0) {
       rb.rank++;
     }
   }
