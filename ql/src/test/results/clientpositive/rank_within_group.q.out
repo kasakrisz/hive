@@ -1,0 +1,80 @@
+PREHOOK: query: CREATE TABLE t_test (
+  int_col int,
+  double_col double
+)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@t_test
+POSTHOOK: query: CREATE TABLE t_test (
+  int_col int,
+  double_col double
+)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@t_test
+PREHOOK: query: INSERT INTO t_test VALUES
+(NULL, NULL),
+(3, 3.0),
+(8, 8.0),
+(13, 13.0),
+(7, 7.0),
+(6, 6.0),
+(20, 20.0),
+(NULL, NULL),
+(NULL, NULL),
+(10, 10.0),
+(7, 7.0),
+(15, 15.0),
+(16, 16.0),
+(8, 8.0),
+(7, 7.0),
+(8, 8.0),
+(NULL, NULL)
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@t_test
+POSTHOOK: query: INSERT INTO t_test VALUES
+(NULL, NULL),
+(3, 3.0),
+(8, 8.0),
+(13, 13.0),
+(7, 7.0),
+(6, 6.0),
+(20, 20.0),
+(NULL, NULL),
+(NULL, NULL),
+(10, 10.0),
+(7, 7.0),
+(15, 15.0),
+(16, 16.0),
+(8, 8.0),
+(7, 7.0),
+(8, 8.0),
+(NULL, NULL)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Output: default@t_test
+POSTHOOK: Lineage: t_test.double_col SCRIPT []
+POSTHOOK: Lineage: t_test.int_col SCRIPT []
+PREHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY double_col)
+FROM t_test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY double_col)
+FROM t_test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test
+#### A masked pattern was here ####
+14
+PREHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
+FROM t_test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
+FROM t_test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test
+#### A masked pattern was here ####
+14
