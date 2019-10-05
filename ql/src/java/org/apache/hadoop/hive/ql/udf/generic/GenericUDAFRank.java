@@ -92,6 +92,9 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
 //    }
 //    return createEvaluator();
     // TODO: check parameters
+
+    // Use: getCommonClassForComparison
+
     return new GenericUDAFHypotheticalSetRankEvaluator();
   }
 
