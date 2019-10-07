@@ -56,25 +56,100 @@ POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@t_test
 POSTHOOK: Lineage: t_test.double_col SCRIPT []
 POSTHOOK: Lineage: t_test.int_col SCRIPT []
-PREHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY double_col)
+PREHOOK: query: SELECT
+rank(6) WITHIN GROUP (ORDER BY int_col),
+rank(6) WITHIN GROUP (ORDER BY int_col DESC)
 FROM t_test
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t_test
 #### A masked pattern was here ####
-POSTHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY double_col)
+POSTHOOK: query: SELECT
+rank(6) WITHIN GROUP (ORDER BY int_col),
+rank(6) WITHIN GROUP (ORDER BY int_col DESC)
+FROM t_test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test
+#### A masked pattern was here ####
+2	12
+PREHOOK: query: SELECT
+rank(6.1) WITHIN GROUP (ORDER BY double_col),
+rank(6.1) WITHIN GROUP (ORDER BY double_col DESC)
+FROM t_test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT
+rank(6.1) WITHIN GROUP (ORDER BY double_col),
+rank(6.1) WITHIN GROUP (ORDER BY double_col DESC)
+FROM t_test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test
+#### A masked pattern was here ####
+3	12
+PREHOOK: query: SELECT
+rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
+FROM t_test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT
+rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
 FROM t_test
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test
 #### A masked pattern was here ####
 3
-PREHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
+PREHOOK: query: SELECT int_col, rank() OVER (ORDER BY int_col)
 FROM t_test
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t_test
 #### A masked pattern was here ####
-POSTHOOK: query: SELECT rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
+POSTHOOK: query: SELECT int_col, rank() OVER (ORDER BY int_col)
 FROM t_test
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test
 #### A masked pattern was here ####
-3
+10	9
+13	10
+15	11
+16	12
+20	13
+3	1
+6	2
+7	3
+7	3
+7	3
+8	6
+8	6
+8	6
+NULL	14
+NULL	14
+NULL	14
+NULL	14
+PREHOOK: query: SELECT int_col, rank() OVER (ORDER BY int_col DESC)
+FROM t_test
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT int_col, rank() OVER (ORDER BY int_col DESC)
+FROM t_test
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test
+#### A masked pattern was here ####
+10	5
+13	4
+15	3
+16	2
+20	1
+3	13
+6	12
+7	9
+7	9
+7	9
+8	6
+8	6
+8	6
+NULL	14
+NULL	14
+NULL	14
+NULL	14

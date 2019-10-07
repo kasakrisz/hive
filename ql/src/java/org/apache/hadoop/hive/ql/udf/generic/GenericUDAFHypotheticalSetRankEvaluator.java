@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import static org.apache.hadoop.hive.ql.util.DirectionUtils.DESCENDING_CODE;
+
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
@@ -25,6 +27,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters.Converter;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantIntObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
@@ -43,6 +46,7 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
   private transient ObjectInspector commonInputIO;
   private transient Converter inputConverter;
   private transient Converter rankParamConverter;
+  private transient boolean isAscending;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -55,6 +59,8 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
       this.commonInputIO = TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(commonTypeInfo);
       this.inputConverter = ObjectInspectorConverters.getConverter(parameters[0], commonInputIO);
       this.rankParamConverter = ObjectInspectorConverters.getConverter(parameters[1], commonInputIO);
+      this.isAscending = ((WritableConstantIntObjectInspector) parameters[2]).
+              getWritableConstantValue().get() != DESCENDING_CODE;
     }
 
     return PrimitiveObjectInspectorFactory.writableIntObjectInspector;
@@ -79,7 +85,7 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
 
     int c = ObjectInspectorUtils.compare(inputConverter.convert(parameters[0]), commonInputIO,
             rankParamConverter.convert(parameters[1]), commonInputIO);
-    if (c < 0) {
+    if (isAscending && c < 0 || !isAscending && c > 0) {
       rb.rank++;
     }
   }

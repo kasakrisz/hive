@@ -24,15 +24,27 @@ INSERT INTO t_test VALUES
 --SELECT rank(6) WITHIN GROUP (ORDER BY CAST(int_col AS BIGINT))
 --FROM t_test;
 
-SELECT rank(6.1) WITHIN GROUP (ORDER BY double_col)
+SELECT
+rank(6) WITHIN GROUP (ORDER BY int_col),
+rank(6) WITHIN GROUP (ORDER BY int_col DESC)
 FROM t_test;
 
-SELECT rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
+
+SELECT
+rank(6.1) WITHIN GROUP (ORDER BY double_col),
+rank(6.1) WITHIN GROUP (ORDER BY double_col DESC)
+FROM t_test;
+
+SELECT
+rank(6.1) WITHIN GROUP (ORDER BY CAST(int_col AS double))
 FROM t_test;
 
 
---SELECT value, rank() OVER (order by CAST(value AS DOUBLE))
---FROM t_test;
+SELECT int_col, rank() OVER (ORDER BY int_col)
+FROM t_test;
+
+SELECT int_col, rank() OVER (ORDER BY int_col DESC)
+FROM t_test;
 
 --set hive.map.aggr = false;
 --set hive.groupby.skewindata = false;
