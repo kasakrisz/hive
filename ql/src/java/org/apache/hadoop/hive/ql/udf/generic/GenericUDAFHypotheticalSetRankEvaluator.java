@@ -20,6 +20,9 @@ package org.apache.hadoop.hive.ql.udf.generic;
 import static org.apache.hadoop.hive.ql.util.DirectionUtils.ASCENDING_CODE;
 import static org.apache.hadoop.hive.ql.util.DirectionUtils.DESCENDING_CODE;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
@@ -46,27 +49,52 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
   }
 
-  private transient ObjectInspector commonInputIO;
-  private transient Converter inputConverter;
-  private transient Converter rankParamConverter;
-  private transient int order;
-  private transient NullOrdering nulls;
+  private class RankAssets {
+    private final ObjectInspector commonInputIO;
+    private final Converter directArgumentConverter;
+    private final Converter inputConverter;
+    private final int order;
+    private final NullOrdering nullOrdering;
+
+    public RankAssets(ObjectInspector commonInputIO,
+                      Converter directArgumentConverter, Converter inputConverter,
+                      int order, NullOrdering nullOrdering) {
+      this.commonInputIO = commonInputIO;
+      this.directArgumentConverter = directArgumentConverter;
+      this.inputConverter = inputConverter;
+      this.order = order;
+      this.nullOrdering = nullOrdering;
+    }
+
+    public int compare(Object inputValue, Object directArgumentValue) {
+      return ObjectInspectorUtils.compare(inputConverter.convert(inputValue), commonInputIO,
+              directArgumentConverter.convert(directArgumentValue), commonInputIO,
+              new FullMapEqualComparer(), nullOrdering.getNullValueOption());
+    }
+  }
+
+  private transient List<RankAssets> rankAssetsList;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
 
     if (mode == Mode.PARTIAL1 || mode == Mode.COMPLETE) {
-      TypeInfo inputType = TypeInfoUtils.getTypeInfoFromObjectInspector(parameters[0]);
-      TypeInfo rankParamType = TypeInfoUtils.getTypeInfoFromObjectInspector(parameters[1]);
-      TypeInfo commonTypeInfo = FunctionRegistry.getCommonClassForComparison(inputType, rankParamType);
-      this.commonInputIO = TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(commonTypeInfo);
-      this.inputConverter = ObjectInspectorConverters.getConverter(parameters[0], commonInputIO);
-      this.rankParamConverter = ObjectInspectorConverters.getConverter(parameters[1], commonInputIO);
-      this.order = ((WritableConstantIntObjectInspector) parameters[2]).
-              getWritableConstantValue().get();
-      this.nulls = NullOrdering.fromCode(((WritableConstantIntObjectInspector) parameters[3]).
-              getWritableConstantValue().get());
+      rankAssetsList = new ArrayList<>(parameters.length / 4);
+      for (int i = 0; i < parameters.length / 4; ++i) {
+        TypeInfo directArgumentType = TypeInfoUtils.getTypeInfoFromObjectInspector(parameters[4 * i]);
+        TypeInfo inputType = TypeInfoUtils.getTypeInfoFromObjectInspector(parameters[4 * i + 1]);
+        TypeInfo commonTypeInfo = FunctionRegistry.getCommonClassForComparison(inputType, directArgumentType);
+        ObjectInspector commonInputIO = TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(commonTypeInfo);
+        rankAssetsList.add(new RankAssets(
+                commonInputIO,
+                ObjectInspectorConverters.getConverter(parameters[4 * i], commonInputIO),
+                ObjectInspectorConverters.getConverter(parameters[4 * i + 1], commonInputIO),
+                ((WritableConstantIntObjectInspector) parameters[4 * i + 2]).
+                        getWritableConstantValue().get(),
+                NullOrdering.fromCode(((WritableConstantIntObjectInspector) parameters[4 * i + 3]).
+                        getWritableConstantValue().get())));
+      }
     }
 
     return PrimitiveObjectInspectorFactory.writableIntObjectInspector;
@@ -86,9 +114,22 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
     RankBuffer rankBuffer = (RankBuffer) agg;
-    int c = ObjectInspectorUtils.compare(inputConverter.convert(parameters[0]), commonInputIO,
-            rankParamConverter.convert(parameters[1]), commonInputIO,
-            new FullMapEqualComparer(), nulls.getNullValueOption());
+
+    int i = 0;
+    int c = 0;
+    for (RankAssets rankAssets : rankAssetsList) {
+      c = rankAssets.compare(parameters[4 * i + 1], parameters[4 * i]);
+      if (c != 0) {
+        break;
+      }
+      ++i;
+    }
+
+    if (c == 0) {
+      return;
+    }
+
+    int order = rankAssetsList.get(i).order;
     if (order == ASCENDING_CODE && c < 0 || order == DESCENDING_CODE && c > 0) {
       rankBuffer.rank++;
     }
