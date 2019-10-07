@@ -17,11 +17,16 @@
  */
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters.Converter;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
 
 public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluator {
@@ -35,12 +40,23 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
   }
 
-  private ObjectInspector[] inputOI;
+  private transient ObjectInspector commonInputIO;
+  private transient Converter inputConverter;
+  private transient Converter rankParamConverter;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
     super.init(m, parameters);
-    inputOI = parameters;
+
+    if (mode == Mode.PARTIAL1 || mode == Mode.COMPLETE) {
+      TypeInfo inputType = TypeInfoUtils.getTypeInfoFromObjectInspector(parameters[0]);
+      TypeInfo rankParamType = TypeInfoUtils.getTypeInfoFromObjectInspector(parameters[1]);
+      TypeInfo commonTypeInfo = FunctionRegistry.getCommonClassForComparison(inputType, rankParamType);
+      this.commonInputIO = TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(commonTypeInfo);
+      this.inputConverter = ObjectInspectorConverters.getConverter(parameters[0], commonInputIO);
+      this.rankParamConverter = ObjectInspectorConverters.getConverter(parameters[1], commonInputIO);
+    }
+
     return PrimitiveObjectInspectorFactory.writableIntObjectInspector;
   }
 
@@ -61,7 +77,8 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     if (parameters[0] == null)
       return;
 
-    int c = ObjectInspectorUtils.compare(parameters[0], inputOI[0], parameters[1], inputOI[1]);
+    int c = ObjectInspectorUtils.compare(inputConverter.convert(parameters[0]), commonInputIO,
+            rankParamConverter.convert(parameters[1]), commonInputIO);
     if (c < 0) {
       rb.rank++;
     }
