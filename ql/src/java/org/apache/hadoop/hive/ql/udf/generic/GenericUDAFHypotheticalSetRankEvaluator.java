@@ -37,7 +37,7 @@ import org.apache.hadoop.io.IntWritable;
 
 public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluator {
 
-  static class RankBuffer extends AbstractAggregationBuffer {
+  private static class RankBuffer extends AbstractAggregationBuffer {
     int rank = 0;
 
     @Override
@@ -79,24 +79,25 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
 
   @Override
   public void reset(AggregationBuffer agg) throws HiveException {
-    int i = 0;
+    RankBuffer rankBuffer = (RankBuffer) agg;
+    rankBuffer.rank = 0;
   }
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
-    RankBuffer rb = (RankBuffer) agg;
+    RankBuffer rankBuffer = (RankBuffer) agg;
     int c = ObjectInspectorUtils.compare(inputConverter.convert(parameters[0]), commonInputIO,
             rankParamConverter.convert(parameters[1]), commonInputIO,
             new FullMapEqualComparer(), nulls.getNullValueOption());
     if (order == ASCENDING_CODE && c < 0 || order == DESCENDING_CODE && c > 0) {
-      rb.rank++;
+      rankBuffer.rank++;
     }
   }
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
-    RankBuffer rb = (RankBuffer) agg;
-    return new IntWritable(rb.rank + 1);
+    RankBuffer rankBuffer = (RankBuffer) agg;
+    return new IntWritable(rankBuffer.rank + 1);
   }
 
   @Override
@@ -106,13 +107,13 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
 
     IntWritable rank = (IntWritable) partial;
-    RankBuffer rb = (RankBuffer) agg;
-    rb.rank += rank.get() - 1;
+    RankBuffer rankBuffer = (RankBuffer) agg;
+    rankBuffer.rank += rank.get() - 1;
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
-    RankBuffer rb = (RankBuffer) agg;
-    return new IntWritable(rb.rank + 1);
+    RankBuffer rankBuffer = (RankBuffer) agg;
+    return new IntWritable(rankBuffer.rank + 1);
   }
 }
