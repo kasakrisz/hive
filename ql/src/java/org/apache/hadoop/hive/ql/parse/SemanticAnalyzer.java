@@ -255,6 +255,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFSurrogateKey;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDTFInline;
 import org.apache.hadoop.hive.ql.util.DirectionUtils;
+import org.apache.hadoop.hive.ql.util.NullOrdering;
 import org.apache.hadoop.hive.ql.util.ResourceDownloader;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
@@ -952,12 +953,15 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     Tree tabSortColNameNode = withinGroupNode.getChild(0);
+    Tree nullsNode = tabSortColNameNode.getChild(0);
     ASTNode sortKey = (ASTNode) tabSortColNameNode.getChild(0).getChild(0);
     expressionTree.deleteChild(withinGroupNode.getChildIndex());
     // backward compatibility: the sortkey is the first paramater of the percentile_cont and percentile_disc functions
     expressionTree.insertChild(1, sortKey);
     expressionTree.addChild(ASTBuilder.createAST(HiveParser.NumberLiteral,
             Integer.toString(DirectionUtils.tokenToCode(tabSortColNameNode.getType()))));
+    expressionTree.addChild(ASTBuilder.createAST(HiveParser.NumberLiteral,
+            Integer.toString(NullOrdering.fromToken(nullsNode.getType()).getCode())));
   }
 
   private List<ASTNode> doPhase1GetDistinctFuncExprs(Map<String, ASTNode> aggregationTrees) {
