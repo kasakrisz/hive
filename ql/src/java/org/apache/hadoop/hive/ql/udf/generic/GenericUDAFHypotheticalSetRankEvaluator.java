@@ -142,6 +142,7 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
+    rankBuffer.count++;
 
     int i = 0;
     int c = 0;
@@ -161,8 +162,6 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     if (order == ASCENDING_CODE && c < 0 || order == DESCENDING_CODE && c > 0) {
       rankBuffer.rank++;
     }
-
-    rankBuffer.count++;
   }
 
   @Override
