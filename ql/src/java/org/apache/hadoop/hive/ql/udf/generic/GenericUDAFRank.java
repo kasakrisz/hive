@@ -34,8 +34,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils.ObjectInspectorCopyOption;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
 
 @Description(
@@ -67,10 +65,10 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
     for (int i = 0; i < parameters.length; i++) {
       supportsCompare(parameters, i);
     }
-    return createEvaluator();
+    return createWindowingEvaluator();
   }
 
-  protected GenericUDAFAbstractRankEvaluator createEvaluator() {
+  protected GenericUDAFAbstractRankEvaluator createWindowingEvaluator() {
     return new GenericUDAFRankEvaluator();
   }
 
@@ -86,6 +84,10 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
       supportsCompare(parameters, 4 * i + 1);
     }
 
+    return createHypotheticalSetEvaluator();
+  }
+
+  protected GenericUDAFHypotheticalSetRankEvaluator createHypotheticalSetEvaluator() {
     return new GenericUDAFHypotheticalSetRankEvaluator();
   }
 

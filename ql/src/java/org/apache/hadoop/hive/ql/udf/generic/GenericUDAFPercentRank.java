@@ -40,14 +40,19 @@ import org.apache.hadoop.io.IntWritable;
         supportsWindow = false,
         pivotResult = true,
         rankingFunction = true,
-        impliesOrder = true)
+        supportsWithinGroup = true)
 public class GenericUDAFPercentRank extends GenericUDAFRank {
 
   static final Logger LOG = LoggerFactory.getLogger(GenericUDAFPercentRank.class.getName());
 
   @Override
-  protected GenericUDAFAbstractRankEvaluator createEvaluator() {
+  protected GenericUDAFAbstractRankEvaluator createWindowingEvaluator() {
     return new GenericUDAFPercentRankEvaluator();
+  }
+
+  @Override
+  protected GenericUDAFHypotheticalSetRankEvaluator createHypotheticalSetEvaluator() {
+    return new GenericUDAFHypotheticalSetPercentRankEvaluator();
   }
 
   public static class GenericUDAFPercentRankEvaluator extends GenericUDAFAbstractRankEvaluator {
@@ -74,6 +79,23 @@ public class GenericUDAFPercentRank extends GenericUDAFRank {
       }
 
       return pranks;
+    }
+  }
+
+  public static class GenericUDAFHypotheticalSetPercentRankEvaluator extends GenericUDAFHypotheticalSetRankEvaluator {
+
+    @Override
+    protected ObjectInspector initReturnIO() {
+      if (mode == Mode.PARTIAL1 || mode == Mode.PARTIAL2) {
+        return super.initReturnIO();
+      }
+      return PrimitiveObjectInspectorFactory.writableDoubleObjectInspector;
+    }
+
+    @Override
+    public Object terminate(AggregationBuffer agg) throws HiveException {
+      HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
+      return new DoubleWritable((rankBuffer.rank - 1.0) / rankBuffer.count);
     }
   }
 }

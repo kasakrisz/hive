@@ -36,7 +36,7 @@ import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
 public class GenericUDAFDenseRank extends GenericUDAFRank {
 
   @Override
-  protected GenericUDAFAbstractRankEvaluator createEvaluator() {
+  protected GenericUDAFAbstractRankEvaluator createWindowingEvaluator() {
     return new GenericUDAFDenseRankEvaluator();
   }
 

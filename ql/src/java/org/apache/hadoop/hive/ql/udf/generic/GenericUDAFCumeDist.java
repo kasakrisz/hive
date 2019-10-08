@@ -45,7 +45,7 @@ import org.apache.hadoop.io.IntWritable;
 public class GenericUDAFCumeDist extends GenericUDAFRank {
 
   @Override
-  protected GenericUDAFAbstractRankEvaluator createEvaluator() {
+  protected GenericUDAFAbstractRankEvaluator createWindowingEvaluator() {
     return new GenericUDAFCumeDistEvaluator();
   }
 

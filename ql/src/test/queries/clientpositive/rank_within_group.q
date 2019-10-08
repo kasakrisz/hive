@@ -21,6 +21,18 @@ INSERT INTO t_test3 VALUES
 (8, 8.0);
 --(NULL, NULL);
 
+select
+percent_rank(5) WITHIN GROUP (ORDER BY col1)
+--percent_rank(1) WITHIN GROUP (ORDER BY col1),
+--percent_rank(2) WITHIN GROUP (ORDER BY col1),
+--percent_rank(3) WITHIN GROUP (ORDER BY col1),
+--percent_rank(4) WITHIN GROUP (ORDER BY col1),
+--cast(rank(4) WITHIN GROUP (ORDER BY col1) - 1 as float) / count(col1),
+--percent_rank(5) WITHIN GROUP (ORDER BY col1),
+--percent_rank(6) WITHIN GROUP (ORDER BY col1),
+--percent_rank(7) WITHIN GROUP (ORDER BY col1),
+--percent_rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3;
 
 SELECT
 --rank(5, 0) WITHIN GROUP (ORDER BY col1, col2),
