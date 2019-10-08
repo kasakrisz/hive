@@ -65,11 +65,7 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
         "One or more arguments are expected.");
     }
     for (int i = 0; i < parameters.length; i++) {
-      ObjectInspector oi = parameters[i];
-      if (!ObjectInspectorUtils.compareSupported(oi)) {
-        throw new UDFArgumentTypeException(i,
-          "Cannot support comparison of map<> type or complex type containing map<>.");
-      }
+      supportsCompare(parameters, i);
     }
     return createEvaluator();
   }
@@ -79,23 +75,26 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
   }
 
   public GenericUDAFEvaluator getHypotheticalSetEvaluator(ObjectInspector[] parameters) throws SemanticException {
-//    if (parameters.length < 1) {
-//      throw new UDFArgumentTypeException(parameters.length - 1,
-//              "One or more arguments are expected.");
-//    }
-//    for (int i = 0; i < parameters.length; i++) {
-//      ObjectInspector oi = parameters[i];
-//      if (!ObjectInspectorUtils.compareSupported(oi)) {
-//        throw new UDFArgumentTypeException(i,
-//                "Cannot support comparison of map<> type or complex type containing map<>.");
-//      }
-//    }
-//    return createEvaluator();
-    // TODO: check parameters
+    if (parameters.length % 4 != 0) {
+      throw new UDFArgumentTypeException(parameters.length,
+              "Invalid number of parameters: " +
+                      "the number of hypothetical direct arguments must match the number of ordering columns");
+    }
 
-    // Use: getCommonClassForComparison
+    for (int i = 0; i < parameters.length / 4; ++i) {
+      supportsCompare(parameters, 4 * i);
+      supportsCompare(parameters, 4 * i + 1);
+    }
 
     return new GenericUDAFHypotheticalSetRankEvaluator();
+  }
+
+  private void supportsCompare(ObjectInspector[] parameters, int i2) throws UDFArgumentTypeException {
+    ObjectInspector oi = parameters[i2];
+    if (!ObjectInspectorUtils.compareSupported(oi)) {
+      throw new UDFArgumentTypeException(i2,
+              "Cannot support comparison of map<> type or complex type containing map<>.");
+    }
   }
 
   static class RankBuffer implements AggregationBuffer {
