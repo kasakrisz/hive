@@ -18,8 +18,21 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import static org.apache.hadoop.hive.ql.util.DirectionUtils.ASCENDING_CODE;
+import static org.apache.hadoop.hive.ql.util.DirectionUtils.DESCENDING_CODE;
+import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.writableLongObjectInspector;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.io.LongWritable;
 
 @Description(
         name = "dense_rank",
@@ -32,12 +45,17 @@ import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
         supportsWindow = false,
         pivotResult = true,
         rankingFunction = true,
-        impliesOrder = true)
+        supportsWithinGroup = true)
 public class GenericUDAFDenseRank extends GenericUDAFRank {
 
   @Override
   protected GenericUDAFAbstractRankEvaluator createWindowingEvaluator() {
     return new GenericUDAFDenseRankEvaluator();
+  }
+
+  @Override
+  protected GenericUDAFHypotheticalSetRankEvaluator createHypotheticalSetEvaluator() {
+    return new GenericUDAFHypotheticalSetDenseRankEvaluator();
   }
 
   public static class GenericUDAFDenseRankEvaluator extends GenericUDAFRankEvaluator {
@@ -50,5 +68,104 @@ public class GenericUDAFDenseRank extends GenericUDAFRank {
       rb.currentRank++;
     }
   }
-}
 
+  public static class GenericUDAFHypotheticalSetDenseRankEvaluator extends GenericUDAFHypotheticalSetRankEvaluator {
+
+    public GenericUDAFHypotheticalSetDenseRankEvaluator() {
+      super(false, writableLongObjectInspector, writableLongObjectInspector);
+    }
+
+    public GenericUDAFHypotheticalSetDenseRankEvaluator(boolean allowEquality, ObjectInspector partialOutputOI, ObjectInspector finalOI) {
+      super(allowEquality, partialOutputOI, finalOI);
+    }
+
+    @Override
+    protected void initPartial2AndFinalOI(ObjectInspector[] parameters) {
+      // nop
+    }
+
+    private static class SubRow {
+      private final List<Object> columnValues;
+
+      private SubRow(List<Object> columnValues) {
+        this.columnValues = columnValues;
+      }
+
+      @Override
+      public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SubRow subRow = (SubRow) o;
+        return Objects.equals(columnValues, subRow.columnValues);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnValues);
+      }
+    }
+
+    private static class HypotheticalSetDenseRankBuffer extends AbstractAggregationBuffer {
+      protected Set<SubRow> elements = new HashSet<>();
+      private long rank = 0;
+    }
+
+    @Override
+    public AggregationBuffer getNewAggregationBuffer() throws HiveException {
+      return new HypotheticalSetDenseRankBuffer();
+    }
+
+    @Override
+    public void reset(AggregationBuffer agg) throws HiveException {
+      HypotheticalSetDenseRankBuffer rankBuffer = (HypotheticalSetDenseRankBuffer) agg;
+      rankBuffer.elements.clear();
+      rankBuffer.rank = 0;
+    }
+
+    @Override
+    public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
+      HypotheticalSetDenseRankBuffer rankBuffer = (HypotheticalSetDenseRankBuffer) agg;
+
+      CompareResult compareResult = compare(parameters);
+      if (compareResult.getCompareResult() == 0) {
+        return;
+      }
+
+      if (compareResult.getOrder() == ASCENDING_CODE && compareResult.getCompareResult() < 0 ||
+              compareResult.getOrder() == DESCENDING_CODE && compareResult.getCompareResult() > 0) {
+        List<Object> columnValues = new ArrayList<>(parameters.length / 4);
+        for (int i = 0; i < parameters.length / 4; i += 4) {
+          columnValues.add(parameters[i * 4 + 1]);
+        }
+        SubRow subRow = new SubRow(columnValues);
+        if (!rankBuffer.elements.contains(subRow)) {
+          rankBuffer.elements.add(subRow);
+          rankBuffer.rank++;
+        }
+      }
+    }
+
+    @Override
+    public Object terminatePartial(AggregationBuffer agg) throws HiveException {
+      HypotheticalSetDenseRankBuffer rankBuffer = (HypotheticalSetDenseRankBuffer) agg;
+      return new LongWritable(rankBuffer.rank + 1);
+    }
+
+
+    @Override
+    public void merge(AggregationBuffer agg, Object partial) throws HiveException {
+      if (partial == null) {
+        return;
+      }
+
+      HypotheticalSetDenseRankBuffer rankBuffer = (HypotheticalSetDenseRankBuffer) agg;
+      rankBuffer.rank += ((LongWritable)partial).get() - 1;
+    }
+
+    @Override
+    public Object terminate(AggregationBuffer agg) throws HiveException {
+      HypotheticalSetDenseRankBuffer rankBuffer = (HypotheticalSetDenseRankBuffer) agg;
+      return new LongWritable(rankBuffer.rank + 1);
+    }
+  }
+}

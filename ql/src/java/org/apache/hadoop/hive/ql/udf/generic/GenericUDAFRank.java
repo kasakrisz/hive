@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import static java.util.Arrays.asList;
+
 import java.util.ArrayList;
 
 import org.slf4j.Logger;

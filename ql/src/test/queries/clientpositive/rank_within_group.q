@@ -30,8 +30,8 @@ from t_test3
 order by col1 asc;
 
 select
-rank(2) WITHIN GROUP (ORDER BY col1),
-cume_dist(2) WITHIN GROUP (ORDER BY col1)
+rank(2) WITHIN GROUP (ORDER BY col1)
+--cume_dist(2) WITHIN GROUP (ORDER BY col1)
 from t_test3;
 
 select
@@ -67,6 +67,17 @@ rank(5) WITHIN GROUP (ORDER BY col1),
 rank(6) WITHIN GROUP (ORDER BY col1),
 rank(7) WITHIN GROUP (ORDER BY col1),
 rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3;
+
+select
+dense_rank(1) WITHIN GROUP (ORDER BY col1),
+dense_rank(2) WITHIN GROUP (ORDER BY col1),
+dense_rank(3) WITHIN GROUP (ORDER BY col1),
+dense_rank(4) WITHIN GROUP (ORDER BY col1),
+dense_rank(5) WITHIN GROUP (ORDER BY col1),
+dense_rank(6) WITHIN GROUP (ORDER BY col1),
+dense_rank(7) WITHIN GROUP (ORDER BY col1),
+dense_rank(8) WITHIN GROUP (ORDER BY col1)
 from t_test3;
 
 

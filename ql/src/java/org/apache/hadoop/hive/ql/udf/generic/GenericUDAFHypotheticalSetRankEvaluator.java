@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.udf.generic;
 import static java.util.Arrays.asList;
 import static org.apache.hadoop.hive.ql.util.DirectionUtils.ASCENDING_CODE;
 import static org.apache.hadoop.hive.ql.util.DirectionUtils.DESCENDING_CODE;
+import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.writableLongObjectInspector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,13 +41,19 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectIn
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantIntObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 
 public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluator {
+  public static final String RANK_FIELD = "rank";
+  public static final String COUNT_FIELD = "count";
+  public static final ObjectInspector PARTIAL_RANK_OI = ObjectInspectorFactory.getStandardStructObjectInspector(
+          asList(RANK_FIELD, COUNT_FIELD),
+          asList(writableLongObjectInspector,
+                  writableLongObjectInspector));
 
   protected static class HypotheticalSetRankBuffer extends AbstractAggregationBuffer {
-    protected int rank = 0;
-    protected int rowCount = 0;
+    protected long rank = 0;
+    protected long rowCount = 0;
 
     @Override
     public int estimate() {
@@ -54,11 +61,11 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
   }
 
-  private class RankAssets {
+  protected class RankAssets {
     private final ObjectInspector commonInputOI;
     private final Converter directArgumentConverter;
     private final Converter inputConverter;
-    private final int order;
+    protected final int order;
     private final NullOrdering nullOrdering;
 
     public RankAssets(ObjectInspector commonInputOI,
@@ -78,25 +85,24 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
   }
 
-  private transient List<RankAssets> rankAssetsList;
-
   public GenericUDAFHypotheticalSetRankEvaluator() {
-    this(false, PrimitiveObjectInspectorFactory.writableIntObjectInspector);
+    this(false, PARTIAL_RANK_OI, writableLongObjectInspector);
   }
 
-  public GenericUDAFHypotheticalSetRankEvaluator(boolean allowEquality, ObjectInspector finalOI) {
+  public GenericUDAFHypotheticalSetRankEvaluator(
+          boolean allowEquality, ObjectInspector partialOutputOI, ObjectInspector finalOI) {
     this.allowEquality = allowEquality;
+    this.partialOutputOI = partialOutputOI;
     this.finalOI = finalOI;
   }
 
   private final transient boolean allowEquality;
-
-  public static final String RANK_FIELD = "rank";
-  public static final String COUNT_FIELD = "count";
-  private transient StructObjectInspector partialOI;
-  private transient StructField partialRank;
-  private transient StructField partialCount;
+  private final transient ObjectInspector partialOutputOI;
   private final transient ObjectInspector finalOI;
+  private transient List<RankAssets> rankAssetsList;
+  private transient StructObjectInspector partialInputOI;
+  private transient StructField partialInputRank;
+  private transient StructField partialInputCount;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -120,18 +126,20 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
       }
     }
     else {
-      partialOI = (StructObjectInspector) parameters[0];
-      partialRank = partialOI.getStructFieldRef(RANK_FIELD);
-      partialCount = partialOI.getStructFieldRef(COUNT_FIELD);
+      initPartial2AndFinalOI(parameters);
     }
 
     if (mode == Mode.PARTIAL1 || mode == Mode.PARTIAL2) {
-      return ObjectInspectorFactory.getStandardStructObjectInspector(asList("rank", "count"),
-              asList(PrimitiveObjectInspectorFactory.writableIntObjectInspector,
-                      PrimitiveObjectInspectorFactory.writableIntObjectInspector));
+      return partialOutputOI;
     }
 
     return finalOI;
+  }
+
+  protected void initPartial2AndFinalOI(ObjectInspector[] parameters) {
+    partialInputOI = (StructObjectInspector) parameters[0];
+    partialInputRank = partialInputOI.getStructFieldRef(RANK_FIELD);
+    partialInputCount = partialInputOI.getStructFieldRef(COUNT_FIELD);
   }
 
   @Override
@@ -146,11 +154,45 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     rankBuffer.rowCount = 0;
   }
 
+  protected static class CompareResult {
+    private final int compareResult;
+    private final int order;
+
+    public CompareResult(int compareResult, int order) {
+      this.compareResult = compareResult;
+      this.order = order;
+    }
+
+    public int getCompareResult() {
+      return compareResult;
+    }
+
+    public int getOrder() {
+      return order;
+    }
+  }
+
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
     rankBuffer.rowCount++;
 
+    CompareResult compareResult = compare(parameters);
+
+    if (compareResult.getCompareResult() == 0) {
+      if (allowEquality) {
+        rankBuffer.rank++;
+      }
+      return;
+    }
+
+    if (compareResult.getOrder() == ASCENDING_CODE && compareResult.getCompareResult() < 0 ||
+            compareResult.getOrder() == DESCENDING_CODE && compareResult.getCompareResult() > 0) {
+      rankBuffer.rank++;
+    }
+  }
+
+  protected CompareResult compare(Object[] parameters) {
     int i = 0;
     int c = 0;
     for (RankAssets rankAssets : rankAssetsList) {
@@ -162,24 +204,18 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
 
     if (c == 0) {
-      if (allowEquality) {
-        rankBuffer.rank++;
-      }
-      return;
+      return new CompareResult(c, -1);
     }
 
-    int order = rankAssetsList.get(i).order;
-    if (order == ASCENDING_CODE && c < 0 || order == DESCENDING_CODE && c > 0) {
-      rankBuffer.rank++;
-    }
+    return new CompareResult(c, rankAssetsList.get(i).order);
   }
 
   @Override
   public Object terminatePartial(AggregationBuffer agg) throws HiveException {
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
-    IntWritable[] result = new IntWritable[2];
-    result[0] = new IntWritable(rankBuffer.rank + 1);
-    result[1] = new IntWritable(rankBuffer.rowCount);
+    LongWritable[] result = new LongWritable[2];
+    result[0] = new LongWritable(rankBuffer.rank + 1);
+    result[1] = new LongWritable(rankBuffer.rowCount);
     return result;
   }
 
@@ -189,17 +225,17 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
       return;
     }
 
-    Object objRank = partialOI.getStructFieldData(partial, partialRank);
-    Object objCount = partialOI.getStructFieldData(partial, partialCount);
+    Object objRank = partialInputOI.getStructFieldData(partial, partialInputRank);
+    Object objCount = partialInputOI.getStructFieldData(partial, partialInputCount);
 
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
-    rankBuffer.rank += ((IntWritable)objRank).get() - 1;
-    rankBuffer.rowCount += ((IntWritable)objCount).get();
+    rankBuffer.rank += ((LongWritable)objRank).get() - 1;
+    rankBuffer.rowCount += ((LongWritable)objCount).get();
   }
 
   @Override
   public Object terminate(AggregationBuffer agg) throws HiveException {
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
-    return new IntWritable(rankBuffer.rank + 1);
+    return new LongWritable(rankBuffer.rank + 1);
   }
 }

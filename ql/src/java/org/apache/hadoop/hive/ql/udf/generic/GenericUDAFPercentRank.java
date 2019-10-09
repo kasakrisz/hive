@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.writableDoubleObjectInspector;
+
 import java.util.ArrayList;
 
 import org.slf4j.Logger;
@@ -61,7 +63,7 @@ public class GenericUDAFPercentRank extends GenericUDAFRank {
     public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
       super.init(m, parameters);
       return ObjectInspectorFactory.getStandardListObjectInspector(
-        PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
+        writableDoubleObjectInspector);
     }
 
     @Override
@@ -85,7 +87,7 @@ public class GenericUDAFPercentRank extends GenericUDAFRank {
   public static class GenericUDAFHypotheticalSetPercentRankEvaluator extends GenericUDAFHypotheticalSetRankEvaluator {
 
     public GenericUDAFHypotheticalSetPercentRankEvaluator() {
-      super(false, PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
+      super(false, PARTIAL_RANK_OI, writableDoubleObjectInspector);
     }
 
     @Override

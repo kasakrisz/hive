@@ -18,6 +18,9 @@
 
 package org.apache.hadoop.hive.ql.udf.generic;
 
+import static java.util.Arrays.asList;
+import static org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory.writableDoubleObjectInspector;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,7 +62,7 @@ public class GenericUDAFCumeDist extends GenericUDAFRank {
     public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
       super.init(m, parameters);
       return ObjectInspectorFactory
-          .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
+          .getStandardListObjectInspector(writableDoubleObjectInspector);
     }
 
     @Override
@@ -101,7 +104,7 @@ public class GenericUDAFCumeDist extends GenericUDAFRank {
           extends GenericUDAFHypotheticalSetRankEvaluator {
 
     public GenericUDAFHypotheticalSetCumeDistEvaluator() {
-      super(true, PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
+      super(true, PARTIAL_RANK_OI, writableDoubleObjectInspector);
     }
 
     @Override
