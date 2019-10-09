@@ -57,7 +57,7 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
     return getHypotheticalSetEvaluator(info.getParameterObjectInspectors());
   }
 
-  public GenericUDAFEvaluator getWindowingEvaluator(ObjectInspector[] parameters) throws SemanticException {
+  private GenericUDAFEvaluator getWindowingEvaluator(ObjectInspector[] parameters) throws SemanticException {
     if (parameters.length < 1) {
       throw new UDFArgumentTypeException(parameters.length - 1,
         "One or more arguments are expected.");
@@ -72,7 +72,7 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
     return new GenericUDAFRankEvaluator();
   }
 
-  public GenericUDAFEvaluator getHypotheticalSetEvaluator(ObjectInspector[] parameters) throws SemanticException {
+  private GenericUDAFEvaluator getHypotheticalSetEvaluator(ObjectInspector[] parameters) throws SemanticException {
     if (parameters.length % 4 != 0) {
       throw new UDFArgumentTypeException(parameters.length,
               "Invalid number of parameters: " +
