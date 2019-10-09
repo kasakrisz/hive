@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
@@ -42,7 +41,7 @@ import org.apache.hadoop.io.IntWritable;
         supportsWindow = false,
         pivotResult = true,
         rankingFunction = true,
-        impliesOrder = true)
+        supportsWithinGroup = true)
 public class GenericUDAFCumeDist extends GenericUDAFRank {
 
   @Override
@@ -98,46 +97,17 @@ public class GenericUDAFCumeDist extends GenericUDAFRank {
     }
   }
 
-  public static class GenericUDAFHypotheticalSetCumeDistEvaluator extends GenericUDAFHypotheticalSetRankEvaluator {
-    @Override
-    public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
-      super.init(m, parameters);
-      return ObjectInspectorFactory
-          .getStandardListObjectInspector(PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
+  public static class GenericUDAFHypotheticalSetCumeDistEvaluator
+          extends GenericUDAFPercentRank.GenericUDAFHypotheticalSetPercentRankEvaluator {
+
+    public GenericUDAFHypotheticalSetCumeDistEvaluator() {
+      super(true);
     }
 
     @Override
     public Object terminate(AggregationBuffer agg) throws HiveException {
-      List<IntWritable> ranks = ((RankBuffer) agg).rowNums;
-      int ranksSize = ranks.size();
-      double ranksSizeDouble = ranksSize;
-      List<DoubleWritable> distances = new ArrayList<DoubleWritable>(ranksSize);
-      int last = -1;
-      int current = -1;
-      // tracks the number of elements with the same rank at the current time
-      int elementsAtRank = 1;
-      for (int index = 0; index < ranksSize; index++) {
-        current = ranks.get(index).get();
-        if (index == 0) {
-          last = current;
-        } else if (last == current) {
-          elementsAtRank++;
-        } else {
-          last = current;
-          double distance = ((double) index) / ranksSizeDouble;
-          while (elementsAtRank-- > 0) {
-            distances.add(new DoubleWritable(distance));
-          }
-          elementsAtRank = 1;
-        }
-      }
-      if (ranksSize > 0 && last == current) {
-        double distance = ((double) ranksSize) / ranksSizeDouble;
-        while (elementsAtRank-- > 0) {
-          distances.add(new DoubleWritable(distance));
-        }
-      }
-      return distances;
+      HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
+      return new DoubleWritable((rankBuffer.rank + 1.0) / (rankBuffer.rowCount + 1.0));
     }
   }
 }

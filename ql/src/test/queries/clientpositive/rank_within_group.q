@@ -22,17 +22,53 @@ INSERT INTO t_test3 VALUES
 --(NULL, NULL);
 
 select
-percent_rank(5) WITHIN GROUP (ORDER BY col1)
---percent_rank(1) WITHIN GROUP (ORDER BY col1),
---percent_rank(2) WITHIN GROUP (ORDER BY col1),
---percent_rank(3) WITHIN GROUP (ORDER BY col1),
---percent_rank(4) WITHIN GROUP (ORDER BY col1),
---cast(rank(4) WITHIN GROUP (ORDER BY col1) - 1 as float) / count(col1),
---percent_rank(5) WITHIN GROUP (ORDER BY col1),
---percent_rank(6) WITHIN GROUP (ORDER BY col1),
---percent_rank(7) WITHIN GROUP (ORDER BY col1),
---percent_rank(8) WITHIN GROUP (ORDER BY col1)
+col1,
+rank() over (order by col1 asc),
+percent_rank() over (order by col1 asc),
+cume_dist() over (order by col1 asc)
+from t_test3
+order by col1 asc;
+
+select
+rank(2) WITHIN GROUP (ORDER BY col1),
+cume_dist(2) WITHIN GROUP (ORDER BY col1)
 from t_test3;
+
+select
+cast(rank(7) WITHIN GROUP (ORDER BY col1) as float) / (count(col1) + 1),
+cume_dist(7) WITHIN GROUP (ORDER BY col1),
+cume_dist(2) WITHIN GROUP (ORDER BY col1),
+cume_dist(3) WITHIN GROUP (ORDER BY col1),
+cume_dist(4) WITHIN GROUP (ORDER BY col1),
+cume_dist(5) WITHIN GROUP (ORDER BY col1),
+cume_dist(6) WITHIN GROUP (ORDER BY col1),
+cume_dist(7) WITHIN GROUP (ORDER BY col1),
+cume_dist(8) WITHIN GROUP (ORDER BY col1)
+from t_test3;
+
+select
+percent_rank(1) WITHIN GROUP (ORDER BY col1),
+percent_rank(2) WITHIN GROUP (ORDER BY col1),
+percent_rank(3) WITHIN GROUP (ORDER BY col1),
+percent_rank(4) WITHIN GROUP (ORDER BY col1),
+cast(rank(4) WITHIN GROUP (ORDER BY col1) - 1 as float) / count(col1),
+percent_rank(5) WITHIN GROUP (ORDER BY col1),
+percent_rank(6) WITHIN GROUP (ORDER BY col1),
+percent_rank(7) WITHIN GROUP (ORDER BY col1),
+percent_rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3;
+
+select
+rank(1) WITHIN GROUP (ORDER BY col1),
+rank(2) WITHIN GROUP (ORDER BY col1),
+rank(3) WITHIN GROUP (ORDER BY col1),
+rank(4) WITHIN GROUP (ORDER BY col1),
+rank(5) WITHIN GROUP (ORDER BY col1),
+rank(6) WITHIN GROUP (ORDER BY col1),
+rank(7) WITHIN GROUP (ORDER BY col1),
+rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3;
+
 
 SELECT
 --rank(5, 0) WITHIN GROUP (ORDER BY col1, col2),

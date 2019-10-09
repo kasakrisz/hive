@@ -28,7 +28,6 @@ import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
 import org.apache.hadoop.hive.ql.util.NullOrdering;
-import org.apache.hadoop.hive.serde2.lazybinary.LazyBinaryStruct;
 import org.apache.hadoop.hive.serde2.objectinspector.FullMapEqualComparer;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
@@ -47,7 +46,7 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
 
   protected static class HypotheticalSetRankBuffer extends AbstractAggregationBuffer {
     protected int rank = 0;
-    protected int count = 0;
+    protected int rowCount = 0;
 
     @Override
     public int estimate() {
@@ -81,11 +80,21 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
 
   private transient List<RankAssets> rankAssetsList;
 
+  public GenericUDAFHypotheticalSetRankEvaluator() {
+    this(false);
+  }
+
+  public GenericUDAFHypotheticalSetRankEvaluator(boolean allowEquality) {
+    this.allowEquality = allowEquality;
+  }
+
+  private final transient boolean allowEquality;
+
   public static final String RANK_FIELD = "rank";
   public static final String COUNT_FIELD = "count";
-  private StructObjectInspector partialIO;
-  private StructField partialRank;
-  private StructField partialCount;
+  private transient StructObjectInspector partialIO;
+  private transient StructField partialRank;
+  private transient StructField partialCount;
 
   @Override
   public ObjectInspector init(Mode m, ObjectInspector[] parameters) throws HiveException {
@@ -136,13 +145,13 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
   public void reset(AggregationBuffer agg) throws HiveException {
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
     rankBuffer.rank = 0;
-    rankBuffer.count = 0;
+    rankBuffer.rowCount = 0;
   }
 
   @Override
   public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveException {
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
-    rankBuffer.count++;
+    rankBuffer.rowCount++;
 
     int i = 0;
     int c = 0;
@@ -155,6 +164,9 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     }
 
     if (c == 0) {
+      if (allowEquality) {
+        rankBuffer.rank++;
+      }
       return;
     }
 
@@ -169,7 +181,7 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
     IntWritable[] result = new IntWritable[2];
     result[0] = new IntWritable(rankBuffer.rank + 1);
-    result[1] = new IntWritable(rankBuffer.count);
+    result[1] = new IntWritable(rankBuffer.rowCount);
     return result;
   }
 
@@ -183,8 +195,8 @@ public class GenericUDAFHypotheticalSetRankEvaluator extends GenericUDAFEvaluato
     Object objCount = partialIO.getStructFieldData(partial, partialCount);
 
     HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
-    rankBuffer.rank += ((IntWritable)objRank).get();
-    rankBuffer.count += ((IntWritable)objCount).get();
+    rankBuffer.rank += ((IntWritable)objRank).get() - 1;
+    rankBuffer.rowCount += ((IntWritable)objCount).get();
   }
 
   @Override

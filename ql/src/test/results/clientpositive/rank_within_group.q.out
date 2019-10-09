@@ -55,36 +55,138 @@ POSTHOOK: Output: default@t_test3
 POSTHOOK: Lineage: t_test3.col1 SCRIPT []
 POSTHOOK: Lineage: t_test3.col2 SCRIPT []
 PREHOOK: query: select
-percent_rank(5) WITHIN GROUP (ORDER BY col1)
-
-
-
-
-
-
-
-
-
+col1,
+rank() over (order by col1 asc),
+percent_rank() over (order by col1 asc),
+cume_dist() over (order by col1 asc)
+from t_test3
+order by col1 asc
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+POSTHOOK: query: select
+col1,
+rank() over (order by col1 asc),
+percent_rank() over (order by col1 asc),
+cume_dist() over (order by col1 asc)
+from t_test3
+order by col1 asc
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+10	9	0.6666666666666666	0.6923076923076923
+11	10	0.75	0.7692307692307693
+15	11	0.8333333333333334	1.0
+15	11	0.8333333333333334	1.0
+15	11	0.8333333333333334	1.0
+3	1	0.0	0.07692307692307693
+5	2	0.08333333333333333	0.38461538461538464
+5	2	0.08333333333333333	0.38461538461538464
+5	2	0.08333333333333333	0.38461538461538464
+5	2	0.08333333333333333	0.38461538461538464
+7	6	0.4166666666666667	0.46153846153846156
+8	7	0.5	0.6153846153846154
+8	7	0.5	0.6153846153846154
+PREHOOK: query: select
+rank(2) WITHIN GROUP (ORDER BY col1),
+cume_dist(2) WITHIN GROUP (ORDER BY col1)
 from t_test3
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t_test3
 #### A masked pattern was here ####
 POSTHOOK: query: select
-percent_rank(5) WITHIN GROUP (ORDER BY col1)
-
-
-
-
-
-
-
-
-
+rank(2) WITHIN GROUP (ORDER BY col1),
+cume_dist(2) WITHIN GROUP (ORDER BY col1)
 from t_test3
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test3
 #### A masked pattern was here ####
-0.07692307692307693
+1	0.07142857142857142
+PREHOOK: query: select
+cast(rank(7) WITHIN GROUP (ORDER BY col1) as float) / (count(col1) + 1),
+cume_dist(7) WITHIN GROUP (ORDER BY col1),
+cume_dist(2) WITHIN GROUP (ORDER BY col1),
+cume_dist(3) WITHIN GROUP (ORDER BY col1),
+cume_dist(4) WITHIN GROUP (ORDER BY col1),
+cume_dist(5) WITHIN GROUP (ORDER BY col1),
+cume_dist(6) WITHIN GROUP (ORDER BY col1),
+cume_dist(7) WITHIN GROUP (ORDER BY col1),
+cume_dist(8) WITHIN GROUP (ORDER BY col1)
+from t_test3
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+POSTHOOK: query: select
+cast(rank(7) WITHIN GROUP (ORDER BY col1) as float) / (count(col1) + 1),
+cume_dist(7) WITHIN GROUP (ORDER BY col1),
+cume_dist(2) WITHIN GROUP (ORDER BY col1),
+cume_dist(3) WITHIN GROUP (ORDER BY col1),
+cume_dist(4) WITHIN GROUP (ORDER BY col1),
+cume_dist(5) WITHIN GROUP (ORDER BY col1),
+cume_dist(6) WITHIN GROUP (ORDER BY col1),
+cume_dist(7) WITHIN GROUP (ORDER BY col1),
+cume_dist(8) WITHIN GROUP (ORDER BY col1)
+from t_test3
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+0.42857142857142855	0.5	0.07142857142857142	0.14285714285714285	0.14285714285714285	0.42857142857142855	0.42857142857142855	0.5	0.6428571428571429
+PREHOOK: query: select
+percent_rank(1) WITHIN GROUP (ORDER BY col1),
+percent_rank(2) WITHIN GROUP (ORDER BY col1),
+percent_rank(3) WITHIN GROUP (ORDER BY col1),
+percent_rank(4) WITHIN GROUP (ORDER BY col1),
+cast(rank(4) WITHIN GROUP (ORDER BY col1) - 1 as float) / count(col1),
+percent_rank(5) WITHIN GROUP (ORDER BY col1),
+percent_rank(6) WITHIN GROUP (ORDER BY col1),
+percent_rank(7) WITHIN GROUP (ORDER BY col1),
+percent_rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+POSTHOOK: query: select
+percent_rank(1) WITHIN GROUP (ORDER BY col1),
+percent_rank(2) WITHIN GROUP (ORDER BY col1),
+percent_rank(3) WITHIN GROUP (ORDER BY col1),
+percent_rank(4) WITHIN GROUP (ORDER BY col1),
+cast(rank(4) WITHIN GROUP (ORDER BY col1) - 1 as float) / count(col1),
+percent_rank(5) WITHIN GROUP (ORDER BY col1),
+percent_rank(6) WITHIN GROUP (ORDER BY col1),
+percent_rank(7) WITHIN GROUP (ORDER BY col1),
+percent_rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+0.0	0.0	0.0	0.07692307692307693	0.07692307692307693	0.07692307692307693	0.38461538461538464	0.38461538461538464	0.46153846153846156
+PREHOOK: query: select
+rank(1) WITHIN GROUP (ORDER BY col1),
+rank(2) WITHIN GROUP (ORDER BY col1),
+rank(3) WITHIN GROUP (ORDER BY col1),
+rank(4) WITHIN GROUP (ORDER BY col1),
+rank(5) WITHIN GROUP (ORDER BY col1),
+rank(6) WITHIN GROUP (ORDER BY col1),
+rank(7) WITHIN GROUP (ORDER BY col1),
+rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+POSTHOOK: query: select
+rank(1) WITHIN GROUP (ORDER BY col1),
+rank(2) WITHIN GROUP (ORDER BY col1),
+rank(3) WITHIN GROUP (ORDER BY col1),
+rank(4) WITHIN GROUP (ORDER BY col1),
+rank(5) WITHIN GROUP (ORDER BY col1),
+rank(6) WITHIN GROUP (ORDER BY col1),
+rank(7) WITHIN GROUP (ORDER BY col1),
+rank(8) WITHIN GROUP (ORDER BY col1)
+from t_test3
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t_test3
+#### A masked pattern was here ####
+1	1	1	2	2	6	6	7
 PREHOOK: query: SELECT
 
 
@@ -115,4 +217,4 @@ from t_test3
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test3
 #### A masked pattern was here ####
-6	3	13	10
+5	2	12	9

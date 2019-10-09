@@ -84,6 +84,14 @@ public class GenericUDAFPercentRank extends GenericUDAFRank {
 
   public static class GenericUDAFHypotheticalSetPercentRankEvaluator extends GenericUDAFHypotheticalSetRankEvaluator {
 
+    public GenericUDAFHypotheticalSetPercentRankEvaluator() {
+      super();
+    }
+
+    public GenericUDAFHypotheticalSetPercentRankEvaluator(boolean allowEquality) {
+      super(allowEquality);
+    }
+
     @Override
     protected ObjectInspector initReturnIO() {
       if (mode == Mode.PARTIAL1 || mode == Mode.PARTIAL2) {
@@ -95,7 +103,7 @@ public class GenericUDAFPercentRank extends GenericUDAFRank {
     @Override
     public Object terminate(AggregationBuffer agg) throws HiveException {
       HypotheticalSetRankBuffer rankBuffer = (HypotheticalSetRankBuffer) agg;
-      return new DoubleWritable((rankBuffer.rank - 1.0) / rankBuffer.count);
+      return new DoubleWritable(((double)rankBuffer.rank) / rankBuffer.rowCount);
     }
   }
 }
