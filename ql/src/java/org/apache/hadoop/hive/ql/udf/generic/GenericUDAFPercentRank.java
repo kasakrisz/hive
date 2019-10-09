@@ -85,19 +85,7 @@ public class GenericUDAFPercentRank extends GenericUDAFRank {
   public static class GenericUDAFHypotheticalSetPercentRankEvaluator extends GenericUDAFHypotheticalSetRankEvaluator {
 
     public GenericUDAFHypotheticalSetPercentRankEvaluator() {
-      super();
-    }
-
-    public GenericUDAFHypotheticalSetPercentRankEvaluator(boolean allowEquality) {
-      super(allowEquality);
-    }
-
-    @Override
-    protected ObjectInspector initReturnIO() {
-      if (mode == Mode.PARTIAL1 || mode == Mode.PARTIAL2) {
-        return super.initReturnIO();
-      }
-      return PrimitiveObjectInspectorFactory.writableDoubleObjectInspector;
+      super(false, PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
     }
 
     @Override

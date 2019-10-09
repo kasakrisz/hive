@@ -98,10 +98,10 @@ public class GenericUDAFCumeDist extends GenericUDAFRank {
   }
 
   public static class GenericUDAFHypotheticalSetCumeDistEvaluator
-          extends GenericUDAFPercentRank.GenericUDAFHypotheticalSetPercentRankEvaluator {
+          extends GenericUDAFHypotheticalSetRankEvaluator {
 
     public GenericUDAFHypotheticalSetCumeDistEvaluator() {
-      super(true);
+      super(true, PrimitiveObjectInspectorFactory.writableDoubleObjectInspector);
     }
 
     @Override
