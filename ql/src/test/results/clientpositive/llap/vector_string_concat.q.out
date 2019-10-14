@@ -370,6 +370,9 @@ STAGE PLANS:
                           className: VectorTopNKeyOperator
                           keyExpressions: col 25:string
                           native: true
+                          projectedOutputColumnNums: [21]
+                          selectExpressions: StringGroupConcatColCol(col 18:string, col 19:string)(children: StringGroupColConcatStringScalar(col 19:string, val -)(children: StringScalarConcatStringGroupCol(val Quarter , col 18:string)(children: CastLongToString(col 14:int)(children: CastDoubleToLong(col 16:double)(children: DoubleColAddDoubleScalar(col 17:double, val 1.0)(children: DoubleColDivideDoubleScalar(col 16:double, val 3.0)(children: CastLongToDouble(col 15:int)(children: LongColSubtractLongScalar(col 14:int, val 1)(children: VectorUDFMonthDate(col 12, field MONTH) -> 14:int) -> 15:int) -> 16:double) -> 17:double) -> 16:double) -> 14:int) -> 18:string) -> 19:string) -> 18:string, CastLongToString(col 14:int)(children: VectorUDFYearDate(col 12, field YEAR) -> 14:int) -> 19:string) -> 21:string
+                      Statistics: Num rows: 2000 Data size: 106288 Basic stats: COMPLETE Column stats: COMPLETE
                       Group By Operator
                         Group By Vectorization:
                             className: VectorGroupByOperator

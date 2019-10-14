@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
@@ -101,15 +102,27 @@ public class TopNKeyProcessor implements NodeProcessor {
     }
 
     // Insert a new top n key operator between the group by operator and its parent
-    TopNKeyDesc topNKeyDesc = new TopNKeyDesc(
-            reduceSinkDesc.getTopN(), reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder(), groupByKeyColumns);
-    Operator<? extends OperatorDesc> newOperator = OperatorFactory.getAndMakeChild(
-            groupByOperator.getCompilationOpContext(), (OperatorDesc) topNKeyDesc,
-            new RowSchema(groupByOperator.getSchema()), groupByOperator.getParentOperators());
-    newOperator.getChildOperators().add(groupByOperator);
-    groupByOperator.getParentOperators().add(newOperator);
-    parentOperator.removeChild(groupByOperator);
-
+    TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), reduceSinkDesc.getOrder(),
+        reduceSinkDesc.getNullOrder(), groupByKeyColumns);
+    copyDown(groupByOperator, topNKeyDesc);
     return null;
+  }
+
+  static TopNKeyOperator copyDown(Operator<? extends OperatorDesc> child, OperatorDesc operatorDesc) {
+    final List<Operator<? extends OperatorDesc>> parents = child.getParentOperators();
+
+    final Operator<? extends OperatorDesc> newOperator =
+        OperatorFactory.getAndMakeChild(
+            child.getCompilationOpContext(), operatorDesc,
+            new RowSchema(parents.get(0).getSchema()), child.getParentOperators());
+    newOperator.setParentOperators(new ArrayList<>(parents));
+    newOperator.setChildOperators(new ArrayList<>(Collections.singletonList(child)));
+
+    for (Operator<? extends OperatorDesc> parent : parents) {
+      parent.removeChild(child);
+    }
+    child.setParentOperators(new ArrayList<>(Collections.singletonList(newOperator)));
+
+    return (TopNKeyOperator) newOperator;
   }
 }

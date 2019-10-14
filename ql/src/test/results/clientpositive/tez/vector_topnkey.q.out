@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 PREHOOK: query: CREATE TABLE t_test(
   cint1 int,
   cint2 int,
@@ -43,6 +44,15 @@ POSTHOOK: query: INSERT INTO t_test VALUES
 (7, 8, 4.5, 'four', 4.5, 4.5), (7, 8, 4.5, 'four', 4.5, 4.5), (7, 8, 4.5, 'four', 4.5, 4.5),
 (4, 1, 2.0, 'five', 2.0, 2.0), (4, 1, 2.0, 'five', 2.0, 2.0), (4, 1, 2.0, 'five', 2.0, 2.0),
 (NULL, NULL, NULL, NULL, NULL, NULL)
+=======
+PREHOOK: query: explain vectorization
+SELECT key, SUM(CAST(SUBSTR(value,5) AS INT)) FROM src GROUP BY key ORDER BY key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: explain vectorization
+SELECT key, SUM(CAST(SUBSTR(value,5) AS INT)) FROM src GROUP BY key ORDER BY key LIMIT 5
+>>>>>>> HIVE-20150: TopNKey pushdown
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@t_test
@@ -60,7 +70,26 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: EXPLAIN VECTORIZATION DETAIL
 SELECT cint1 FROM t_test GROUP BY cint1 ORDER BY cint1 LIMIT 3
 POSTHOOK: type: QUERY
+<<<<<<< HEAD
 POSTHOOK: Input: default@t_test
+=======
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+0	0
+10	10
+100	200
+103	206
+104	208
+PREHOOK: query: explain vectorization
+SELECT key FROM src GROUP BY key ORDER BY key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: explain vectorization
+SELECT key FROM src GROUP BY key ORDER BY key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+>>>>>>> HIVE-20150: TopNKey pushdown
 POSTHOOK: Output: hdfs://### HDFS PATH ###
 PLAN VECTORIZATION:
   enabled: true
@@ -240,17 +269,33 @@ POSTHOOK: query: SELECT cint1 FROM t_test GROUP BY cint1 ORDER BY cint1 LIMIT 3
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test
 POSTHOOK: Output: hdfs://### HDFS PATH ###
+<<<<<<< HEAD
 4
 6
 7
 PREHOOK: query: SELECT cint1, cint2 FROM t_test GROUP BY cint1, cint2 ORDER BY cint1, cint2 LIMIT 3
+=======
+0
+10
+100
+103
+104
+PREHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+>>>>>>> HIVE-20150: TopNKey pushdown
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t_test
 PREHOOK: Output: hdfs://### HDFS PATH ###
+<<<<<<< HEAD
 POSTHOOK: query: SELECT cint1, cint2 FROM t_test GROUP BY cint1, cint2 ORDER BY cint1, cint2 LIMIT 3
+=======
+POSTHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+>>>>>>> HIVE-20150: TopNKey pushdown
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test
 POSTHOOK: Output: hdfs://### HDFS PATH ###
+<<<<<<< HEAD
 4	1
 4	2
 6	2
@@ -288,13 +333,210 @@ five	2.0
 four	4.5
 one	2.0
 PREHOOK: query: SELECT cdecimal1, cdecimal2 FROM t_test GROUP BY cdecimal1, cdecimal2 ORDER BY cdecimal1, cdecimal2 LIMIT 3
+=======
+PLAN VECTORIZATION:
+  enabled: true
+  enabledConditionsMet: [hive.vectorized.execution.enabled IS true]
+
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 depends on stages: Stage-1
+
+STAGE PLANS:
+  Stage: Stage-1
+    Tez
+#### A masked pattern was here ####
+      Edges:
+        Reducer 2 <- Map 1 (SIMPLE_EDGE), Map 4 (SIMPLE_EDGE)
+        Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+#### A masked pattern was here ####
+      Vertices:
+        Map 1 
+            Map Operator Tree:
+                TableScan
+                  alias: src1
+                  filterExpr: key is not null (type: boolean)
+                  Statistics: Num rows: 500 Data size: 43500 Basic stats: COMPLETE Column stats: COMPLETE
+                  TableScan Vectorization:
+                      native: true
+                      vectorizationSchemaColumns: [0:key:string, 1:value:string, 2:ROW__ID:struct<writeid:bigint,bucketid:int,rowid:bigint>]
+                  Filter Operator
+                    Filter Vectorization:
+                        className: VectorFilterOperator
+                        native: true
+                        predicateExpression: SelectColumnIsNotNull(col 0:string)
+                    predicate: key is not null (type: boolean)
+                    Statistics: Num rows: 500 Data size: 43500 Basic stats: COMPLETE Column stats: COMPLETE
+                    Select Operator
+                      expressions: key (type: string)
+                      outputColumnNames: _col0
+                      Select Vectorization:
+                          className: VectorSelectOperator
+                          native: true
+                          projectedOutputColumnNums: [0]
+                      Statistics: Num rows: 500 Data size: 43500 Basic stats: COMPLETE Column stats: COMPLETE
+                      Reduce Output Operator
+                        key expressions: _col0 (type: string)
+                        sort order: +
+                        Map-reduce partition columns: _col0 (type: string)
+                        Reduce Sink Vectorization:
+                            className: VectorReduceSinkStringOperator
+                            keyColumns: 0:string
+                            native: true
+                            nativeConditionsMet: hive.vectorized.execution.reducesink.new.enabled IS true, hive.execution.engine tez IN [tez, spark] IS true, No PTF TopN IS true, No DISTINCT columns IS true, BinarySortableSerDe for keys IS true, LazyBinarySerDe for values IS true
+                        Statistics: Num rows: 500 Data size: 43500 Basic stats: COMPLETE Column stats: COMPLETE
+            Execution mode: vectorized
+            Map Vectorization:
+                enabled: true
+                enabledConditionsMet: hive.vectorized.use.vector.serde.deserialize IS true
+                inputFormatFeatureSupport: [DECIMAL_64]
+                featureSupportInUse: [DECIMAL_64]
+                inputFileFormats: org.apache.hadoop.mapred.TextInputFormat
+                allNative: true
+                usesVectorUDFAdaptor: false
+                vectorized: true
+                rowBatchContext:
+                    dataColumnCount: 2
+                    includeColumns: [0]
+                    dataColumns: key:string, value:string
+                    partitionColumnCount: 0
+                    scratchColumnTypeNames: []
+        Map 4 
+            Map Operator Tree:
+                TableScan
+                  alias: src2
+                  filterExpr: key is not null (type: boolean)
+                  Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
+                  TableScan Vectorization:
+                      native: true
+                      vectorizationSchemaColumns: [0:key:string, 1:value:string, 2:ROW__ID:struct<writeid:bigint,bucketid:int,rowid:bigint>]
+                  Filter Operator
+                    Filter Vectorization:
+                        className: VectorFilterOperator
+                        native: true
+                        predicateExpression: SelectColumnIsNotNull(col 0:string)
+                    predicate: key is not null (type: boolean)
+                    Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
+                    Select Operator
+                      expressions: key (type: string), value (type: string)
+                      outputColumnNames: _col0, _col1
+                      Select Vectorization:
+                          className: VectorSelectOperator
+                          native: true
+                          projectedOutputColumnNums: [0, 1]
+                      Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
+                      Reduce Output Operator
+                        key expressions: _col0 (type: string)
+                        sort order: +
+                        Map-reduce partition columns: _col0 (type: string)
+                        Reduce Sink Vectorization:
+                            className: VectorReduceSinkStringOperator
+                            keyColumns: 0:string
+                            native: true
+                            nativeConditionsMet: hive.vectorized.execution.reducesink.new.enabled IS true, hive.execution.engine tez IN [tez, spark] IS true, No PTF TopN IS true, No DISTINCT columns IS true, BinarySortableSerDe for keys IS true, LazyBinarySerDe for values IS true
+                            valueColumns: 1:string
+                        Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
+                        value expressions: _col1 (type: string)
+            Execution mode: vectorized
+            Map Vectorization:
+                enabled: true
+                enabledConditionsMet: hive.vectorized.use.vector.serde.deserialize IS true
+                inputFormatFeatureSupport: [DECIMAL_64]
+                featureSupportInUse: [DECIMAL_64]
+                inputFileFormats: org.apache.hadoop.mapred.TextInputFormat
+                allNative: true
+                usesVectorUDFAdaptor: false
+                vectorized: true
+                rowBatchContext:
+                    dataColumnCount: 2
+                    includeColumns: [0, 1]
+                    dataColumns: key:string, value:string
+                    partitionColumnCount: 0
+                    scratchColumnTypeNames: []
+        Reducer 2 
+            Reduce Operator Tree:
+              Merge Join Operator
+                condition map:
+                     Inner Join 0 to 1
+                keys:
+                  0 _col0 (type: string)
+                  1 _col0 (type: string)
+                outputColumnNames: _col0, _col2
+                Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
+                Select Operator
+                  expressions: _col0 (type: string), _col2 (type: string)
+                  outputColumnNames: _col0, _col1
+                  Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
+                  Reduce Output Operator
+                    key expressions: _col0 (type: string)
+                    sort order: +
+                    Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
+                    TopN Hash Memory Usage: 0.1
+                    value expressions: _col1 (type: string)
+            MergeJoin Vectorization:
+                enabled: false
+                enableConditionsNotMet: Vectorizing MergeJoin Supported IS false
+        Reducer 3 
+            Execution mode: vectorized
+            Reduce Vectorization:
+                enabled: true
+                enableConditionsMet: hive.vectorized.execution.reduce.enabled IS true, hive.execution.engine tez IN [tez, spark] IS true
+                reduceColumnNullOrder: z
+                reduceColumnSortOrder: +
+                allNative: false
+                usesVectorUDFAdaptor: false
+                vectorized: true
+                rowBatchContext:
+                    dataColumnCount: 2
+                    dataColumns: KEY.reducesinkkey0:string, VALUE._col0:string
+                    partitionColumnCount: 0
+                    scratchColumnTypeNames: []
+            Reduce Operator Tree:
+              Select Operator
+                expressions: KEY.reducesinkkey0 (type: string), VALUE._col0 (type: string)
+                outputColumnNames: _col0, _col1
+                Select Vectorization:
+                    className: VectorSelectOperator
+                    native: true
+                    projectedOutputColumnNums: [0, 1]
+                Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
+                Limit
+                  Number of rows: 5
+                  Limit Vectorization:
+                      className: VectorLimitOperator
+                      native: true
+                  Statistics: Num rows: 5 Data size: 890 Basic stats: COMPLETE Column stats: COMPLETE
+                  File Output Operator
+                    compressed: false
+                    File Sink Vectorization:
+                        className: VectorFileSinkOperator
+                        native: false
+                    Statistics: Num rows: 5 Data size: 890 Basic stats: COMPLETE Column stats: COMPLETE
+                    table:
+                        input format: org.apache.hadoop.mapred.SequenceFileInputFormat
+                        output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
+                        serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: 5
+      Processor Tree:
+        ListSink
+
+PREHOOK: query: SELECT src1.key, src2.value FROM src src1 JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+>>>>>>> HIVE-20150: TopNKey pushdown
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t_test
 PREHOOK: Output: hdfs://### HDFS PATH ###
+<<<<<<< HEAD
 POSTHOOK: query: SELECT cdecimal1, cdecimal2 FROM t_test GROUP BY cdecimal1, cdecimal2 ORDER BY cdecimal1, cdecimal2 LIMIT 3
+=======
+POSTHOOK: query: SELECT src1.key, src2.value FROM src src1 JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+>>>>>>> HIVE-20150: TopNKey pushdown
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t_test
 POSTHOOK: Output: hdfs://### HDFS PATH ###
+<<<<<<< HEAD
 1.80	1.80000
 2.00	2.00000
 3.30	3.30000
@@ -306,3 +548,282 @@ POSTHOOK: query: DROP TABLE t_test
 POSTHOOK: type: DROPTABLE
 POSTHOOK: Input: default@t_test
 POSTHOOK: Output: default@t_test
+=======
+0	val_0
+10	val_10
+100	val_100
+103	val_103
+104	val_104
+PREHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 LEFT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 LEFT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+Plan optimized by CBO.
+
+Vertex dependency in root stage
+Reducer 2 <- Map 1 (SIMPLE_EDGE), Map 5 (SIMPLE_EDGE)
+Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+Reducer 4 <- Reducer 3 (SIMPLE_EDGE)
+
+Stage-0
+  Fetch Operator
+    limit:5
+    Stage-1
+      Reducer 4 vectorized
+      File Output Operator [FS_35]
+        Limit [LIM_34] (rows=5 width=178)
+          Number of rows:5
+          Select Operator [SEL_33] (rows=395 width=178)
+            Output:["_col0","_col1"]
+          <-Reducer 3 [SIMPLE_EDGE] vectorized
+            SHUFFLE [RS_32]
+              Group By Operator [GBY_31] (rows=395 width=178)
+                Output:["_col0","_col1"],keys:KEY._col0, KEY._col1
+              <-Reducer 2 [SIMPLE_EDGE]
+                SHUFFLE [RS_9]
+                  PartitionCols:_col0, _col1
+                  Group By Operator [GBY_8] (rows=395 width=178)
+                    Output:["_col0","_col1"],keys:_col0, _col2
+                    Top N Key Operator [TNK_18] (rows=791 width=178)
+                      keys:_col0, _col2,sort order:++,top n:5
+                      Merge Join Operator [MERGEJOIN_24] (rows=791 width=178)
+                        Conds:RS_28._col0=RS_30._col0(Left Outer),Output:["_col0","_col2"]
+                      <-Map 1 [SIMPLE_EDGE] vectorized
+                        SHUFFLE [RS_28]
+                          PartitionCols:_col0
+                          Select Operator [SEL_27] (rows=500 width=87)
+                            Output:["_col0"]
+                            Top N Key Operator [TNK_26]
+                              keys:key,sort order:+,top n:5
+                              TableScan [TS_0] (rows=500 width=87)
+                                default@src,src1,Tbl:COMPLETE,Col:COMPLETE,Output:["key"]
+                      <-Map 5 [SIMPLE_EDGE] vectorized
+                        SHUFFLE [RS_30]
+                          PartitionCols:_col0
+                          Select Operator [SEL_29] (rows=500 width=178)
+                            Output:["_col0","_col1"]
+                            TableScan [TS_2] (rows=500 width=178)
+                              default@src,src2,Tbl:COMPLETE,Col:COMPLETE,Output:["key","value"]
+
+PREHOOK: query: SELECT src1.key, src2.value FROM src src1 LEFT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: SELECT src1.key, src2.value FROM src src1 LEFT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+0	val_0
+10	val_10
+100	val_100
+103	val_103
+104	val_104
+PREHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 RIGHT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 RIGHT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+Plan optimized by CBO.
+
+Vertex dependency in root stage
+Reducer 2 <- Map 1 (SIMPLE_EDGE), Map 5 (SIMPLE_EDGE)
+Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+Reducer 4 <- Reducer 3 (SIMPLE_EDGE)
+
+Stage-0
+  Fetch Operator
+    limit:5
+    Stage-1
+      Reducer 4 vectorized
+      File Output Operator [FS_35]
+        Limit [LIM_34] (rows=5 width=178)
+          Number of rows:5
+          Select Operator [SEL_33] (rows=395 width=178)
+            Output:["_col0","_col1"]
+          <-Reducer 3 [SIMPLE_EDGE] vectorized
+            SHUFFLE [RS_32]
+              Group By Operator [GBY_31] (rows=395 width=178)
+                Output:["_col0","_col1"],keys:KEY._col0, KEY._col1
+              <-Reducer 2 [SIMPLE_EDGE]
+                SHUFFLE [RS_9]
+                  PartitionCols:_col0, _col1
+                  Group By Operator [GBY_8] (rows=395 width=178)
+                    Output:["_col0","_col1"],keys:_col0, _col2
+                    Merge Join Operator [MERGEJOIN_24] (rows=791 width=178)
+                      Conds:RS_27._col0=RS_30._col0(Right Outer),Output:["_col0","_col2"]
+                    <-Map 1 [SIMPLE_EDGE] vectorized
+                      SHUFFLE [RS_27]
+                        PartitionCols:_col0
+                        Select Operator [SEL_26] (rows=500 width=87)
+                          Output:["_col0"]
+                          TableScan [TS_0] (rows=500 width=87)
+                            default@src,src1,Tbl:COMPLETE,Col:COMPLETE,Output:["key"]
+                    <-Map 5 [SIMPLE_EDGE] vectorized
+                      SHUFFLE [RS_30]
+                        PartitionCols:_col0
+                        Select Operator [SEL_29] (rows=500 width=178)
+                          Output:["_col0","_col1"]
+                          Top N Key Operator [TNK_28]
+                            keys:key, value,sort order:++,top n:5
+                            TableScan [TS_2] (rows=500 width=178)
+                              default@src,src2,Tbl:COMPLETE,Col:COMPLETE,Output:["key","value"]
+
+PREHOOK: query: SELECT src1.key, src2.value FROM src src1 RIGHT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: SELECT src1.key, src2.value FROM src src1 RIGHT OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+0	val_0
+10	val_10
+100	val_100
+103	val_103
+104	val_104
+PREHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: explain vectorization
+SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+Plan optimized by CBO.
+
+Vertex dependency in root stage
+Reducer 2 <- Map 1 (SIMPLE_EDGE), Map 5 (SIMPLE_EDGE)
+Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+Reducer 4 <- Reducer 3 (SIMPLE_EDGE)
+
+Stage-0
+  Fetch Operator
+    limit:5
+    Stage-1
+      Reducer 4 vectorized
+      File Output Operator [FS_26]
+        Limit [LIM_25] (rows=5 width=178)
+          Number of rows:5
+          Select Operator [SEL_24] (rows=500 width=178)
+            Output:["_col0","_col1"]
+          <-Reducer 3 [SIMPLE_EDGE] vectorized
+            SHUFFLE [RS_23]
+              Group By Operator [GBY_22] (rows=500 width=178)
+                Output:["_col0","_col1"],keys:KEY._col0, KEY._col1
+              <-Reducer 2 [SIMPLE_EDGE]
+                SHUFFLE [RS_9]
+                  PartitionCols:_col0, _col1
+                  Group By Operator [GBY_8] (rows=500 width=178)
+                    Output:["_col0","_col1"],keys:_col0, _col2
+                    Top N Key Operator [TNK_16] (rows=1000 width=178)
+                      keys:_col0, _col2,sort order:++,top n:5
+                      Merge Join Operator [MERGEJOIN_17] (rows=1000 width=178)
+                        Conds:RS_19._col0=RS_21._col0(Outer),Output:["_col0","_col2"]
+                      <-Map 1 [SIMPLE_EDGE] vectorized
+                        SHUFFLE [RS_19]
+                          PartitionCols:_col0
+                          Select Operator [SEL_18] (rows=500 width=87)
+                            Output:["_col0"]
+                            TableScan [TS_0] (rows=500 width=87)
+                              default@src,src1,Tbl:COMPLETE,Col:COMPLETE,Output:["key"]
+                      <-Map 5 [SIMPLE_EDGE] vectorized
+                        SHUFFLE [RS_21]
+                          PartitionCols:_col0
+                          Select Operator [SEL_20] (rows=500 width=178)
+                            Output:["_col0","_col1"]
+                            TableScan [TS_2] (rows=500 width=178)
+                              default@src,src2,Tbl:COMPLETE,Col:COMPLETE,Output:["key","value"]
+
+PREHOOK: query: SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+0	val_0
+10	val_10
+100	val_100
+103	val_103
+104	val_104
+PREHOOK: query: explain
+SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: explain
+SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+Plan optimized by CBO.
+
+Vertex dependency in root stage
+Reducer 2 <- Map 1 (SIMPLE_EDGE), Map 5 (SIMPLE_EDGE)
+Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+Reducer 4 <- Reducer 3 (SIMPLE_EDGE)
+
+Stage-0
+  Fetch Operator
+    limit:5
+    Stage-1
+      Reducer 4 vectorized
+      File Output Operator [FS_25]
+        Limit [LIM_24] (rows=5 width=178)
+          Number of rows:5
+          Select Operator [SEL_23] (rows=500 width=178)
+            Output:["_col0","_col1"]
+          <-Reducer 3 [SIMPLE_EDGE] vectorized
+            SHUFFLE [RS_22]
+              Group By Operator [GBY_21] (rows=500 width=178)
+                Output:["_col0","_col1"],keys:KEY._col0, KEY._col1
+              <-Reducer 2 [SIMPLE_EDGE]
+                SHUFFLE [RS_9]
+                  PartitionCols:_col0, _col1
+                  Group By Operator [GBY_8] (rows=500 width=178)
+                    Output:["_col0","_col1"],keys:_col0, _col2
+                    Merge Join Operator [MERGEJOIN_16] (rows=1000 width=178)
+                      Conds:RS_18._col0=RS_20._col0(Outer),Output:["_col0","_col2"]
+                    <-Map 1 [SIMPLE_EDGE] vectorized
+                      SHUFFLE [RS_18]
+                        PartitionCols:_col0
+                        Select Operator [SEL_17] (rows=500 width=87)
+                          Output:["_col0"]
+                          TableScan [TS_0] (rows=500 width=87)
+                            default@src,src1,Tbl:COMPLETE,Col:COMPLETE,Output:["key"]
+                    <-Map 5 [SIMPLE_EDGE] vectorized
+                      SHUFFLE [RS_20]
+                        PartitionCols:_col0
+                        Select Operator [SEL_19] (rows=500 width=178)
+                          Output:["_col0","_col1"]
+                          TableScan [TS_2] (rows=500 width=178)
+                            default@src,src2,Tbl:COMPLETE,Col:COMPLETE,Output:["key","value"]
+
+PREHOOK: query: SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+PREHOOK: type: QUERY
+PREHOOK: Input: default@src
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: SELECT src1.key, src2.value FROM src src1 FULL OUTER JOIN src src2 ON (src1.key = src2.key) GROUP BY src1.key, src2.value ORDER BY src1.key LIMIT 5
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@src
+POSTHOOK: Output: hdfs://### HDFS PATH ###
+0	val_0
+10	val_10
+100	val_100
+103	val_103
+104	val_104
+>>>>>>> HIVE-20150: TopNKey pushdown

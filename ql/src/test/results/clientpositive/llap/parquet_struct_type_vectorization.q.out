@@ -256,6 +256,9 @@ STAGE PLANS:
                             className: VectorTopNKeyOperator
                             keyExpressions: col 5:int
                             native: true
+                            projectedOutputColumnNums: [5]
+                            selectExpressions: VectorUDFStructField(col 1:struct<f1:int,f2:string>, col 0:int) -> 5:int
+                        Statistics: Num rows: 341 Data size: 76542 Basic stats: COMPLETE Column stats: NONE
                         Group By Operator
                           aggregations: sum(_col0)
                           Group By Vectorization:
