@@ -84,11 +84,19 @@ Stage-0
                   PartitionCols:_col0, _col1
                   Group By Operator [GBY_52] (rows=143930993 width=299)
                     Output:["_col0","_col1","_col2"],aggregations:["sum(_col3)"],keys:_col8, _col7
+<<<<<<< HEAD
                     Top N Key Operator [TNK_82] (rows=143930993 width=310)
                       keys:_col8, _col7,top n:100
                       Select Operator [SEL_51] (rows=143930993 width=310)
                         Output:["_col3","_col7","_col8"]
                         Filter Operator [FIL_50] (rows=143930993 width=310)
+=======
+                    Select Operator [SEL_51] (rows=10246864 width=310)
+                      Output:["_col3","_col7","_col8"]
+                      Top N Key Operator [TNK_82] (rows=10246864 width=310)
+                        keys:_col8, _col7,sort order:++,top n:100
+                        Filter Operator [FIL_50] (rows=10246864 width=310)
+>>>>>>> HIVE-20150: TopNKey pushdown - adjust q tests
                           predicate:(((_col14 <> 0L) and _col16 is not null) or (substr(_col8, 1, 5)) IN ('85669', '86197', '88274', '83405', '86475', '85392', '85460', '80348', '81792'))
                           Select Operator [SEL_49] (rows=143930993 width=310)
                             Output:["_col3","_col7","_col8","_col14","_col16"]
