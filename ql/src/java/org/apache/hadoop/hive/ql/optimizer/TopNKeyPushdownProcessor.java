@@ -92,17 +92,17 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             }
           }
           switch (firstJoinCond.getType()) {
-            case JoinDesc.FULL_OUTER_JOIN:
-              pushdownThroughFullOuterJoin(topNKey);
-              break;
+//            case JoinDesc.FULL_OUTER_JOIN:
+//              pushdownThroughFullOuterJoin(topNKey);
+//              break;
 
             case JoinDesc.LEFT_OUTER_JOIN:
               pushdownThroughLeftOuterJoin(topNKey);
               break;
 
-            case JoinDesc.RIGHT_OUTER_JOIN:
-              pushdownThroughRightOuterJoin(topNKey);
-              break;
+//            case JoinDesc.RIGHT_OUTER_JOIN:
+//              pushdownThroughRightOuterJoin(topNKey);
+//              break;
 
             default:
               break;
