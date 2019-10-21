@@ -132,13 +132,15 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     pushdown(topNKey);
   }
 
+  /**
+   * Push through GroupBy. No grouping sets. If TopNKey expression is same as GroupBy expression,
+   * we can push it and remove it from above GroupBy. If expression in TopNKey shared common
+   * prefix with GroupBy, TopNKey could be pushed through GroupBy using that prefix and kept above
+   * it.
+   * @param topNKey TopNKey operator to push
+   * @throws SemanticException
+   */
   private void pushdownThroughGroupBy(TopNKeyOperator topNKey) throws SemanticException {
-    /*
-     * Push through GroupBy. No grouping sets. If TopNKey expression is same as GroupBy expression,
-     * we can push it and remove it from above GroupBy. If expression in TopNKey shared common
-     * prefix with GroupBy, TopNKey could be pushed through GroupBy using that prefix and kept above
-     * it.
-     */
     final GroupByOperator groupBy = (GroupByOperator) topNKey.getParentOperators().get(0);
     final GroupByDesc groupByDesc = groupBy.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
@@ -163,13 +165,15 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     pushdown(copyDown(groupBy, newTopNKeyDesc));
   }
 
+  /**
+   * Push through ReduceSink. If TopNKey expression is same as ReduceSink expression and order is
+   * the same, we can push it and remove it from above ReduceSink. If expression in TopNKey shared
+   * common prefix with ReduceSink including same order, TopNKey could be pushed through
+   * ReduceSink using that prefix and kept above it.
+   * @param topNKey TopNKey operator to push
+   * @throws SemanticException
+   */
   private void pushdownThroughReduceSink(TopNKeyOperator topNKey) throws SemanticException {
-    /*
-     * Push through ReduceSink. If TopNKey expression is same as ReduceSink expression and order is
-     * the same, we can push it and remove it from above ReduceSink. If expression in TopNKey shared
-     * common prefix with ReduceSink including same order, TopNKey could be pushed through
-     * ReduceSink using that prefix and kept above it.
-     */
     final ReduceSinkOperator reduceSink = (ReduceSinkOperator) topNKey.getParentOperators().get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
@@ -198,14 +202,17 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     pushdownThroughLeftOrRightOuterJoin(topNKey, 0);
   }
 
+  /**
+   * Push through LOJ. If TopNKey expression refers fully to expressions from left input, push
+   * with rewriting of expressions and remove from top of LOJ. If TopNKey expression has a prefix
+   * that refers to expressions from left input, push with rewriting of those expressions and keep
+   * on top of LOJ.
+   * @param topNKey TopNKey operator to push
+   * @param position 0 = left outer join, 1 = right outer join
+   * @throws SemanticException
+   */
   private void pushdownThroughLeftOrRightOuterJoin(TopNKeyOperator topNKey, int position)
       throws SemanticException {
-    /*
-     * Push through LOJ. If TopNKey expression refers fully to expressions from left input, push
-     * with rewriting of expressions and remove from top of LOJ. If TopNKey expression has a prefix
-     * that refers to expressions from left input, push with rewriting of those expressions and keep
-     * on top of LOJ.
-     */
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
     final CommonJoinOperator<? extends JoinDesc> join =
         (CommonJoinOperator<? extends JoinDesc>) topNKey.getParentOperators().get(0);
