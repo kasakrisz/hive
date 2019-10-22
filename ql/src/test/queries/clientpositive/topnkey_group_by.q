@@ -28,15 +28,47 @@ insert into tstore values
 (5, 1, 2, 'cdf'), (5, 1, 2, 'tre'), (5, 1, 2, 'gtf'),
 (5, 2, 3, 'abc'), (6, 2, 1, 'kfd');
 
+--explain
+--select a,b,c from tstore group by a,b,c order by a limit 2;
+--select a,b,c from tstore group by a,b,c order by a limit 2;
+
+
+
+--explain
+--select a,b from tstore
+--group by a,b order by a limit 2;
+--select a,b from tstore
+--group by a,b order by a limit 2;
+
+--explain
+--select a,b from
+--  (select a,b,c from tstore group by a,b,c) sub
+--group by a,b order by a limit 2;
+--select a,b from
+--  (select a,b,c from tstore group by a,b,c) sub
+--group by a,b order by a limit 2;
+
 explain
-select a,b,c from tstore group by a,b,c order by a limit 2;
-select a,b,c from tstore group by a,b,c order by a limit 2;
+select a, count(b) from
+  (select a, b from tstore group by a, b) t1
+group by a order by a limit 2;
+select a, count(b) from
+  (select a, b from tstore group by a, b) t1
+group by a order by a limit 2;
 
 
+--explain
+--select ctinyint, count(cdouble) from
+--  (select ctinyint, cdouble from alltypesorc group by ctinyint, cdouble) t1
+--group by ctinyint order by ctinyint limit 20;
+--select ctinyint, count(cdouble) from
+--  (select ctinyint, cdouble from alltypesorc group by ctinyint, cdouble) t1
+--group by ctinyint order by ctinyint limit 20;
 
-set hive.optimize.topnkey=false;
+--set hive.optimize.topnkey=false;
 
 
-explain
-select a,b,c from tstore group by a,b,c order by a limit 2;
-select a,b,c from tstore group by a,b,c order by a limit 2;
+--explain
+--select a,b,c from tstore group by a,b,c order by a limit 2;
+--select a,b,c from tstore group by a,b,c order by a limit 2;
+--

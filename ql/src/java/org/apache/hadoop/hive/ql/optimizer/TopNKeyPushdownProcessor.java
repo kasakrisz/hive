@@ -149,15 +149,32 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final List<ExprNodeDesc> mappedColumns = mapColumns(topNKeyDesc.getKeyColumns(),
         groupByDesc.getColumnExprMap());
     // If TopNKey expression is same as GroupBy expression
-    if (!ExprNodeDescUtils.isSame(groupByDesc.getKeys(), mappedColumns)) {
+//    if (!ExprNodeDescUtils.isSame(groupByDesc.getKeys(), mappedColumns)) {
+//      return;
+//    }
+
+    if (mappedColumns.isEmpty()) {
       return;
     }
 
-    // We can push it and remove it from above GroupBy.
-    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-        topNKeyDesc.getColumnSortOrder(), mappedColumns);
-    groupBy.removeChildAndAdoptItsChildren(topNKey);
+    // Copy down
+    final String mappedOrder = mapOrder(topNKeyDesc.getColumnSortOrder(),
+            new ArrayList<>(groupByDesc.getColumnExprMap().values()), mappedColumns);
+    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder,
+            mappedColumns);
     pushdown(copyDown(groupBy, newTopNKeyDesc));
+
+    // If all columns are mapped, remove from top
+    if (topNKeyDesc.getKeyColumns().size() == mappedColumns.size()) {
+      groupBy.removeChildAndAdoptItsChildren(topNKey);
+    }
+
+
+    // We can push it and remove it from above GroupBy.
+//    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
+//        topNKeyDesc.getColumnSortOrder(), mappedColumns);
+//    groupBy.removeChildAndAdoptItsChildren(topNKey);
+//    pushdown(copyDown(groupBy, newTopNKeyDesc));
   }
 
   /**
