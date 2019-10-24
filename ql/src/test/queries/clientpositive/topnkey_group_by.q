@@ -17,58 +17,35 @@ set hive.cbo.enable=true;
 
 drop table if exists tstore;
 
-create table tstore(
+create table t_test(
   a int,
   b int,
-  c int,
-  store_name varchar(100)
+  c int
 );
 
-insert into tstore values
-(5, 1, 2, 'cdf'), (5, 1, 2, 'tre'), (5, 1, 2, 'gtf'),
-(5, 2, 3, 'abc'), (6, 2, 1, 'kfd');
+insert into t_test values
+(5, 2, 3),
+(6, 2, 1),
+(7, 8, 4),(7, 8, 4),(7, 8, 4),
+(5, 1, 2), (5, 1, 2), (5, 1, 2);
 
---explain
---select a,b,c from tstore group by a,b,c order by a limit 2;
---select a,b,c from tstore group by a,b,c order by a limit 2;
-
-
-
---explain
---select a,b from tstore
---group by a,b order by a limit 2;
---select a,b from tstore
---group by a,b order by a limit 2;
-
---explain
---select a,b from
---  (select a,b,c from tstore group by a,b,c) sub
---group by a,b order by a limit 2;
---select a,b from
---  (select a,b,c from tstore group by a,b,c) sub
---group by a,b order by a limit 2;
 
 explain
 select a, count(b) from
-  (select a, b from tstore group by a, b) t1
+  (select a, b from t_test group by a, b) t1
 group by a order by a limit 2;
 select a, count(b) from
-  (select a, b from tstore group by a, b) t1
+  (select a, b from t_test group by a, b) t1
 group by a order by a limit 2;
 
 
---explain
---select ctinyint, count(cdouble) from
---  (select ctinyint, cdouble from alltypesorc group by ctinyint, cdouble) t1
---group by ctinyint order by ctinyint limit 20;
---select ctinyint, count(cdouble) from
---  (select ctinyint, cdouble from alltypesorc group by ctinyint, cdouble) t1
---group by ctinyint order by ctinyint limit 20;
-
---set hive.optimize.topnkey=false;
+set hive.optimize.topnkey=false;
 
 
---explain
---select a,b,c from tstore group by a,b,c order by a limit 2;
---select a,b,c from tstore group by a,b,c order by a limit 2;
---
+explain
+select a, count(b) from
+(select a, b from t_test group by a, b) t1
+group by a order by a limit 2;
+select a, count(b) from
+(select a, b from t_test group by a, b) t1
+group by a order by a limit 2;

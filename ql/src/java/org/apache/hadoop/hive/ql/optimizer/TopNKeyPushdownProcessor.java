@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -148,33 +149,20 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     // Map columns
     final List<ExprNodeDesc> mappedColumns = mapColumns(topNKeyDesc.getKeyColumns(),
         groupByDesc.getColumnExprMap());
-    // If TopNKey expression is same as GroupBy expression
-//    if (!ExprNodeDescUtils.isSame(groupByDesc.getKeys(), mappedColumns)) {
-//      return;
-//    }
-
     if (mappedColumns.isEmpty()) {
       return;
     }
 
     // Copy down
     final String mappedOrder = mapOrder(topNKeyDesc.getColumnSortOrder(),
-            new ArrayList<>(groupByDesc.getColumnExprMap().values()), mappedColumns);
+            groupByDesc.getColumnExprMap().values(), mappedColumns);
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder,
             mappedColumns);
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
-    // If all columns are mapped, remove from top
-    if (topNKeyDesc.getKeyColumns().size() == mappedColumns.size()) {
+    if (topNKeyDesc.isSame(groupByDesc)) {
       groupBy.removeChildAndAdoptItsChildren(topNKey);
     }
-
-
-    // We can push it and remove it from above GroupBy.
-//    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-//        topNKeyDesc.getColumnSortOrder(), mappedColumns);
-//    groupBy.removeChildAndAdoptItsChildren(topNKey);
-//    pushdown(copyDown(groupBy, newTopNKeyDesc));
   }
 
   /**
@@ -270,7 +258,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     return false;
   }
 
-  private static String mapOrder(String order, List<ExprNodeDesc> parentCols, List<ExprNodeDesc>
+  private static String mapOrder(String order, Collection<ExprNodeDesc> parentCols, Collection<ExprNodeDesc>
       mappedCols) {
 
     final StringBuilder builder = new StringBuilder();
