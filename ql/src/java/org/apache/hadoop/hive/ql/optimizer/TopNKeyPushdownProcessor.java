@@ -28,7 +28,6 @@ import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
@@ -43,7 +42,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Stack;
 
 import static org.apache.commons.lang3.StringUtils.getCommonPrefix;
@@ -202,26 +200,20 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     }
   }
 
-  private void pushdownThroughLeftOuterJoin(TopNKeyOperator topNKey) throws SemanticException {
-    pushdownThroughLeftOrRightOuterJoin(topNKey, 0);
-  }
-
   /**
    * Push through LOJ. If TopNKey expression refers fully to expressions from left input, push
    * with rewriting of expressions and remove from top of LOJ. If TopNKey expression has a prefix
    * that refers to expressions from left input, push with rewriting of those expressions and keep
    * on top of LOJ.
    * @param topNKey TopNKey operator to push
-   * @param position 0 = left outer join, 1 = right outer join
    * @throws SemanticException
    */
-  private void pushdownThroughLeftOrRightOuterJoin(TopNKeyOperator topNKey, int position)
-      throws SemanticException {
+  private void pushdownThroughLeftOuterJoin(TopNKeyOperator topNKey) throws SemanticException {
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
     final CommonJoinOperator<? extends JoinDesc> join =
         (CommonJoinOperator<? extends JoinDesc>) topNKey.getParentOperators().get(0);
     final List<Operator<? extends OperatorDesc>> joinInputs = join.getParentOperators();
-    final ReduceSinkOperator reduceSinkOperator = (ReduceSinkOperator) joinInputs.get(position);
+    final ReduceSinkOperator reduceSinkOperator = (ReduceSinkOperator) joinInputs.get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSinkOperator.getConf();
 
     // Check null order
