@@ -28,6 +28,7 @@ import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
@@ -42,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Stack;
 
 import static org.apache.commons.lang3.StringUtils.getCommonPrefix;
@@ -160,7 +162,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             mappedColumns);
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
-    if (topNKeyDesc.isSame(groupByDesc)) {
+    if (ExprNodeDescUtils.isSame(groupByDesc.getKeys(), topNKeyDesc.getKeyColumns())) {
       groupBy.removeChildAndAdoptItsChildren(topNKey);
     }
   }
@@ -174,7 +176,10 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * @throws SemanticException
    */
   private void pushdownThroughReduceSink(TopNKeyOperator topNKey) throws SemanticException {
-    final ReduceSinkOperator reduceSink = (ReduceSinkOperator) topNKey.getParentOperators().get(0);
+    pushdownThroughReduceSink(topNKey, (ReduceSinkOperator) topNKey.getParentOperators().get(0));
+  }
+
+  private void pushdownThroughReduceSink(TopNKeyOperator topNKey, ReduceSinkOperator reduceSink) throws SemanticException {
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
@@ -195,7 +200,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             mappedColumns);
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
 
-    if (topNKeyDesc.isSame(reduceSinkDesc)) {
+    if (ExprNodeDescUtils.isSame(reduceSinkDesc.getKeyCols(), topNKeyDesc.getKeyColumns())) {
       reduceSink.removeChildAndAdoptItsChildren(topNKey);
     }
   }
@@ -220,6 +225,9 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     if (!checkNullOrder(reduceSinkDesc)) {
       return;
     }
+
+    List<ExprNodeDesc> mappedColumns2 = mapColumns(topNKeyDesc.getKeyColumns(), reduceSinkDesc.getKeyCols(),
+            reduceSinkDesc.getColumnExprMap());
 
     // Map columns
     final List<ExprNodeDesc> mappedColumns = mapColumns(mapColumns(topNKeyDesc.getKeyColumns(),
@@ -293,7 +301,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       ExprNodeDesc column = tnkKeys.get(i);
       ExprNodeDesc parentKey = parentKeys.get(i);
       String columnName = column.getExprString();
-      if (colExprMap.get(columnName).equals(parentKey)) {
+      if (Objects.equals(colExprMap.get(columnName), parentKey)) {
         mappedColumns.add(parentKey);
       }
     }
