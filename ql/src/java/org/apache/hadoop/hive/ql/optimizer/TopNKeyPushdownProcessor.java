@@ -43,8 +43,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Stack;
 
+import static org.apache.commons.lang3.StringUtils.getCommonPrefix;
 import static org.apache.hadoop.hive.ql.optimizer.TopNKeyProcessor.copyDown;
 
 public class TopNKeyPushdownProcessor implements NodeProcessor {
@@ -148,7 +150,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
     // Map columns
     final List<ExprNodeDesc> mappedColumns = mapColumns(topNKeyDesc.getKeyColumns(),
-        groupByDesc.getColumnExprMap());
+        groupByDesc.getKeys(), groupByDesc.getColumnExprMap());
     if (mappedColumns.isEmpty()) {
       return;
     }
@@ -178,24 +180,26 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
-    // Check orders
-    if (!reduceSinkDesc.getOrder().equals(topNKeyDesc.getColumnSortOrder())) {
-      return;
-    }
-
     // Map columns
     final List<ExprNodeDesc> mappedColumns = mapColumns(topNKeyDesc.getKeyColumns(),
-        reduceSinkDesc.getColumnExprMap());
-    // If TopNKey expression is same as ReduceSink expression
-    if (!ExprNodeDescUtils.isSame(reduceSinkDesc.getKeyCols(), mappedColumns)) {
+        reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap());
+    if (mappedColumns.isEmpty()) {
       return;
     }
 
-    // We can push it and remove it from above ReduceSink.
-    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-        topNKeyDesc.getColumnSortOrder(), mappedColumns);
-    reduceSink.removeChildAndAdoptItsChildren(topNKey);
+    final String mappedOrder = getCommonPrefix(topNKeyDesc.getColumnSortOrder(), reduceSinkDesc.getOrder());
+    if (mappedOrder.isEmpty()) {
+      return;
+    }
+
+    // Copy down
+    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder,
+            mappedColumns);
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
+
+    if (topNKeyDesc.isSame(reduceSinkDesc)) {
+      reduceSink.removeChildAndAdoptItsChildren(topNKey);
+    }
   }
 
   private void pushdownThroughLeftOuterJoin(TopNKeyOperator topNKey) throws SemanticException {
@@ -284,6 +288,21 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       final String columnName = column.getExprString();
       if (colExprMap.containsKey(columnName)) {
         mappedColumns.add(colExprMap.get(columnName));
+      }
+    }
+    return mappedColumns;
+  }
+
+  private static List<ExprNodeDesc> mapColumns(List<ExprNodeDesc> tnkKeys, List<ExprNodeDesc> parentKeys,
+                                               Map<String, ExprNodeDesc> colExprMap) {
+    final List<ExprNodeDesc> mappedColumns = new ArrayList<>();
+    int size = Math.min(tnkKeys.size(), parentKeys.size());
+    for (int i = 0; i < size; ++i) {
+      ExprNodeDesc column = tnkKeys.get(i);
+      ExprNodeDesc parentKey = parentKeys.get(i);
+      String columnName = column.getExprString();
+      if (colExprMap.get(columnName).equals(parentKey)) {
+        mappedColumns.add(parentKey);
       }
     }
     return mappedColumns;

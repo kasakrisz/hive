@@ -38,6 +38,15 @@ select a, count(b) from
   (select a, b from t_test group by a, b) t1
 group by a order by a limit 2;
 
+explain
+select a, count(b) from
+  (select a, b from t_test group by a, b) t1
+group by a order by a desc limit 2;
+select a, count(b) from
+  (select a, b from t_test group by a, b) t1
+group by a order by a desc limit 2;
+
+
 
 set hive.optimize.topnkey=false;
 
