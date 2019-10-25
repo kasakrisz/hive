@@ -75,11 +75,6 @@ public class TopNKeyProcessor implements NodeProcessor {
       return null;
     }
 
-    // Check whether the group by operator is in hash mode
-//    if (groupByDesc.getMode() != GroupByDesc.Mode.HASH) {
-//      return null;
-//    }
-
     // Check whether the group by operator has distinct aggregations
     if (groupByDesc.isDistinct()) {
       return null;
