@@ -226,19 +226,20 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    List<ExprNodeDesc> mappedColumns2 = mapColumns(topNKeyDesc.getKeyColumns(), reduceSinkDesc.getKeyCols(),
-            reduceSinkDesc.getColumnExprMap());
+    List<ExprNodeDesc> mappedColumns = mapColumns(mapColumns(topNKeyDesc.getKeyColumns(), join.getColumnExprMap()),
+            reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap());
 
     // Map columns
-    final List<ExprNodeDesc> mappedColumns = mapColumns(mapColumns(topNKeyDesc.getKeyColumns(),
-        join.getColumnExprMap()), reduceSinkOperator.getColumnExprMap());
     if (mappedColumns.isEmpty()) {
       return;
     }
 
+    final String mappedOrder = getCommonPrefix(topNKeyDesc.getColumnSortOrder(), reduceSinkDesc.getOrder());
+    if (mappedOrder.isEmpty()) {
+      return;
+    }
+
     // Copy down
-    final String mappedOrder = mapOrder(topNKeyDesc.getColumnSortOrder(),
-        reduceSinkDesc.getKeyCols(), mappedColumns);
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder,
         mappedColumns);
     pushdown(copyDown(reduceSinkOperator, newTopNKeyDesc));
