@@ -67,6 +67,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
         break;
 
       case FORWARD:
+        LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
         moveDown(topNKey);
         pushdown(topNKey);
         break;
@@ -99,6 +100,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
       case TOPNKEY:
         if (hasSameTopNKeyDesc(parent, topNKey.getConf())) {
+          LOG.debug("Removing {} above same operator: {}", topNKey.getName(), parent.getName());
           parent.removeChildAndAdoptItsChildren(topNKey);
         }
         break;
@@ -118,13 +120,12 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final SelectOperator select = (SelectOperator) topNKey.getParentOperators().get(0);
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
-    // Map columns
     final List<ExprNodeDesc> mappedColumns = mapColumns(topNKeyDesc.getKeyColumns(), select.getColumnExprMap());
     if (mappedColumns.size() != topNKeyDesc.getKeyColumns().size()) {
       return;
     }
 
-    // Move down
+    LOG.debug("Pushing {} through {}", topNKey.getName(), select.getName());
     topNKeyDesc.setKeyColumns(mappedColumns);
     moveDown(topNKey);
     pushdown(topNKey);
@@ -170,13 +171,13 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    // Copy down
+    LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), groupBy.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), commonPrefix.getMappedOrder(),
             commonPrefix.getMappedColumns());
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
-    // If all columns are mapped, remove from top
     if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
+      LOG.debug("Removing {} above {}", topNKey.getName(), groupBy.getName());
       groupBy.removeChildAndAdoptItsChildren(topNKey);
     }
   }
@@ -244,13 +245,13 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    // Copy down
+    LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), reduceSink.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
             commonPrefix.getMappedOrder(), commonPrefix.getMappedColumns());
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
 
-    // If all columns are mapped, remove from top
     if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
+      LOG.debug("Removing {} above {}", topNKey.getName(), reduceSink.getName());
       reduceSink.removeChildAndAdoptItsChildren(topNKey);
     }
   }
@@ -281,13 +282,14 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    // Copy down
+    LOG.debug("Pushing a copy of {} through {} and {}",
+            topNKey.getName(), join.getName(), reduceSinkOperator.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
             commonPrefix.getMappedOrder(), commonPrefix.getMappedColumns());
     pushdown(copyDown(reduceSinkOperator, newTopNKeyDesc));
 
-    // If all columns are mapped, remove from top
     if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
+      LOG.debug("Removing {} above {}", topNKey.getName(), join.getName());
       join.removeChildAndAdoptItsChildren(topNKey);
     }
   }
