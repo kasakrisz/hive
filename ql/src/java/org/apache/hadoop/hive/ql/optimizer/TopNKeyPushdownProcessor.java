@@ -17,7 +17,6 @@
  */
 package org.apache.hadoop.hive.ql.optimizer;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
@@ -29,7 +28,6 @@ import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
@@ -40,14 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
 
-import static org.apache.commons.lang3.StringUtils.getCommonPrefix;
 import static org.apache.hadoop.hive.ql.optimizer.TopNKeyProcessor.copyDown;
 
 public class TopNKeyPushdownProcessor implements NodeProcessor {
@@ -115,7 +111,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
   /**
    * Push through Project if expression(s) in TopNKey can be mapped to expression(s) based on Project input.
    * @param topNKey TopNKey operator to push
-   * @throws SemanticException
+   * @throws SemanticException when removeChildAndAdoptItsChildren was not successful in the method pushdown
    */
   private void pushdownThroughSelect(TopNKeyOperator topNKey) throws SemanticException {
 
@@ -156,7 +152,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * prefix with GroupBy, TopNKey could be pushed through GroupBy using that prefix and kept above
    * it.
    * @param topNKey TopNKey operator to push
-   * @throws SemanticException
+   * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
   private void pushdownThroughGroupBy(TopNKeyOperator topNKey) throws SemanticException {
     final GroupByOperator groupBy = (GroupByOperator) topNKey.getParentOperators().get(0);
@@ -168,23 +164,65 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    // Map columns
-    final List<ExprNodeDesc> mappedColumns = getCommonPrefix(topNKeyDesc.getKeyColumns(),
-        groupByDesc.getKeys(), groupByDesc.getColumnExprMap());
-    if (mappedColumns.isEmpty()) {
+    CommonPrefix commonPrefix = getCommonPrefix(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(),
+        groupByDesc.getKeys(), groupByDesc.getColumnExprMap(), topNKeyDesc.getColumnSortOrder());
+    if (commonPrefix.isEmpty()) {
       return;
     }
 
     // Copy down
-    final String mappedOrder = mapOrder(
-            topNKeyDesc.getColumnSortOrder(), groupByDesc.getColumnExprMap().values(), mappedColumns);
-    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder,
-            mappedColumns);
+    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), commonPrefix.getMappedOrder(),
+            commonPrefix.getMappedColumns());
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
-    if (ExprNodeDescUtils.isSame(groupByDesc.getKeys(), topNKeyDesc.getKeyColumns())) {
+    // If all columns are mapped, remove from top
+    if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
       groupBy.removeChildAndAdoptItsChildren(topNKey);
     }
+  }
+
+  public static class CommonPrefix {
+    private List<ExprNodeDesc> mappedColumns = new ArrayList<>();
+    private StringBuilder mappedOrder = new StringBuilder();
+
+    public void add(ExprNodeDesc column, char order) {
+      mappedColumns.add(column);
+      mappedOrder.append(order);
+    }
+
+    public boolean isEmpty() {
+      return mappedColumns.isEmpty();
+    }
+
+    List<ExprNodeDesc> getMappedColumns() {
+      return mappedColumns;
+    }
+
+    String getMappedOrder() {
+      return mappedOrder.toString();
+    }
+
+    public int size() {
+      return mappedColumns.size();
+    }
+  }
+
+  static CommonPrefix getCommonPrefix(
+          List<ExprNodeDesc> tnkKeys, String tnkOrder,
+          List<ExprNodeDesc> parentKeys, Map<String, ExprNodeDesc> parentColExprMap, String parentOrder) {
+    CommonPrefix commonPrefix = new CommonPrefix();
+    int size = Math.min(tnkKeys.size(), parentKeys.size());
+    for (int i = 0; i < size; ++i) {
+      ExprNodeDesc column = tnkKeys.get(i);
+      ExprNodeDesc parentKey = parentKeys.get(i);
+      String columnName = column.getExprString();
+      if (Objects.equals(parentColExprMap.get(columnName), parentKey) && tnkOrder.charAt(i) == parentOrder.charAt(i)) {
+        commonPrefix.add(parentKey, tnkOrder.charAt(i));
+      } else {
+        return commonPrefix;
+      }
+    }
+    return commonPrefix;
   }
 
   /**
@@ -193,31 +231,26 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * common prefix with ReduceSink including same order, TopNKey could be pushed through
    * ReduceSink using that prefix and kept above it.
    * @param topNKey TopNKey operator to push
-   * @throws SemanticException
+   * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
   private void pushdownThroughReduceSink(TopNKeyOperator topNKey) throws SemanticException {
     ReduceSinkOperator reduceSink = (ReduceSinkOperator) topNKey.getParentOperators().get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
-    // Map columns
-    final List<ExprNodeDesc> mappedColumns = getCommonPrefix(topNKeyDesc.getKeyColumns(),
-        reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap());
-    if (mappedColumns.isEmpty()) {
-      return;
-    }
-
-    final String mappedOrder = StringUtils.getCommonPrefix(
-            topNKeyDesc.getColumnSortOrder(), reduceSinkDesc.getOrder());
-    if (mappedOrder.isEmpty()) {
+    CommonPrefix commonPrefix = getCommonPrefix(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(),
+            reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap(), reduceSinkDesc.getOrder());
+    if (commonPrefix.isEmpty()) {
       return;
     }
 
     // Copy down
-    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder, mappedColumns);
+    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
+            commonPrefix.getMappedOrder(), commonPrefix.getMappedColumns());
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
 
-    if (ExprNodeDescUtils.isSame(reduceSinkDesc.getKeyCols(), topNKeyDesc.getKeyColumns())) {
+    // If all columns are mapped, remove from top
+    if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
       reduceSink.removeChildAndAdoptItsChildren(topNKey);
     }
   }
@@ -228,7 +261,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * that refers to expressions from left input, push with rewriting of those expressions and keep
    * on top of LOJ.
    * @param topNKey TopNKey operator to push
-   * @throws SemanticException
+   * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
   private void pushdownThroughLeftOuterJoin(TopNKeyOperator topNKey) throws SemanticException {
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
@@ -238,26 +271,23 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final ReduceSinkOperator reduceSinkOperator = (ReduceSinkOperator) joinInputs.get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSinkOperator.getConf();
 
-    List<ExprNodeDesc> mappedColumns = getCommonPrefix(
+    CommonPrefix commonPrefix = getCommonPrefix(
             mapUntilColumnEquals(topNKeyDesc.getKeyColumns(), join.getColumnExprMap()),
+            topNKeyDesc.getColumnSortOrder(),
             reduceSinkDesc.getKeyCols(),
-            reduceSinkDesc.getColumnExprMap());
-    if (mappedColumns.isEmpty()) {
-      return;
-    }
-
-    final String mappedOrder = StringUtils.getCommonPrefix(
-            topNKeyDesc.getColumnSortOrder(), reduceSinkDesc.getOrder());
-    if (mappedOrder.isEmpty()) {
+            reduceSinkDesc.getColumnExprMap(),
+            reduceSinkDesc.getOrder());
+    if (commonPrefix.isEmpty()) {
       return;
     }
 
     // Copy down
-    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), mappedOrder, mappedColumns);
+    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
+            commonPrefix.getMappedOrder(), commonPrefix.getMappedColumns());
     pushdown(copyDown(reduceSinkOperator, newTopNKeyDesc));
 
     // If all columns are mapped, remove from top
-    if (topNKeyDesc.getKeyColumns().size() == mappedColumns.size()) {
+    if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
       join.removeChildAndAdoptItsChildren(topNKey);
     }
   }
@@ -279,49 +309,14 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     return mappedColumns;
   }
 
-  private static boolean hasSameTopNKeyDesc(Operator<? extends OperatorDesc> operator,
-      TopNKeyDesc desc) {
-
-    if (operator instanceof TopNKeyOperator) {
-      final TopNKeyOperator topNKey = (TopNKeyOperator) operator;
-      final TopNKeyDesc opDesc = topNKey.getConf();
-      if (opDesc.isSame(desc)) {
-        return true;
-      }
+  private static boolean hasSameTopNKeyDesc(Operator<? extends OperatorDesc> operator, TopNKeyDesc desc) {
+    if (!(operator instanceof TopNKeyOperator)) {
+      return false;
     }
-    return false;
-  }
 
-  private static String mapOrder(String order, Collection<ExprNodeDesc> parentCols, Collection<ExprNodeDesc>
-      mappedCols) {
-
-    final StringBuilder builder = new StringBuilder();
-    int index = 0;
-    for (ExprNodeDesc mappedCol : mappedCols) {
-      if (parentCols.contains(mappedCol)) {
-        builder.append(order.charAt(index++));
-      } else {
-        builder.append("+");
-      }
-    }
-    return builder.toString();
-  }
-
-  private static List<ExprNodeDesc> getCommonPrefix(List<ExprNodeDesc> tnkKeys, List<ExprNodeDesc> parentKeys,
-                                               Map<String, ExprNodeDesc> colExprMap) {
-    final List<ExprNodeDesc> mappedColumns = new ArrayList<>();
-    int size = Math.min(tnkKeys.size(), parentKeys.size());
-    for (int i = 0; i < size; ++i) {
-      ExprNodeDesc column = tnkKeys.get(i);
-      ExprNodeDesc parentKey = parentKeys.get(i);
-      String columnName = column.getExprString();
-      if (Objects.equals(colExprMap.get(columnName), parentKey)) {
-        mappedColumns.add(parentKey);
-      } else {
-        return mappedColumns;
-      }
-    }
-    return mappedColumns;
+    final TopNKeyOperator topNKey = (TopNKeyOperator) operator;
+    final TopNKeyDesc opDesc = topNKey.getConf();
+    return opDesc.isSame(desc);
   }
 
   private static void moveDown(TopNKeyOperator topNKey) throws SemanticException {
@@ -336,25 +331,5 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     topNKey.setParentOperators(new ArrayList<>(grandParents));
     topNKey.setChildOperators(new ArrayList<>(Collections.singletonList(parent)));
     parent.setParentOperators(new ArrayList<>(Collections.singletonList(topNKey)));
-  }
-
-  private static boolean checkNullOrder(ReduceSinkDesc reduceSinkDesc) {
-
-    final String order = reduceSinkDesc.getOrder();
-    final String nullOrder = reduceSinkDesc.getNullOrder();
-    if (nullOrder == null) {
-      for (int i = 0; i < order.length(); i++) {
-        if (order.charAt(i) != '+') {
-          return false;
-        }
-      }
-    } else {
-      for (int i = 0; i < nullOrder.length(); i++) {
-        if (nullOrder.charAt(i) != 'a') {
-          return false;
-        }
-      }
-    }
-    return true;
   }
 }
