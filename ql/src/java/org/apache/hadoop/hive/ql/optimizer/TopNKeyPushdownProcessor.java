@@ -196,10 +196,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * @throws SemanticException
    */
   private void pushdownThroughReduceSink(TopNKeyOperator topNKey) throws SemanticException {
-    pushdownThroughReduceSink(topNKey, (ReduceSinkOperator) topNKey.getParentOperators().get(0));
-  }
-
-  private void pushdownThroughReduceSink(TopNKeyOperator topNKey, ReduceSinkOperator reduceSink) throws SemanticException {
+    ReduceSinkOperator reduceSink = (ReduceSinkOperator) topNKey.getParentOperators().get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
