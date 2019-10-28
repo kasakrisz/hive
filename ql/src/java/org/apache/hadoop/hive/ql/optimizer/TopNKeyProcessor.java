@@ -84,7 +84,10 @@ public class TopNKeyProcessor implements NodeProcessor {
     List<ExprNodeDesc> groupByKeyColumns = groupByDesc.getKeys();
     List<ExprNodeDesc> mappedColumns = new ArrayList<>();
     for (ExprNodeDesc columns : reduceSinkDesc.getKeyCols()) {
-      mappedColumns.add(groupByDesc.getColumnExprMap().get(columns.getExprString()));
+      ExprNodeDesc exprNodeDesc = groupByDesc.getColumnExprMap().get(columns.getExprString());
+      if (exprNodeDesc != null) {
+        mappedColumns.add(exprNodeDesc);
+      }
     }
     if (!ExprNodeDescUtils.isSame(mappedColumns, groupByKeyColumns)) {
       return null;
