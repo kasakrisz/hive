@@ -38,11 +38,12 @@ public class TestTopNKeyPushdownProcessor {
   public void testgetCommonPrefixWhenNoKeysExists() {
     // when
     CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
-            new ArrayList<>(0), "", new ArrayList<>(0), new HashMap<>(0),"");
+            new ArrayList<>(0), "", "", new ArrayList<>(0), new HashMap<>(0),"", "");
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
     assertThat(commonPrefix.size(), is(0));
     assertThat(commonPrefix.getMappedOrder(), is(""));
+    assertThat(commonPrefix.getMappedNullOrder(), is(""));
     assertThat(commonPrefix.getMappedColumns().isEmpty(), is(true));
   }
 
@@ -63,12 +64,13 @@ public class TestTopNKeyPushdownProcessor {
 
     // when
     CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
-            asList(childCol0, childCol1), "++", asList(parentCol0, parentCol1), exprNodeDescMap,"++");
+            asList(childCol0, childCol1), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
     assertThat(commonPrefix.size(), is(2));
     assertThat(commonPrefix.getMappedOrder(), is("++"));
+    assertThat(commonPrefix.getMappedNullOrder(), is("aa"));
     assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
     assertThat(commonPrefix.getMappedColumns().get(1), is(parentCol1));
   }
@@ -90,7 +92,7 @@ public class TestTopNKeyPushdownProcessor {
 
     // when
     CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
-            asList(childCol0, differentChildCol), "++", asList(parentCol0, parentCol1), exprNodeDescMap,"++");
+            asList(childCol0, differentChildCol), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -116,17 +118,52 @@ public class TestTopNKeyPushdownProcessor {
 
     // when
     CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
-            asList(childCol0, childCol1), "+-", asList(parentCol0, parentCol1), exprNodeDescMap,"++");
+            asList(childCol0, childCol1), "+-", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
     assertThat(commonPrefix.size(), is(1));
     assertThat(commonPrefix.getMappedOrder(), is("+"));
+    assertThat(commonPrefix.getMappedNullOrder(), is("a"));
     assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
 
     // when
     commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
-            asList(childCol0, childCol1), "-+", asList(parentCol0, parentCol1), exprNodeDescMap,"++");
+            asList(childCol0, childCol1), "-+", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+
+    // then
+    assertThat(commonPrefix.isEmpty(), is(true));
+  }
+
+  @Test
+  public void testgetCommonPrefixWhenAllColumnsMatchButNullOrderMismatch() {
+    // given
+    ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
+    childCol0.setColumn("_col0");
+    ExprNodeColumnDesc childCol1 = new ExprNodeColumnDesc();
+    childCol1.setColumn("_col1");
+    ExprNodeColumnDesc parentCol0 = new ExprNodeColumnDesc();
+    parentCol0.setColumn("KEY._col0");
+    ExprNodeColumnDesc parentCol1 = new ExprNodeColumnDesc();
+    parentCol1.setColumn("KEY._col1");
+    Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
+    exprNodeDescMap.put("_col0", parentCol0);
+    exprNodeDescMap.put("_col1", parentCol1);
+
+    // when
+    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+            asList(childCol0, childCol1), "++", "az", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+
+    // then
+    assertThat(commonPrefix.isEmpty(), is(false));
+    assertThat(commonPrefix.size(), is(1));
+    assertThat(commonPrefix.getMappedOrder(), is("+"));
+    assertThat(commonPrefix.getMappedNullOrder(), is("a"));
+    assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
+
+    // when
+    commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+            asList(childCol0, childCol1), "++", "za", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
@@ -146,7 +183,7 @@ public class TestTopNKeyPushdownProcessor {
 
     // when
     CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
-            asList(childCol0, childCol1), "++", singletonList(parentCol0), exprNodeDescMap,"++");
+            asList(childCol0, childCol1), "++", "aa", singletonList(parentCol0), exprNodeDescMap,"++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
