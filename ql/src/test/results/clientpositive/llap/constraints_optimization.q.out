@@ -326,16 +326,22 @@ STAGE PLANS:
                   Filter Operator
                     predicate: (d_year) IN (1985, 2004) (type: boolean)
                     Statistics: Num rows: 1 Data size: 20 Basic stats: COMPLETE Column stats: NONE
-                    Select Operator
-                      expressions: d_datekey (type: bigint), d_id (type: bigint)
-                      outputColumnNames: d_datekey, d_id
+                    Top N Key Operator
+                      sort order: ++
+                      keys: d_datekey (type: bigint), d_id (type: bigint)
                       Statistics: Num rows: 1 Data size: 20 Basic stats: COMPLETE Column stats: NONE
+<<<<<<< HEAD
                       Top N Key Operator
                         sort order: ++
                         keys: d_datekey (type: bigint), d_id (type: bigint)
                         null sort order: za
+=======
+                      top n: 10
+                      Select Operator
+                        expressions: d_datekey (type: bigint), d_id (type: bigint)
+                        outputColumnNames: d_datekey, d_id
+>>>>>>> HIVE-20150: TopNKey pushdown - q test out update
                         Statistics: Num rows: 1 Data size: 20 Basic stats: COMPLETE Column stats: NONE
-                        top n: 10
                         Group By Operator
                           aggregations: count()
                           keys: d_datekey (type: bigint), d_id (type: bigint)
@@ -594,16 +600,22 @@ STAGE PLANS:
                   Filter Operator
                     predicate: (d_year) IN (1985, 2004) (type: boolean)
                     Statistics: Num rows: 1 Data size: 96 Basic stats: COMPLETE Column stats: COMPLETE
-                    Select Operator
-                      expressions: d_datekey (type: bigint), d_sellingseason (type: string)
-                      outputColumnNames: d_datekey, d_sellingseason
+                    Top N Key Operator
+                      sort order: ++
+                      keys: d_datekey (type: bigint), d_sellingseason (type: string)
                       Statistics: Num rows: 1 Data size: 96 Basic stats: COMPLETE Column stats: COMPLETE
+<<<<<<< HEAD
                       Top N Key Operator
                         sort order: ++
                         keys: d_datekey (type: bigint), d_sellingseason (type: string)
                         null sort order: za
+=======
+                      top n: 10
+                      Select Operator
+                        expressions: d_datekey (type: bigint), d_sellingseason (type: string)
+                        outputColumnNames: d_datekey, d_sellingseason
+>>>>>>> HIVE-20150: TopNKey pushdown - q test out update
                         Statistics: Num rows: 1 Data size: 96 Basic stats: COMPLETE Column stats: COMPLETE
-                        top n: 10
                         Group By Operator
                           keys: d_datekey (type: bigint), d_sellingseason (type: string)
                           minReductionHashAggr: 0.0

@@ -1916,16 +1916,22 @@ GROUP BY "t0"."cs_ship_customer_sk"
                 Filter Operator
                   predicate: _col42 is null (type: boolean)
                   Statistics: Num rows: 1 Data size: 499 Basic stats: COMPLETE Column stats: NONE
-                  Select Operator
-                    expressions: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
-                    outputColumnNames: _col32, _col33, _col34, _col35, _col36
+                  Top N Key Operator
+                    sort order: +++++
+                    keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
                     Statistics: Num rows: 1 Data size: 499 Basic stats: COMPLETE Column stats: NONE
+<<<<<<< HEAD
                     Top N Key Operator
                       sort order: +++++
                       keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
                       null sort order: zzzzz
+=======
+                    top n: 100
+                    Select Operator
+                      expressions: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
+                      outputColumnNames: _col32, _col33, _col34, _col35, _col36
+>>>>>>> HIVE-20150: TopNKey pushdown - q test out update
                       Statistics: Num rows: 1 Data size: 499 Basic stats: COMPLETE Column stats: NONE
-                      top n: 100
                       Group By Operator
                         aggregations: count()
                         keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
@@ -2406,16 +2412,22 @@ GROUP BY "t0"."cs_ship_customer_sk"
                 Filter Operator
                   predicate: _col42 is null (type: boolean)
                   Statistics: Num rows: 1 Data size: 499 Basic stats: COMPLETE Column stats: NONE
-                  Select Operator
-                    expressions: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
-                    outputColumnNames: _col32, _col33, _col34, _col35, _col36
+                  Top N Key Operator
+                    sort order: +++++
+                    keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
                     Statistics: Num rows: 1 Data size: 499 Basic stats: COMPLETE Column stats: NONE
+<<<<<<< HEAD
                     Top N Key Operator
                       sort order: +++++
                       keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
                       null sort order: zzzzz
+=======
+                    top n: 100
+                    Select Operator
+                      expressions: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
+                      outputColumnNames: _col32, _col33, _col34, _col35, _col36
+>>>>>>> HIVE-20150: TopNKey pushdown - q test out update
                       Statistics: Num rows: 1 Data size: 499 Basic stats: COMPLETE Column stats: NONE
-                      top n: 100
                       Group By Operator
                         aggregations: count()
                         keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
