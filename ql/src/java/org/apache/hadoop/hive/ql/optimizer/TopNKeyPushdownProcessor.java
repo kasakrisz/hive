@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Stack;
+import java.util.stream.Stream;
 
 import static org.apache.hadoop.hive.ql.optimizer.TopNKeyProcessor.copyDown;
 
@@ -217,19 +218,24 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
   }
 
   static CommonPrefix getCommonPrefix(
-          List<ExprNodeDesc> tnkKeys, String tnkOrder, String tnkNullOrder,
+          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
           List<ExprNodeDesc> parentKeys, Map<String, ExprNodeDesc> parentColExprMap,
           String parentOrder, String parentNullOrder) {
+
     CommonPrefix commonPrefix = new CommonPrefix();
-    int size = Math.min(tnkKeys.size(), parentKeys.size());
+    int size = Stream.of(opKeys.size(), opOrder.length(), opNullOrder.length(),
+            parentKeys.size(), parentColExprMap.size(), parentOrder.length(), parentNullOrder.length())
+            .min(Integer::compareTo)
+            .orElse(0);
+
     for (int i = 0; i < size; ++i) {
-      ExprNodeDesc column = tnkKeys.get(i);
+      ExprNodeDesc column = opKeys.get(i);
       ExprNodeDesc parentKey = parentKeys.get(i);
       String columnName = column.getExprString();
       if (Objects.equals(parentColExprMap.get(columnName), parentKey) &&
-              tnkOrder.charAt(i) == parentOrder.charAt(i) &&
-              tnkNullOrder.charAt(i) == parentNullOrder.charAt(i)) {
-        commonPrefix.add(parentKey, tnkOrder.charAt(i), tnkNullOrder.charAt(i));
+              opOrder.charAt(i) == parentOrder.charAt(i) &&
+              opNullOrder.charAt(i) == parentNullOrder.charAt(i)) {
+        commonPrefix.add(parentKey, opOrder.charAt(i), opNullOrder.charAt(i));
       } else {
         return commonPrefix;
       }
