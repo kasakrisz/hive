@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.ql.optimizer;
+package org.apache.hadoop.hive.ql.exec;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -23,7 +23,6 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,13 +30,11 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.junit.Test;
 
-import org.apache.hadoop.hive.ql.optimizer.TopNKeyPushdownProcessor.CommonPrefix;
-
-public class TestTopNKeyPushdownProcessor {
+public class TestCommonKeyPrefix {
   @Test
-  public void testgetCommonPrefixWhenNoKeysExists() {
+  public void testmapWhenNoKeysExists() {
     // when
-    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
             new ArrayList<>(0), "", "", new ArrayList<>(0), new HashMap<>(0),"", "");
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
@@ -48,7 +45,7 @@ public class TestTopNKeyPushdownProcessor {
   }
 
   @Test
-  public void testgetCommonPrefixWhenAllKeysMatch() {
+  public void testmapWhenAllKeysMatch() {
     // given
     ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
     childCol0.setColumn("_col0");
@@ -63,7 +60,7 @@ public class TestTopNKeyPushdownProcessor {
     exprNodeDescMap.put("_col1", parentCol1);
 
     // when
-    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, childCol1), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
@@ -76,7 +73,7 @@ public class TestTopNKeyPushdownProcessor {
   }
 
   @Test
-  public void testgetCommonPrefixWhenOnlyFirstKeyMatchFromTwo() {
+  public void testmapWhenOnlyFirstKeyMatchFromTwo() {
     // given
     ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
     childCol0.setColumn("_col0");
@@ -91,7 +88,7 @@ public class TestTopNKeyPushdownProcessor {
     exprNodeDescMap.put("_col1", parentCol1);
 
     // when
-    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, differentChildCol), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
@@ -102,7 +99,7 @@ public class TestTopNKeyPushdownProcessor {
   }
 
   @Test
-  public void testgetCommonPrefixWhenAllColumnsMatchButOrderMismatch() {
+  public void testmapWhenAllColumnsMatchButOrderMismatch() {
     // given
     ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
     childCol0.setColumn("_col0");
@@ -117,7 +114,7 @@ public class TestTopNKeyPushdownProcessor {
     exprNodeDescMap.put("_col1", parentCol1);
 
     // when
-    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, childCol1), "+-", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
@@ -128,7 +125,7 @@ public class TestTopNKeyPushdownProcessor {
     assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
 
     // when
-    commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, childCol1), "-+", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
@@ -136,7 +133,7 @@ public class TestTopNKeyPushdownProcessor {
   }
 
   @Test
-  public void testgetCommonPrefixWhenAllColumnsMatchButNullOrderMismatch() {
+  public void testmapWhenAllColumnsMatchButNullOrderMismatch() {
     // given
     ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
     childCol0.setColumn("_col0");
@@ -151,7 +148,7 @@ public class TestTopNKeyPushdownProcessor {
     exprNodeDescMap.put("_col1", parentCol1);
 
     // when
-    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, childCol1), "++", "az", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
@@ -162,7 +159,7 @@ public class TestTopNKeyPushdownProcessor {
     assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
 
     // when
-    commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, childCol1), "++", "za", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
 
     // then
@@ -170,7 +167,7 @@ public class TestTopNKeyPushdownProcessor {
   }
 
   @Test
-  public void testgetCommonPrefixWhenKeyCountsMismatch() {
+  public void testmapWhenKeyCountsMismatch() {
     // given
     ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
     childCol0.setColumn("_col0");
@@ -182,7 +179,7 @@ public class TestTopNKeyPushdownProcessor {
     exprNodeDescMap.put("_col0", parentCol0);
 
     // when
-    CommonPrefix commonPrefix = TopNKeyPushdownProcessor.getCommonPrefix(
+    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
             asList(childCol0, childCol1), "++", "aa", singletonList(parentCol0), exprNodeDescMap,"++", "aa");
 
     // then
@@ -191,5 +188,4 @@ public class TestTopNKeyPushdownProcessor {
     assertThat(commonPrefix.getMappedOrder(), is("+"));
     assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
   }
-
 }

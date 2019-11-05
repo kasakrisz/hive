@@ -18,6 +18,7 @@
 package org.apache.hadoop.hive.ql.optimizer;
 
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
+import org.apache.hadoop.hive.ql.exec.CommonKeyPrefix;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
@@ -166,81 +167,22 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    CommonPrefix commonPrefix = getCommonPrefix(
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
             topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
-            groupByDesc.getKeys(), groupByDesc.getColumnExprMap(),
-            topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder());
-    if (commonPrefix.isEmpty()) {
+            groupByDesc.getKeys(), groupByDesc.getColumnExprMap());
+    if (commonKeyPrefix.isEmpty()) {
       return;
     }
 
     LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), groupBy.getName());
-    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), commonPrefix.getMappedOrder(),
-            commonPrefix.getMappedNullOrder(), commonPrefix.getMappedColumns());
+    final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), commonKeyPrefix.getMappedOrder(),
+            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
-    if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
+    if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
       LOG.debug("Removing {} above {}", topNKey.getName(), groupBy.getName());
       groupBy.removeChildAndAdoptItsChildren(topNKey);
     }
-  }
-
-  public static class CommonPrefix {
-    private List<ExprNodeDesc> mappedColumns = new ArrayList<>();
-    private StringBuilder mappedOrder = new StringBuilder();
-    private StringBuilder mappedNullOrder = new StringBuilder();
-
-    public void add(ExprNodeDesc column, char order, char nullOrder) {
-      mappedColumns.add(column);
-      mappedOrder.append(order);
-      mappedNullOrder.append(nullOrder);
-    }
-
-    public boolean isEmpty() {
-      return mappedColumns.isEmpty();
-    }
-
-    List<ExprNodeDesc> getMappedColumns() {
-      return mappedColumns;
-    }
-
-    String getMappedOrder() {
-      return mappedOrder.toString();
-    }
-
-    String getMappedNullOrder() {
-      return mappedNullOrder.toString();
-    }
-
-    public int size() {
-      return mappedColumns.size();
-    }
-  }
-
-  static CommonPrefix getCommonPrefix(
-          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
-          List<ExprNodeDesc> parentKeys, Map<String, ExprNodeDesc> parentColExprMap,
-          String parentOrder, String parentNullOrder) {
-
-    CommonPrefix commonPrefix = new CommonPrefix();
-    int size = Stream.of(opKeys.size(), opOrder.length(), opNullOrder.length(),
-            parentKeys.size(), parentColExprMap.size(), parentOrder.length(), parentNullOrder.length())
-            .min(Integer::compareTo)
-            .orElse(0);
-
-    for (int i = 0; i < size; ++i) {
-      ExprNodeDesc column = opKeys.get(i);
-      ExprNodeDesc parentKey = parentKeys.get(i);
-      String columnName = column.getExprString();
-      if (Objects.equals(parentColExprMap.get(columnName), parentKey) &&
-              opOrder.charAt(i) == parentOrder.charAt(i) &&
-              opNullOrder.charAt(i) == parentNullOrder.charAt(i)) {
-        commonPrefix.add(parentKey, opOrder.charAt(i), opNullOrder.charAt(i));
-      } else {
-        return commonPrefix;
-      }
-    }
-    return commonPrefix;
   }
 
   /**
@@ -256,20 +198,20 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
-    CommonPrefix commonPrefix = getCommonPrefix(
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
             topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
             reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap(),
             reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder());
-    if (commonPrefix.isEmpty()) {
+    if (commonKeyPrefix.isEmpty()) {
       return;
     }
 
     LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), reduceSink.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-            commonPrefix.getMappedOrder(), commonPrefix.getMappedNullOrder(), commonPrefix.getMappedColumns());
+            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
 
-    if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
+    if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
       LOG.debug("Removing {} above {}", topNKey.getName(), reduceSink.getName());
       reduceSink.removeChildAndAdoptItsChildren(topNKey);
     }
@@ -291,7 +233,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final ReduceSinkOperator reduceSinkOperator = (ReduceSinkOperator) joinInputs.get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSinkOperator.getConf();
 
-    CommonPrefix commonPrefix = getCommonPrefix(
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
             mapUntilColumnEquals(topNKeyDesc.getKeyColumns(), join.getColumnExprMap()),
             topNKeyDesc.getColumnSortOrder(),
             topNKeyDesc.getNullOrder(),
@@ -299,17 +241,17 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             reduceSinkDesc.getColumnExprMap(),
             reduceSinkDesc.getOrder(),
             reduceSinkDesc.getNullOrder());
-    if (commonPrefix.isEmpty()) {
+    if (commonKeyPrefix.isEmpty()) {
       return;
     }
 
     LOG.debug("Pushing a copy of {} through {} and {}",
             topNKey.getName(), join.getName(), reduceSinkOperator.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-            commonPrefix.getMappedOrder(), commonPrefix.getMappedNullOrder(), commonPrefix.getMappedColumns());
+            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
     pushdown(copyDown(reduceSinkOperator, newTopNKeyDesc));
 
-    if (topNKeyDesc.getKeyColumns().size() == commonPrefix.size()) {
+    if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
       LOG.debug("Removing {} above {}", topNKey.getName(), join.getName());
       join.removeChildAndAdoptItsChildren(topNKey);
     }

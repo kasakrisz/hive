@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.ql.optimizer;
 
+import org.apache.hadoop.hive.ql.exec.CommonKeyPrefix;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
@@ -81,15 +82,11 @@ public class TopNKeyProcessor implements NodeProcessor {
     }
 
     // Check whether RS keys are same as GBY keys
-    List<ExprNodeDesc> groupByKeyColumns = groupByDesc.getKeys();
-    List<ExprNodeDesc> mappedColumns = new ArrayList<>();
-    for (ExprNodeDesc columns : reduceSinkDesc.getKeyCols()) {
-      ExprNodeDesc exprNodeDesc = groupByDesc.getColumnExprMap().get(columns.getExprString());
-      if (exprNodeDesc != null) {
-        mappedColumns.add(exprNodeDesc);
-      }
-    }
-    if (!ExprNodeDescUtils.isSame(mappedColumns, groupByKeyColumns)) {
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
+      reduceSinkDesc.getKeyCols(), reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder(),
+      groupByDesc.getKeys(), groupByDesc.getColumnExprMap());
+
+    if (!ExprNodeDescUtils.isSame(commonKeyPrefix.getMappedColumns(), groupByDesc.getKeys())) {
       return null;
     }
 
@@ -99,9 +96,9 @@ public class TopNKeyProcessor implements NodeProcessor {
       return null;
     }
 
-    // Insert a new top n key operator between the group by operator and its parent
-    TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), reduceSinkDesc.getOrder(),
-        reduceSinkDesc.getNullOrder(), groupByKeyColumns);
+    TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), commonKeyPrefix.getMappedOrder(),
+            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
+
     copyDown(groupByOperator, topNKeyDesc);
     return null;
   }
