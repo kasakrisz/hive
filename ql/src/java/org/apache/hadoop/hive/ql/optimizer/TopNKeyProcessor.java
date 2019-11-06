@@ -17,8 +17,6 @@
  */
 package org.apache.hadoop.hive.ql.optimizer;
 
-import org.apache.hadoop.hive.ql.exec.CommonKeyPrefix;
-import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.OperatorFactory;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
@@ -28,9 +26,6 @@ import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
-import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
@@ -61,10 +56,6 @@ public class TopNKeyProcessor implements NodeProcessor {
     ReduceSinkOperator reduceSinkOperator = (ReduceSinkOperator) nd;
     ReduceSinkDesc reduceSinkDesc = reduceSinkOperator.getConf();
 
-    // Get GroupByOperator
-    GroupByOperator groupByOperator = (GroupByOperator) reduceSinkOperator.getParentOperators().get(0);
-    GroupByDesc groupByDesc = groupByOperator.getConf();
-
     // Check whether the reduce sink operator contains top n
     if (!reduceSinkDesc.isOrdering() || reduceSinkDesc.getTopN() < 0) {
       return null;
@@ -76,30 +67,16 @@ public class TopNKeyProcessor implements NodeProcessor {
       return null;
     }
 
-    // Check whether the group by operator has distinct aggregations
-    if (groupByDesc.isDistinct()) {
-      return null;
-    }
-
-    // Check whether RS keys are same as GBY keys
-    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
-      reduceSinkDesc.getKeyCols(), reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder(),
-      groupByDesc.getKeys(), groupByDesc.getColumnExprMap());
-
-    if (!ExprNodeDescUtils.isSame(commonKeyPrefix.getMappedColumns(), groupByDesc.getKeys())) {
-      return null;
-    }
-
     // Check whether there already is a top n key operator
-    Operator<? extends OperatorDesc> parentOperator = groupByOperator.getParentOperators().get(0);
+    Operator<? extends OperatorDesc> parentOperator = reduceSinkOperator.getParentOperators().get(0);
     if (parentOperator instanceof TopNKeyOperator) {
       return null;
     }
 
-    TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), commonKeyPrefix.getMappedOrder(),
-            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
+    TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), reduceSinkDesc.getOrder(),
+            reduceSinkDesc.getNullOrder(), reduceSinkDesc.getKeyCols());
 
-    copyDown(groupByOperator, topNKeyDesc);
+    copyDown(reduceSinkOperator, topNKeyDesc);
     return null;
   }
 

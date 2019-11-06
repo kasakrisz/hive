@@ -1296,8 +1296,7 @@ public class TezCompiler extends TaskCompiler {
 
     Map<Rule, NodeProcessor> opRules = new LinkedHashMap<Rule, NodeProcessor>();
     opRules.put(
-        new RuleRegExp("Top n key optimization", GroupByOperator.getOperatorName() + "%" +
-            ReduceSinkOperator.getOperatorName() + "%"),
+        new RuleRegExp("Top n key optimization", ReduceSinkOperator.getOperatorName() + "%"),
         new TopNKeyProcessor());
 
     // The dispatcher fires the processor corresponding to the closest matching
