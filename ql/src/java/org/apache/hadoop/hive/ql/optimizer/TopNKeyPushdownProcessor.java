@@ -101,10 +101,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
         break;
 
       case TOPNKEY:
-        if (hasSameTopNKeyDesc(parent, topNKey.getConf())) {
-          LOG.debug("Removing {} above same operator: {}", topNKey.getName(), parent.getName());
-          parent.removeChildAndAdoptItsChildren(topNKey);
-        }
+        pushdownTroughTopNKey(topNKey, (TopNKeyOperator) parent);
         break;
 
       default:
@@ -254,6 +251,27 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
       LOG.debug("Removing {} above {}", topNKey.getName(), join.getName());
       join.removeChildAndAdoptItsChildren(topNKey);
+    }
+  }
+
+  private void pushdownTroughTopNKey(TopNKeyOperator topNKey, TopNKeyOperator parent) throws SemanticException {
+    if (hasSameTopNKeyDesc(parent, topNKey.getConf())) {
+      LOG.debug("Removing {} above same operator: {}", topNKey.getName(), parent.getName());
+      parent.removeChildAndAdoptItsChildren(topNKey);
+      return;
+    }
+
+    TopNKeyDesc topNKeyDesc = topNKey.getConf();
+    TopNKeyDesc parentTopNKeyDesc = parent.getConf();
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
+            topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
+            parentTopNKeyDesc.getKeyColumns(), parentTopNKeyDesc.getColumnSortOrder(),
+            parentTopNKeyDesc.getNullOrder());
+
+    if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
+      LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
+      moveDown(topNKey);
+      pushdown(topNKey);
     }
   }
 

@@ -35,8 +35,37 @@ public class CommonKeyPrefix {
 
   public static CommonKeyPrefix map(
           List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
+          List<ExprNodeDesc> parentKeys,
+          String parentOrder, String parentNullOrder) {
+
+    CommonKeyPrefix commonPrefix = new CommonKeyPrefix();
+    int size = Stream.of(opKeys.size(), opOrder.length(), opNullOrder.length(),
+            parentKeys.size(), parentOrder.length(), parentNullOrder.length())
+            .min(Integer::compareTo)
+            .orElse(0);
+
+    for (int i = 0; i < size; ++i) {
+      ExprNodeDesc opKey = opKeys.get(i);
+      ExprNodeDesc parentKey = parentKeys.get(i);
+      if (opKey.isSame(parentKey) &&
+              opOrder.charAt(i) == parentOrder.charAt(i) &&
+              opNullOrder.charAt(i) == parentNullOrder.charAt(i)) {
+        commonPrefix.add(parentKey, opOrder.charAt(i), opNullOrder.charAt(i));
+      } else {
+        return commonPrefix;
+      }
+    }
+    return commonPrefix;
+  }
+
+  public static CommonKeyPrefix map(
+          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
           List<ExprNodeDesc> parentKeys, Map<String, ExprNodeDesc> parentColExprMap,
           String parentOrder, String parentNullOrder) {
+
+    if (parentColExprMap == null) {
+      return map(opKeys, opOrder, opNullOrder, parentKeys, parentOrder, parentNullOrder);
+    }
 
     CommonKeyPrefix commonPrefix = new CommonKeyPrefix();
     int size = Stream.of(opKeys.size(), opOrder.length(), opNullOrder.length(),
