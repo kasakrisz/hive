@@ -13,7 +13,7 @@ set hive.tez.min.bloom.filter.entries=1;
 set hive.stats.fetch.column.stats=true;
 set hive.cbo.enable=true;
 
-EXPLAIN EXTENDED
+EXPLAIN
 SELECT key, SUM(CAST(SUBSTR(value,5) AS INT)) FROM src GROUP BY key ORDER BY key LIMIT 5;
 
 SELECT key, SUM(CAST(SUBSTR(value,5) AS INT)) FROM src GROUP BY key ORDER BY key LIMIT 5;
@@ -22,4 +22,3 @@ EXPLAIN
 SELECT key FROM src GROUP BY key ORDER BY key LIMIT 5;
 
 SELECT key FROM src GROUP BY key ORDER BY key LIMIT 5;
-
