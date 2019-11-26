@@ -265,18 +265,7 @@ STAGE PLANS:
                   Top N Key Operator
                     sort order: +
                     keys: ss_ticket_number (type: int)
-                    Statistics: Num rows: 1000 Data size: 4000 Basic stats: COMPLETE Column stats: COMPLETE
-<<<<<<< HEAD
-                    Top N Key Operator
-                      sort order: +
-                      keys: ss_ticket_number (type: int)
-                      null sort order: z
-                      Statistics: Num rows: 1000 Data size: 4000 Basic stats: COMPLETE Column stats: COMPLETE
-                      top n: 20
-                      Top N Key Vectorization:
-                          className: VectorTopNKeyOperator
-                          keyExpressions: col 9:int
-=======
+                    null sort order: z
                     top n: 20
                     Top N Key Vectorization:
                         className: VectorTopNKeyOperator
@@ -287,7 +276,6 @@ STAGE PLANS:
                       outputColumnNames: ss_ticket_number
                       Select Vectorization:
                           className: VectorSelectOperator
->>>>>>> HIVE-20150: TopNKey pushdown
                           native: true
                           projectedOutputColumnNums: [9]
                       Statistics: Num rows: 1000 Data size: 4000 Basic stats: COMPLETE Column stats: COMPLETE

@@ -90,6 +90,7 @@ STAGE PLANS:
                   Top N Key Operator
                     sort order: +
                     keys: cint1 (type: int)
+                    null sort order: z
                     top n: 3
                     Top N Key Vectorization:
                         className: VectorTopNKeyOperator
