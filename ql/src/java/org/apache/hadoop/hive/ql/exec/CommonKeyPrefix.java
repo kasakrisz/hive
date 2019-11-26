@@ -24,13 +24,22 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.GroupByDesc;
+import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
+import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
 
 public class CommonKeyPrefix {
 
-  public static CommonKeyPrefix map(
-          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
-          List<ExprNodeDesc> parentKeys, Map<String, ExprNodeDesc> parentColExprMap) {
-    return map(opKeys, opOrder, opNullOrder, parentKeys, parentColExprMap, opOrder, opNullOrder);
+  public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, GroupByDesc groupByDesc) {
+    return map(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
+            groupByDesc.getKeys(), groupByDesc.getColumnExprMap(),
+            topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder());
+  }
+
+  public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, ReduceSinkDesc reduceSinkDesc) {
+    return map(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
+            reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap(),
+            reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder());
   }
 
   public static CommonKeyPrefix map(

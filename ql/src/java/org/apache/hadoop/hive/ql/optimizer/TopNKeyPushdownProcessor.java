@@ -162,9 +162,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       return;
     }
 
-    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
-            topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
-            groupByDesc.getKeys(), groupByDesc.getColumnExprMap());
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(topNKeyDesc, groupByDesc);
     if (commonKeyPrefix.isEmpty()) {
       return;
     }
@@ -193,10 +191,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     final ReduceSinkDesc reduceSinkDesc = reduceSink.getConf();
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
 
-    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
-            topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
-            reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap(),
-            reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder());
+    CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(topNKeyDesc, reduceSinkDesc);
     if (commonKeyPrefix.isEmpty()) {
       return;
     }
