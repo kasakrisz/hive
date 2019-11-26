@@ -1919,6 +1919,7 @@ GROUP BY "t0"."cs_ship_customer_sk"
                   Top N Key Operator
                     sort order: +++++
                     keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
+                    null sort order: zzzzz
                     top n: 100
                     Select Operator
                       expressions: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
@@ -2407,6 +2408,7 @@ GROUP BY "t0"."cs_ship_customer_sk"
                   Top N Key Operator
                     sort order: +++++
                     keys: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
+                    null sort order: zzzzz
                     top n: 100
                     Select Operator
                       expressions: _col32 (type: char(1)), _col33 (type: char(1)), _col34 (type: char(20)), _col35 (type: int), _col36 (type: char(10))
@@ -3155,6 +3157,7 @@ STAGE PLANS:
                 Top N Key Operator
                   sort order: +
                   keys: _col1 (type: decimal(27,2))
+                  null sort order: z
                   Statistics: Num rows: 1 Data size: 212 Basic stats: COMPLETE Column stats: NONE
                   top n: 100
                   Reduce Output Operator
@@ -3981,6 +3984,7 @@ WHERE "d_week_seq" IS NOT NULL AND "d_date" IS NOT NULL
                 Top N Key Operator
                   sort order: ++
                   keys: _col0 (type: char(16)), _col1 (type: bigint)
+                  null sort order: zz
                   Statistics: Num rows: 1 Data size: 92 Basic stats: COMPLETE Column stats: NONE
                   top n: 100
                   Select Operator
@@ -4306,6 +4310,7 @@ STAGE PLANS:
                 Top N Key Operator
                   sort order: +
                   keys: _col1 (type: decimal(27,2))
+                  null sort order: z
                   Statistics: Num rows: 1 Data size: 116 Basic stats: COMPLETE Column stats: NONE
                   top n: 100
                   Reduce Output Operator
@@ -5664,6 +5669,7 @@ GROUP BY "t2"."r_reason_desc"
                   Top N Key Operator
                     sort order: ++++
                     keys: substr(r_reason_desc, 1, 20) (type: string), (UDFToDouble($f1) / $f2) (type: double), ($f3 / $f4) (type: decimal(31,26)), ($f5 / $f6) (type: decimal(31,26))
+                    null sort order: zzzz
                     Statistics: Num rows: 1 Data size: 440 Basic stats: COMPLETE Column stats: NONE
                     top n: 100
                     Select Operator

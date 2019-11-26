@@ -2947,6 +2947,7 @@ STAGE PLANS:
                   Top N Key Operator
                     sort order: +
                     keys: UDFToInteger(key) (type: int)
+                    null sort order: z
                     Statistics: Num rows: 500 Data size: 103500 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 2
                     Select Operator
@@ -3085,6 +3086,7 @@ STAGE PLANS:
                   Top N Key Operator
                     sort order: ++
                     keys: key (type: string), value (type: string)
+                    null sort order: za
                     top n: 2
                     Select Operator
                       expressions: key (type: string), value (type: string)
@@ -6054,6 +6056,7 @@ STAGE PLANS:
                   Top N Key Operator
                     sort order: +
                     keys: value (type: string)
+                    null sort order: z
                     Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 3
                     Select Operator

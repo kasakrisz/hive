@@ -240,6 +240,7 @@ STAGE PLANS:
                     Top N Key Operator
                       sort order: +
                       keys: st1.f1 (type: int)
+                      null sort order: a
                       top n: 10
                       Top N Key Vectorization:
                           className: VectorTopNKeyOperator
