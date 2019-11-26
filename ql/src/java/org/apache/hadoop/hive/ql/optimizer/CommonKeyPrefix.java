@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.ql.exec;
+package org.apache.hadoop.hive.ql.optimizer;
 
 import java.util.ArrayList;
 import java.util.List;
