@@ -45,12 +45,15 @@ import java.util.Stack;
 
 import static org.apache.hadoop.hive.ql.optimizer.TopNKeyProcessor.copyDown;
 
+/**
+ * Implementation of TopNKey operator pushdown.
+ */
 public class TopNKeyPushdownProcessor implements NodeProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(TopNKeyPushdownProcessor.class);
 
   @Override
   public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
-      Object... nodeOutputs) throws SemanticException {
+                        Object... nodeOutputs) throws SemanticException {
     pushdown((TopNKeyOperator) nd);
     return null;
   }
@@ -58,56 +61,44 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
   private void pushdown(TopNKeyOperator topNKey) throws SemanticException {
 
     final Operator<? extends OperatorDesc> parent =
-        topNKey.getParentOperators().get(0);
+            topNKey.getParentOperators().get(0);
 
     switch (parent.getType()) {
-      case SELECT:
-        pushdownThroughSelect(topNKey);
-        break;
+    case SELECT:
+      pushdownThroughSelect(topNKey);
+      break;
 
-      case FORWARD:
-        LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
-        moveDown(topNKey);
-        pushdown(topNKey);
-        break;
+    case FORWARD:
+      LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
+      moveDown(topNKey);
+      pushdown(topNKey);
+      break;
 
-      case GROUPBY:
-        pushdownThroughGroupBy(topNKey);
-        break;
+    case GROUPBY:
+      pushdownThroughGroupBy(topNKey);
+      break;
 
-      case REDUCESINK:
-        pushdownThroughReduceSink(topNKey);
-        break;
+    case REDUCESINK:
+      pushdownThroughReduceSink(topNKey);
+      break;
 
-      case MERGEJOIN:
-      case JOIN:
-        {
-          final CommonJoinOperator<? extends JoinDesc> join =
-              (CommonJoinOperator<? extends JoinDesc>) parent;
-          final JoinCondDesc[] joinConds = join.getConf().getConds();
-          final JoinCondDesc firstJoinCond = joinConds[0];
-          for (JoinCondDesc joinCond : joinConds) {
-            if (!firstJoinCond.equals(joinCond)) {
-              return;
-            }
-          }
-          if (firstJoinCond.getType() == JoinDesc.LEFT_OUTER_JOIN) {
-            pushdownThroughLeftOuterJoin(topNKey);
-          }
-        }
-        break;
+    case MERGEJOIN:
+    case JOIN:
+      pushDownThroughJoin(topNKey, (CommonJoinOperator<? extends JoinDesc>) parent);
+      break;
 
-      case TOPNKEY:
-        pushdownTroughTopNKey(topNKey, (TopNKeyOperator) parent);
-        break;
+    case TOPNKEY:
+      pushdownTroughTopNKey(topNKey, (TopNKeyOperator) parent);
+      break;
 
-      default:
-        break;
+    default:
+      break;
     }
   }
 
   /**
    * Push through Project if expression(s) in TopNKey can be mapped to expression(s) based on Project input.
+   *
    * @param topNKey TopNKey operator to push
    * @throws SemanticException when removeChildAndAdoptItsChildren was not successful in the method pushdown
    */
@@ -148,6 +139,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * we can push it and remove it from above GroupBy. If expression in TopNKey shared common
    * prefix with GroupBy, TopNKey could be pushed through GroupBy using that prefix and kept above
    * it.
+   *
    * @param topNKey TopNKey operator to push
    * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
@@ -182,6 +174,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
    * the same, we can push it and remove it from above ReduceSink. If expression in TopNKey shared
    * common prefix with ReduceSink including same order, TopNKey could be pushed through
    * ReduceSink using that prefix and kept above it.
+   *
    * @param topNKey TopNKey operator to push
    * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
@@ -206,18 +199,33 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     }
   }
 
+  private void pushDownThroughJoin(TopNKeyOperator topNKey, CommonJoinOperator<? extends JoinDesc> parent)
+          throws SemanticException {
+    final JoinCondDesc[] joinConds = parent.getConf().getConds();
+    final JoinCondDesc firstJoinCond = joinConds[0];
+    for (JoinCondDesc joinCond : joinConds) {
+      if (!firstJoinCond.equals(joinCond)) {
+        return;
+      }
+    }
+    if (firstJoinCond.getType() == JoinDesc.LEFT_OUTER_JOIN) {
+      pushdownThroughLeftOuterJoin(topNKey);
+    }
+  }
+
   /**
    * Push through LOJ. If TopNKey expression refers fully to expressions from left input, push
    * with rewriting of expressions and remove from top of LOJ. If TopNKey expression has a prefix
    * that refers to expressions from left input, push with rewriting of those expressions and keep
    * on top of LOJ.
+   *
    * @param topNKey TopNKey operator to push
    * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
   private void pushdownThroughLeftOuterJoin(TopNKeyOperator topNKey) throws SemanticException {
     final TopNKeyDesc topNKeyDesc = topNKey.getConf();
     final CommonJoinOperator<? extends JoinDesc> join =
-        (CommonJoinOperator<? extends JoinDesc>) topNKey.getParentOperators().get(0);
+            (CommonJoinOperator<? extends JoinDesc>) topNKey.getParentOperators().get(0);
     final List<Operator<? extends OperatorDesc>> joinInputs = join.getParentOperators();
     final ReduceSinkOperator reduceSinkOperator = (ReduceSinkOperator) joinInputs.get(0);
     final ReduceSinkDesc reduceSinkDesc = reduceSinkOperator.getConf();

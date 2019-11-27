@@ -19,8 +19,8 @@ package org.apache.hadoop.hive.ql.optimizer;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,7 +35,7 @@ public class TestCommonKeyPrefix {
   public void testmapWhenNoKeysExists() {
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            new ArrayList<>(0), "", "", new ArrayList<>(0), new HashMap<>(0),"", "");
+            new ArrayList<>(0), "", "", new ArrayList<>(0), new HashMap<>(0), "", "");
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
     assertThat(commonPrefix.size(), is(0));
@@ -61,7 +61,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+            asList(childCol0, childCol1), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -89,7 +89,8 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, differentChildCol), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+            asList(childCol0, differentChildCol), "++", "aa",
+            asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -115,7 +116,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "+-", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+            asList(childCol0, childCol1), "+-", "aa", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -126,7 +127,7 @@ public class TestCommonKeyPrefix {
 
     // when
     commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "-+", "aa", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+            asList(childCol0, childCol1), "-+", "aa", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
@@ -149,7 +150,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "az", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+            asList(childCol0, childCol1), "++", "az", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -160,7 +161,7 @@ public class TestCommonKeyPrefix {
 
     // when
     commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "za", asList(parentCol0, parentCol1), exprNodeDescMap,"++", "aa");
+            asList(childCol0, childCol1), "++", "za", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
@@ -180,7 +181,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "aa", singletonList(parentCol0), exprNodeDescMap,"++", "aa");
+            asList(childCol0, childCol1), "++", "aa", singletonList(parentCol0), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));

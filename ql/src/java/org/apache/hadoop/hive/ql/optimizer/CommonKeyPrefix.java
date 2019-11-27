@@ -28,6 +28,10 @@ import org.apache.hadoop.hive.ql.plan.GroupByDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
 
+/**
+ * Holds result of a common key prefix of two operators.
+ * Provides methods for mapping TopNKey operator keys to GroupBy and ReduceSink operator keys.
+ */
 public class CommonKeyPrefix {
 
   public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, GroupByDesc groupByDesc) {
