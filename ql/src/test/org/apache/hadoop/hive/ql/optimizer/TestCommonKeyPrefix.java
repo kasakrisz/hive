@@ -30,6 +30,9 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.junit.Test;
 
+/**
+ * Tests for CommonKeyPrefix.
+ */
 public class TestCommonKeyPrefix {
   @Test
   public void testmapWhenNoKeysExists() {
