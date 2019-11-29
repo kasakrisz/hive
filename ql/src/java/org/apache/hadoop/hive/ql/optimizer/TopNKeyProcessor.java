@@ -56,7 +56,7 @@ public class TopNKeyProcessor implements NodeProcessor {
     ReduceSinkDesc reduceSinkDesc = reduceSinkOperator.getConf();
 
     // Check whether the reduce sink operator contains top n
-    if (!reduceSinkDesc.isOrdering() || reduceSinkDesc.getTopN() < 0) {
+    if (reduceSinkDesc.getTopN() < 0 || !reduceSinkDesc.isOrdering()) {
       return null;
     }
 
