@@ -38,9 +38,8 @@ import java.util.List;
 import java.util.Stack;
 
 /**
- * TopNKeyProcessor is a processor for TopNKeyOperator. A TopNKeyOperator will be placed between
- * a GroupByOperator and its following ReduceSinkOperator. If there already is a TopNKeyOperator,
- * then it will be skipped.
+ * TopNKeyProcessor is a processor for TopNKeyOperator.
+ * A TopNKeyOperator will be placed before any ReduceSinkOperator which has a topN property >= 0.
  */
 public class TopNKeyProcessor implements NodeProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(TopNKeyProcessor.class);
