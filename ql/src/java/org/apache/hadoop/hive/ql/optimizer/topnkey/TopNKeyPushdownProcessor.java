@@ -69,7 +69,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       break;
 
     case FORWARD:
-      pushdownThroughParent(topNKey, parent);
+      pushdownThroughParent(topNKey);
       break;
 
     case GROUPBY:
@@ -82,11 +82,11 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
     case MERGEJOIN:
     case JOIN:
-      pushDownThroughJoin(topNKey, (CommonJoinOperator<? extends JoinDesc>) parent);
+      pushDownThroughJoin(topNKey);
       break;
 
     case TOPNKEY:
-      pushdownThroughTopNKey(topNKey, (TopNKeyOperator) parent);
+      pushdownThroughTopNKey(topNKey);
       break;
 
     default:
@@ -132,7 +132,8 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     return mappedColumns;
   }
 
-  private void pushdownThroughParent(TopNKeyOperator topNKey, Operator<? extends OperatorDesc> parent) throws SemanticException {
+  private void pushdownThroughParent(TopNKeyOperator topNKey) throws SemanticException {
+    Operator<? extends OperatorDesc> parent = topNKey.getParentOperators().get(0);
     LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
     moveDown(topNKey);
     pushdown(topNKey);
@@ -205,10 +206,12 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
   // Only push down through Left Outer Join is supported.
   // Right and Full Outer Join support will be added in a follow up patch.
-  private void pushDownThroughJoin(TopNKeyOperator topNKey, CommonJoinOperator<? extends JoinDesc> parent)
+  private void pushDownThroughJoin(TopNKeyOperator topNKey)
           throws SemanticException {
-    final JoinCondDesc[] joinConds = parent.getConf().getConds();
-    final JoinCondDesc firstJoinCond = joinConds[0];
+    CommonJoinOperator<? extends JoinDesc> parent =
+            (CommonJoinOperator<? extends JoinDesc>) topNKey.getParentOperators().get(0);
+    JoinCondDesc[] joinConds = parent.getConf().getConds();
+    JoinCondDesc firstJoinCond = joinConds[0];
     for (JoinCondDesc joinCond : joinConds) {
       if (!firstJoinCond.equals(joinCond)) {
         return;
@@ -280,13 +283,13 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
   /**
    * Push through another Top N Key operator.
    * If the TNK operators are the same on of the will be removed. See {@link TopNKeyDesc#isSame}
-   * else If expression in {@param topnKey} is a common prefix in {@param parent} then {@param topnkey}
-   * could be pushed through {@param parent}.
+   * else If expression in {@param topnKey} is a common prefix in it's parent TNK op. then {@param topnkey}
+   * could be pushed through parent.
    * @param topNKey TopNKey operator to push
-   * @param parent the parent operator to push through
    * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
    */
-  private void pushdownThroughTopNKey(TopNKeyOperator topNKey, TopNKeyOperator parent) throws SemanticException {
+  private void pushdownThroughTopNKey(TopNKeyOperator topNKey) throws SemanticException {
+    TopNKeyOperator parent = (TopNKeyOperator) topNKey.getParentOperators().get(0);
     if (hasSameTopNKeyDesc(parent, topNKey.getConf())) {
       LOG.debug("Removing {} above same operator: {}", topNKey.getName(), parent.getName());
       parent.removeChildAndAdoptItsChildren(topNKey);
@@ -301,7 +304,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             parentTopNKeyDesc.getNullOrder());
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
-      pushdownThroughParent(topNKey, parent);
+      pushdownThroughParent(topNKey);
     }
   }
 
