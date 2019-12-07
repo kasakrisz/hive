@@ -69,9 +69,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       break;
 
     case FORWARD:
-      LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
-      moveDown(topNKey);
-      pushdown(topNKey);
+      pushdownThroughParent(topNKey, parent);
       break;
 
     case GROUPBY:
@@ -88,7 +86,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       break;
 
     case TOPNKEY:
-      pushdownTroughTopNKey(topNKey, (TopNKeyOperator) parent);
+      pushdownThroughTopNKey(topNKey, (TopNKeyOperator) parent);
       break;
 
     default:
@@ -132,6 +130,12 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
       }
     }
     return mappedColumns;
+  }
+
+  private void pushdownThroughParent(TopNKeyOperator topNKey, Operator<? extends OperatorDesc> parent) throws SemanticException {
+    LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
+    moveDown(topNKey);
+    pushdown(topNKey);
   }
 
   /**
@@ -199,6 +203,8 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     }
   }
 
+  // Only push down through Left Outer Join is supported.
+  // Right and Full Outer Join support will be added in a follow up patch.
   private void pushDownThroughJoin(TopNKeyOperator topNKey, CommonJoinOperator<? extends JoinDesc> parent)
           throws SemanticException {
     final JoinCondDesc[] joinConds = parent.getConf().getConds();
@@ -254,7 +260,16 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     }
   }
 
-  private void pushdownTroughTopNKey(TopNKeyOperator topNKey, TopNKeyOperator parent) throws SemanticException {
+  /**
+   * Push through another Top N Key operator.
+   * If the TNK operators are the same on of the will be removed. See {@link TopNKeyDesc#isSame}
+   * else If expression in {@param topnKey} is a common prefix in {@param parent} then {@param topnkey}
+   * could be pushed through {@param parent}.
+   * @param topNKey TopNKey operator to push
+   * @param parent the parent operator to push through
+   * @throws SemanticException when removeChildAndAdoptItsChildren was not successful
+   */
+  private void pushdownThroughTopNKey(TopNKeyOperator topNKey, TopNKeyOperator parent) throws SemanticException {
     if (hasSameTopNKeyDesc(parent, topNKey.getConf())) {
       LOG.debug("Removing {} above same operator: {}", topNKey.getName(), parent.getName());
       parent.removeChildAndAdoptItsChildren(topNKey);
@@ -269,9 +284,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             parentTopNKeyDesc.getNullOrder());
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
-      LOG.debug("Pushing {} through {}", topNKey.getName(), parent.getName());
-      moveDown(topNKey);
-      pushdown(topNKey);
+      pushdownThroughParent(topNKey, parent);
     }
   }
 
