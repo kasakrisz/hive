@@ -30,6 +30,7 @@ STAGE PLANS:
                     sort order: +
                     keys: key (type: string)
                     null sort order: z
+                    Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 5
                     Select Operator
                       expressions: key (type: string), UDFToInteger(substr(value, 5)) (type: int)
@@ -196,11 +197,13 @@ STAGE PLANS:
                   sort order: +
                   keys: _col0 (type: string)
                   null sort order: z
+                  Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
                   top n: 5
                   Top N Key Operator
                     sort order: ++
                     keys: _col0 (type: string), _col2 (type: string)
                     null sort order: za
+                    Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 5
                     Group By Operator
                       keys: _col0 (type: string), _col2 (type: string)
@@ -313,6 +316,7 @@ STAGE PLANS:
                     sort order: +
                     keys: key (type: string)
                     null sort order: a
+                    Statistics: Num rows: 500 Data size: 43500 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 5
                     Select Operator
                       expressions: key (type: string)
@@ -363,6 +367,7 @@ STAGE PLANS:
                   sort order: ++
                   keys: _col0 (type: string), _col2 (type: string)
                   null sort order: aa
+                  Statistics: Num rows: 791 Data size: 140798 Basic stats: COMPLETE Column stats: COMPLETE
                   top n: 5
                   Group By Operator
                     keys: _col0 (type: string), _col2 (type: string)
@@ -600,6 +605,7 @@ STAGE PLANS:
                     sort order: ++
                     keys: a (type: int), b (type: int)
                     null sort order: zz
+                    Statistics: Num rows: 8 Data size: 64 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 3
                     Select Operator
                       expressions: a (type: int), b (type: int)

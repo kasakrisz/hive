@@ -474,12 +474,6 @@ public class TezCompiler extends TaskCompiler {
           new SetHashGroupByMinReduction());
     }
 
-    if (procCtx.conf.getBoolVar(ConfVars.HIVE_OPTIMIZE_TOPNKEY)) {
-      opRules.put(
-          new RuleRegExp("Top n key pushdown", TopNKeyOperator.getOperatorName() + "%"),
-          new TopNKeyPushdownProcessor());
-    }
-
     // The dispatcher fires the processor corresponding to the closest matching
     // rule and passes the context along
     Dispatcher disp = new DefaultRuleDispatcher(null, opRules, procCtx);
@@ -1297,6 +1291,10 @@ public class TezCompiler extends TaskCompiler {
     opRules.put(
         new RuleRegExp("Top n key optimization", ReduceSinkOperator.getOperatorName() + "%"),
         new TopNKeyProcessor());
+    opRules.put(
+            new RuleRegExp("Top n key pushdown", TopNKeyOperator.getOperatorName() + "%"),
+            new TopNKeyPushdownProcessor());
+
 
     // The dispatcher fires the processor corresponding to the closest matching
     // rule and passes the context along
