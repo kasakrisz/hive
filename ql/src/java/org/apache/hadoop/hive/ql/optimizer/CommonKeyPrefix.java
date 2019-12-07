@@ -109,9 +109,9 @@ public class CommonKeyPrefix {
 
     for (int i = 0; i < size; ++i) {
       ExprNodeDesc column = opKeys.get(i);
-      ExprNodeDesc parentKey = parentKeys.get(i);
       String columnName = column.getExprString();
-      if (Objects.equals(parentColExprMap.get(columnName), parentKey) &&
+      ExprNodeDesc parentKey = parentKeys.get(i);
+      if (parentKey != null && parentKey.isSame(parentColExprMap.get(columnName)) &&
               opOrder.charAt(i) == parentOrder.charAt(i) &&
               opNullOrder.charAt(i) == parentNullOrder.charAt(i)) {
         commonPrefix.add(parentKey, opOrder.charAt(i), opNullOrder.charAt(i));
@@ -138,7 +138,7 @@ public class CommonKeyPrefix {
     for (int i = 0; i < size; ++i) {
       ExprNodeDesc opKey = opKeys.get(i);
       ExprNodeDesc parentKey = parentKeys.get(i);
-      if (opKey.isSame(parentKey) &&
+      if (opKey != null && opKey.isSame(parentKey) &&
               opOrder.charAt(i) == parentOrder.charAt(i) &&
               opNullOrder.charAt(i) == parentNullOrder.charAt(i)) {
         commonPrefix.add(parentKey, opOrder.charAt(i), opNullOrder.charAt(i));
