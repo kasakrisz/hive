@@ -260,6 +260,23 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     }
   }
 
+  private List<ExprNodeDesc> mapUntilColumnEquals(List<ExprNodeDesc> columns, Map<String,
+          ExprNodeDesc> colExprMap) {
+    if (colExprMap == null) {
+      return new ArrayList<>(0);
+    }
+    final List<ExprNodeDesc> mappedColumns = new ArrayList<>();
+    for (ExprNodeDesc column : columns) {
+      final String columnName = column.getExprString();
+      if (colExprMap.containsKey(columnName)) {
+        mappedColumns.add(colExprMap.get(columnName));
+      } else {
+        return mappedColumns;
+      }
+    }
+    return mappedColumns;
+  }
+
   /**
    * Push through another Top N Key operator.
    * If the TNK operators are the same on of the will be removed. See {@link TopNKeyDesc#isSame}
@@ -286,23 +303,6 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
       pushdownThroughParent(topNKey, parent);
     }
-  }
-
-  private static List<ExprNodeDesc> mapUntilColumnEquals(List<ExprNodeDesc> columns, Map<String,
-          ExprNodeDesc> colExprMap) {
-    if (colExprMap == null) {
-      return new ArrayList<>(0);
-    }
-    final List<ExprNodeDesc> mappedColumns = new ArrayList<>();
-    for (ExprNodeDesc column : columns) {
-      final String columnName = column.getExprString();
-      if (colExprMap.containsKey(columnName)) {
-        mappedColumns.add(colExprMap.get(columnName));
-      } else {
-        return mappedColumns;
-      }
-    }
-    return mappedColumns;
   }
 
   private static boolean hasSameTopNKeyDesc(Operator<? extends OperatorDesc> operator, TopNKeyDesc desc) {
