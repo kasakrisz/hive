@@ -324,8 +324,13 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     for (Operator<? extends OperatorDesc> grandParent : grandParents) {
       grandParent.replaceChild(parent, topNKey);
     }
-    topNKey.setParentOperators(new ArrayList<>(grandParents));
-    topNKey.setChildOperators(new ArrayList<>(Collections.singletonList(parent)));
-    parent.setParentOperators(new ArrayList<>(Collections.singletonList(topNKey)));
+    topNKey.getParentOperators().clear();
+    topNKey.getParentOperators().addAll(grandParents);
+
+    topNKey.getChildOperators().clear();
+    topNKey.getChildOperators().add(parent);
+
+    parent.getParentOperators().clear();
+    parent.getParentOperators().add(topNKey);
   }
 }
