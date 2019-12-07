@@ -30,7 +30,7 @@ import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
 
 /**
  * Holds result of a common key prefix of two operators.
- * Provides methods for mapping TopNKey operator keys to GroupBy and ReduceSink operator keys.
+ * Provides factory methods for mapping TopNKey operator keys to GroupBy and ReduceSink operator keys.
  */
 public class CommonKeyPrefix {
 
@@ -104,6 +104,9 @@ public class CommonKeyPrefix {
   private List<ExprNodeDesc> mappedColumns = new ArrayList<>();
   private StringBuilder mappedOrder = new StringBuilder();
   private StringBuilder mappedNullOrder = new StringBuilder();
+
+  private CommonKeyPrefix() {
+  }
 
   public void add(ExprNodeDesc column, char order, char nullOrder) {
     mappedColumns.add(column);
