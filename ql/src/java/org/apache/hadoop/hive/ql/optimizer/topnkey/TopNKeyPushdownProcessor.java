@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.ql.optimizer;
+package org.apache.hadoop.hive.ql.optimizer.topnkey;
 
 import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
-import static org.apache.hadoop.hive.ql.optimizer.TopNKeyProcessor.copyDown;
+import static org.apache.hadoop.hive.ql.optimizer.topnkey.TopNKeyProcessor.copyDown;
 
 /**
  * Implementation of TopNKey operator pushdown.
