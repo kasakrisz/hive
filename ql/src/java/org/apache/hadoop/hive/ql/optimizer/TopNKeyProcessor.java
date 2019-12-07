@@ -86,13 +86,14 @@ public class TopNKeyProcessor implements NodeProcessor {
         OperatorFactory.getAndMakeChild(
             child.getCompilationOpContext(), operatorDesc,
             new RowSchema(parents.get(0).getSchema()), child.getParentOperators());
-    newOperator.setParentOperators(new ArrayList<>(parents));
-    newOperator.setChildOperators(new ArrayList<>(Collections.singletonList(child)));
+
+    newOperator.getChildOperators().add(child);
 
     for (Operator<? extends OperatorDesc> parent : parents) {
       parent.removeChild(child);
     }
-    child.setParentOperators(new ArrayList<>(Collections.singletonList(newOperator)));
+    child.getParentOperators().clear();
+    child.getParentOperators().add(newOperator);
 
     return (TopNKeyOperator) newOperator;
   }
