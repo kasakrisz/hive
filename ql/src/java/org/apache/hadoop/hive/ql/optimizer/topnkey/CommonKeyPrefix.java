@@ -83,7 +83,7 @@ public class CommonKeyPrefix {
    * Column ordering and null ordering is given by a string where each character represents a column order/null order.
    * Ex.: a ASC NULLS FIRST, b DESC NULLS LAST, c ASC NULLS LAST -> order="+-+", null order="azz"
    *
-   * When {@param parentColExprMap} is null this method falls back to
+   * When <code>parentColExprMap</code> is null this method falls back to
    * {@link #map(List, String, String, List, String, String)}.
    *
    * @param opKeys {@link List} of {@link ExprNodeDesc}. contains the operator's key columns

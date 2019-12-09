@@ -283,8 +283,8 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
   /**
    * Push through another Top N Key operator.
    * If the TNK operators are the same one of them will be removed. See {@link TopNKeyDesc#isSame}
-   * else If expression in {@param topnKey} is a common prefix in it's parent TNK op and topN property is same
-   * then {@param topnkey} could be pushed through parent.
+   * else If expression in <code>topnKey</code> is a common prefix in it's parent TNK op and topN property is same
+   * then <code>topnkey</code> could be pushed through parent.
    * If the Top N Key operator can not be pushed through this method tries to remove one of them:
    * - if topN property is the same and the keys of one of the operators are subset of the other then the operator
    *   can be removed
