@@ -317,4 +317,9 @@
   <value>query</value>
 </property>
 
+<property>
+  <name>hive.optimize.topnkey</name>
+  <value>true</value>
+</property>
+
 </configuration>
