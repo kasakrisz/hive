@@ -34,11 +34,11 @@ import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
+import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -303,8 +303,30 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             parentTopNKeyDesc.getKeyColumns(), parentTopNKeyDesc.getColumnSortOrder(),
             parentTopNKeyDesc.getNullOrder());
 
-    if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
-      pushdownThroughParent(topNKey);
+    if (topNKeyDesc.getTopN() == parentTopNKeyDesc.getTopN()) {
+      if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
+        // TNK keys are subset of the parent TNK keys
+        pushdownThroughParent(topNKey);
+        if (topNKey.getChildOperators().get(0).getType() == OperatorType.TOPNKEY) {
+          LOG.debug("Removing {} since child {} supersedes it", parent.getName(), topNKey.getName());
+          topNKey.getParentOperators().get(0).removeChildAndAdoptItsChildren(topNKey);
+        }
+      } else if (parentTopNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
+        // parent TNK keys are subset of TNK keys
+        LOG.debug("Removing parent of {} since it supersedes", topNKey.getName());
+        parent.getParentOperators().get(0).removeChildAndAdoptItsChildren(parent);
+      }
+    } else if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size() &&
+            parentTopNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
+      if (topNKeyDesc.getTopN() > parentTopNKeyDesc.getTopN()) {
+        LOG.debug("Removing {}. Parent {} has same keys but lower topN {} > {}",
+                topNKey.getName(), parent.getName(), topNKeyDesc.getTopN(), parentTopNKeyDesc.getTopN());
+        topNKey.getParentOperators().get(0).removeChildAndAdoptItsChildren(topNKey);
+      } else {
+        LOG.debug("Removing parent {}. {} has same keys but lower topN {} < {}",
+                parent.getName(), topNKey.getName(), topNKeyDesc.getTopN(), parentTopNKeyDesc.getTopN());
+        parent.getParentOperators().get(0).removeChildAndAdoptItsChildren(parent);
+      }
     }
   }
 
