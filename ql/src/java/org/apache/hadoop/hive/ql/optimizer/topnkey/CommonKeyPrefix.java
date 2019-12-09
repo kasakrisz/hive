@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.ql.optimizer.topnkey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
@@ -35,13 +34,14 @@ import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
 public class CommonKeyPrefix {
 
   /**
-   * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and a {@link org.apache.hadoop.hive.ql.exec.GroupByOperator}'s keys.
+   * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and a
+   * {@link org.apache.hadoop.hive.ql.exec.GroupByOperator}'s keys.
    * This method calls the {@link #map(List, String, String, List, Map, String, String)} method to do the mapping.
-   * Since the {@link GroupByDesc} does not contains any ordering information {@link TopNKeyDesc} ordering is passed for
-   * both operators.
-   * @param topNKeyDesc {@link TopNKeyDesc} which contains the {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator} keys.
-   * @param groupByDesc {@link GroupByDesc} which contains the {@link org.apache.hadoop.hive.ql.exec.GroupByOperator} keys.
-   * @return {@link CommonKeyPrefix} object containing the common key prefix of the mapped operators.
+   * Since the {@link GroupByDesc} does not contains any ordering information {@link TopNKeyDesc} ordering is passed
+   * for both operators.
+   * @param topNKeyDesc {@link TopNKeyDesc} contains {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator} keys.
+   * @param groupByDesc {@link GroupByDesc} contains {@link org.apache.hadoop.hive.ql.exec.GroupByOperator} keys.
+   * @return {@link CommonKeyPrefix} object containing common key prefix of the mapped operators.
    */
   public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, GroupByDesc groupByDesc) {
     return map(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
@@ -50,11 +50,13 @@ public class CommonKeyPrefix {
   }
 
   /**
-   * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and a {@link org.apache.hadoop.hive.ql.exec.ReduceSinkOperator}'s keys.
+   * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and
+   * a {@link org.apache.hadoop.hive.ql.exec.ReduceSinkOperator}'s keys.
    * This method calls the {@link #map(List, String, String, List, Map, String, String)} method to do the mapping.
-   * @param topNKeyDesc {@link TopNKeyDesc} which contains the {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator} keys.
-   * @param reduceSinkDesc {@link ReduceSinkDesc} which contains the {@link org.apache.hadoop.hive.ql.exec.ReduceSinkOperator} keys.
-   * @return {@link CommonKeyPrefix} object containing the common key prefix of the mapped operators.
+   * @param topNKeyDesc {@link TopNKeyDesc} contains {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator} keys.
+   * @param reduceSinkDesc {@link ReduceSinkDesc} contains
+   *   {@link org.apache.hadoop.hive.ql.exec.ReduceSinkOperator} keys.
+   * @return {@link CommonKeyPrefix} object containing common key prefix of the mapped operators.
    */
   public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, ReduceSinkDesc reduceSinkDesc) {
     return map(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
@@ -78,16 +80,18 @@ public class CommonKeyPrefix {
    *      parentKeys: Column[KEY._col0], Column[KEY._col1], Column[KEY._col4]
    *      parentColExprMap: {_col0 -> Column[KEY._col0]}, {_col1 -> Column[KEY._col1]}, {_col4 -> Column[KEY._col4]}
    *
-   * Column ordering and null ordering is given by a string where each character represents one column order/null order.
+   * Column ordering and null ordering is given by a string where each character represents a column order/null order.
    * Ex.: a ASC NULLS FIRST, b DESC NULLS LAST, c ASC NULLS LAST -> order="+-+", null order="azz"
    *
-   * When {@param parentColExprMap} is null this method falls back to {@link #map(List, String, String, List, String, String)}.
+   * When {@param parentColExprMap} is null this method falls back to
+   * {@link #map(List, String, String, List, String, String)}.
    *
    * @param opKeys {@link List} of {@link ExprNodeDesc}. contains the operator's key columns
    * @param opOrder operator's key column ordering in {@link String} format
    * @param opNullOrder operator's key column null ordering in {@link String} format
    * @param parentKeys {@link List} of {@link ExprNodeDesc}. contains the parent operator's key columns
-   * @param parentColExprMap {@link Map} of {@link String} -> {@link ExprNodeDesc}. contains the parent operator's key column name {@link ExprNodeDesc} mapping
+   * @param parentColExprMap {@link Map} of {@link String} -> {@link ExprNodeDesc}.
+   *                                    contains parent operator's key column name {@link ExprNodeDesc} mapping
    * @param parentOrder parent operator's key column ordering in {@link String} format
    * @param parentNullOrder parent operator's key column null ordering in {@link String} format
    * @return {@link CommonKeyPrefix} object containing the common key prefix of the mapped operators.
@@ -122,7 +126,8 @@ public class CommonKeyPrefix {
     return commonPrefix;
   }
 
-  // General factory method to map two operator keys. Operator's and parent operator's {@link ExprNodeDesc}s are compared using the
+  // General factory method to map two operator keys. Operator's and parent operator's {@link ExprNodeDesc}s are
+  // compared using the
   // {@link ExprNodeDesc.isSame} method.
   public static CommonKeyPrefix map(
           List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
