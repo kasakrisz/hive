@@ -28,12 +28,14 @@ import java.util.Map;
 
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.junit.Test;
 
 /**
  * Tests for CommonKeyPrefix.
  */
 public class TestCommonKeyPrefix {
+
   @Test
   public void testmapWhenNoKeysExists() {
     // when
@@ -50,14 +52,10 @@ public class TestCommonKeyPrefix {
   @Test
   public void testmapWhenAllKeysMatch() {
     // given
-    ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
-    childCol0.setColumn("_col0");
-    ExprNodeColumnDesc childCol1 = new ExprNodeColumnDesc();
-    childCol1.setColumn("_col1");
-    ExprNodeColumnDesc parentCol0 = new ExprNodeColumnDesc();
-    parentCol0.setColumn("KEY._col0");
-    ExprNodeColumnDesc parentCol1 = new ExprNodeColumnDesc();
-    parentCol1.setColumn("KEY._col1");
+    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
+    ExprNodeColumnDesc childCol1 = exprNodeColumnDesc("_col1");
+    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
+    ExprNodeColumnDesc parentCol1 = exprNodeColumnDesc("KEY._col1");
     Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
     exprNodeDescMap.put("_col0", parentCol0);
     exprNodeDescMap.put("_col1", parentCol1);
@@ -75,17 +73,20 @@ public class TestCommonKeyPrefix {
     assertThat(commonPrefix.getMappedColumns().get(1), is(parentCol1));
   }
 
+  private ExprNodeColumnDesc exprNodeColumnDesc(String colName) {
+    ExprNodeColumnDesc exprNodeColumnDesc = new ExprNodeColumnDesc();
+    exprNodeColumnDesc.setColumn(colName);
+    exprNodeColumnDesc.setTypeInfo(TypeInfoFactory.intTypeInfo);
+    return exprNodeColumnDesc;
+  }
+
   @Test
   public void testmapWhenOnlyFirstKeyMatchFromTwo() {
     // given
-    ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
-    childCol0.setColumn("_col0");
-    ExprNodeColumnDesc differentChildCol = new ExprNodeColumnDesc();
-    differentChildCol.setColumn("_col2");
-    ExprNodeColumnDesc parentCol0 = new ExprNodeColumnDesc();
-    parentCol0.setColumn("KEY._col0");
-    ExprNodeColumnDesc parentCol1 = new ExprNodeColumnDesc();
-    parentCol1.setColumn("KEY._col1");
+    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
+    ExprNodeColumnDesc differentChildCol = exprNodeColumnDesc("_col2");
+    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
+    ExprNodeColumnDesc parentCol1 = exprNodeColumnDesc("KEY._col1");
     Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
     exprNodeDescMap.put("_col0", parentCol0);
     exprNodeDescMap.put("_col1", parentCol1);
@@ -105,14 +106,10 @@ public class TestCommonKeyPrefix {
   @Test
   public void testmapWhenAllColumnsMatchButOrderMismatch() {
     // given
-    ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
-    childCol0.setColumn("_col0");
-    ExprNodeColumnDesc childCol1 = new ExprNodeColumnDesc();
-    childCol1.setColumn("_col1");
-    ExprNodeColumnDesc parentCol0 = new ExprNodeColumnDesc();
-    parentCol0.setColumn("KEY._col0");
-    ExprNodeColumnDesc parentCol1 = new ExprNodeColumnDesc();
-    parentCol1.setColumn("KEY._col1");
+    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
+    ExprNodeColumnDesc childCol1 = exprNodeColumnDesc("_col1");
+    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
+    ExprNodeColumnDesc parentCol1 = exprNodeColumnDesc("KEY._col1");
     Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
     exprNodeDescMap.put("_col0", parentCol0);
     exprNodeDescMap.put("_col1", parentCol1);
@@ -139,14 +136,10 @@ public class TestCommonKeyPrefix {
   @Test
   public void testmapWhenAllColumnsMatchButNullOrderMismatch() {
     // given
-    ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
-    childCol0.setColumn("_col0");
-    ExprNodeColumnDesc childCol1 = new ExprNodeColumnDesc();
-    childCol1.setColumn("_col1");
-    ExprNodeColumnDesc parentCol0 = new ExprNodeColumnDesc();
-    parentCol0.setColumn("KEY._col0");
-    ExprNodeColumnDesc parentCol1 = new ExprNodeColumnDesc();
-    parentCol1.setColumn("KEY._col1");
+    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
+    ExprNodeColumnDesc childCol1 = exprNodeColumnDesc("_col1");
+    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
+    ExprNodeColumnDesc parentCol1 = exprNodeColumnDesc("KEY._col1");
     Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
     exprNodeDescMap.put("_col0", parentCol0);
     exprNodeDescMap.put("_col1", parentCol1);
@@ -173,12 +166,9 @@ public class TestCommonKeyPrefix {
   @Test
   public void testmapWhenKeyCountsMismatch() {
     // given
-    ExprNodeColumnDesc childCol0 = new ExprNodeColumnDesc();
-    childCol0.setColumn("_col0");
-    ExprNodeColumnDesc childCol1 = new ExprNodeColumnDesc();
-    childCol1.setColumn("_col1");
-    ExprNodeColumnDesc parentCol0 = new ExprNodeColumnDesc();
-    parentCol0.setColumn("KEY._col0");
+    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
+    ExprNodeColumnDesc childCol1 = exprNodeColumnDesc("_col1");
+    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
     Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
     exprNodeDescMap.put("_col0", parentCol0);
 
