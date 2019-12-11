@@ -67,7 +67,7 @@ public class CommonKeyPrefix {
   /**
    * General factory method to map two operator keys.
    * Two keys are considered to be equal
-   * - if parent operator's {@param parentColExprMap} has an entry with the operator key column name
+   * - if parent operator's <code>parentColExprMap</code> has an entry with the operator key column name
    * - and that entry value has the same index as the operator key column index.
    * - and both key columns has the same ordering
    * - and both key columns has the same null ordering
