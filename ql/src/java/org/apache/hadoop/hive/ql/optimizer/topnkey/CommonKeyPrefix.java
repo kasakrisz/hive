@@ -31,7 +31,7 @@ import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
  * Holds result of a common key prefix of two operators.
  * Provides factory methods for mapping TopNKey operator keys to GroupBy and ReduceSink operator keys.
  */
-public class CommonKeyPrefix {
+public final class CommonKeyPrefix {
 
   /**
    * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and a
