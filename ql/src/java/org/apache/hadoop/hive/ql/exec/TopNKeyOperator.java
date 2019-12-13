@@ -59,7 +59,6 @@ public class TopNKeyOperator extends Operator<TopNKeyDesc> implements Serializab
     String nullSortOrder = conf.getNullOrder();
 
     ObjectInspector rowInspector = inputObjInspectors[0];
-    ObjectInspector standardObjInspector = ObjectInspectorUtils.getStandardObjectInspector(rowInspector);
     outputObjInspector = rowInspector;
 
     // init keyFields
