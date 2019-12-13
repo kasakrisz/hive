@@ -1398,7 +1398,7 @@ STAGE PLANS:
                         sort order: +
                         Statistics: Num rows: 9173 Data size: 348640 Basic stats: COMPLETE Column stats: NONE
                         TopN Hash Memory Usage: 0.1
-            Execution mode: llap
+            Execution mode: vectorized, llap
             LLAP IO: no inputs
         Reducer 2 
             Execution mode: vectorized, llap
@@ -1881,7 +1881,7 @@ STAGE PLANS:
                         Statistics: Num rows: 9173 Data size: 1499152 Basic stats: COMPLETE Column stats: NONE
                         TopN Hash Memory Usage: 0.1
                         value expressions: _col2 (type: date), _col3 (type: int)
-            Execution mode: llap
+            Execution mode: vectorized, llap
             LLAP IO: no inputs
         Reducer 2 
             Execution mode: vectorized, llap
@@ -2441,7 +2441,7 @@ STAGE PLANS:
                         sort order: +
                         Statistics: Num rows: 9173 Data size: 348640 Basic stats: COMPLETE Column stats: NONE
                         TopN Hash Memory Usage: 0.1
-            Execution mode: llap
+            Execution mode: vectorized, llap
             LLAP IO: no inputs
         Reducer 2 
             Execution mode: vectorized, llap
