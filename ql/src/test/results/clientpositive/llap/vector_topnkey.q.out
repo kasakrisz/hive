@@ -84,17 +84,35 @@ STAGE PLANS:
                 TableScan
                   alias: t_test
                   Statistics: Num rows: 14 Data size: 44 Basic stats: COMPLETE Column stats: COMPLETE
+                  TableScan Vectorization:
+                      native: true
+                      vectorizationSchemaColumns: [0:cint1:int, 1:cint2:int, 2:cdouble:double, 3:cvarchar:varchar(50), 4:cdecimal1:decimal(10,2)/DECIMAL_64, 5:cdecimal2:decimal(38,5), 6:ROW__ID:struct<writeid:bigint,bucketid:int,rowid:bigint>]
                   Top N Key Operator
                     sort order: +
                     keys: cint1 (type: int)
                     null sort order: z
                     Statistics: Num rows: 14 Data size: 44 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 3
+                    Top N Key Vectorization:
+                        className: VectorTopNKeyOperator
+                        keyExpressions: col 0:int
+                        native: true
                     Select Operator
                       expressions: cint1 (type: int)
                       outputColumnNames: cint1
+                      Select Vectorization:
+                          className: VectorSelectOperator
+                          native: true
+                          projectedOutputColumnNums: [0]
                       Statistics: Num rows: 14 Data size: 44 Basic stats: COMPLETE Column stats: COMPLETE
                       Group By Operator
+                        Group By Vectorization:
+                            className: VectorGroupByOperator
+                            groupByMode: HASH
+                            keyExpressions: col 0:int
+                            native: false
+                            vectorProcessingMode: HASH
+                            projectedOutputColumnNums: []
                         keys: cint1 (type: int)
                         minReductionHashAggr: 0.64285713
                         mode: hash
@@ -105,16 +123,30 @@ STAGE PLANS:
                           null sort order: z
                           sort order: +
                           Map-reduce partition columns: _col0 (type: int)
+                          Reduce Sink Vectorization:
+                              className: VectorReduceSinkLongOperator
+                              keyColumns: 0:int
+                              native: true
+                              nativeConditionsMet: hive.vectorized.execution.reducesink.new.enabled IS true, hive.execution.engine tez IN [tez, spark] IS true, No PTF TopN IS true, No DISTINCT columns IS true, BinarySortableSerDe for keys IS true, LazyBinarySerDe for values IS true
                           Statistics: Num rows: 5 Data size: 12 Basic stats: COMPLETE Column stats: COMPLETE
                           TopN Hash Memory Usage: 0.1
-            Execution mode: llap
+            Execution mode: vectorized, llap
             LLAP IO: no inputs
             Map Vectorization:
                 enabled: true
                 enabledConditionsMet: hive.vectorized.use.vector.serde.deserialize IS true
+                inputFormatFeatureSupport: [DECIMAL_64]
+                featureSupportInUse: [DECIMAL_64]
                 inputFileFormats: org.apache.hadoop.mapred.TextInputFormat
-                notVectorizedReason: exception: java.lang.RuntimeException: Illegal call stack trace: org.apache.hadoop.hive.ql.exec.vector.VectorizationContext$OutputColumnManager.freeMarkedScratchColumns(VectorizationContext.java:784), org.apache.hadoop.hive.ql.exec.vector.VectorizationContext.freeMarkedScratchColumns(VectorizationContext.java:824), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.vectorizeTopNKeyOperator(Vectorizer.java:4342), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.validateAndVectorizeOperator(Vectorizer.java:5264), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.doProcessChild(Vectorizer.java:977), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.doProcessChildren(Vectorizer.java:864), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.validateAndVectorizeOperatorTree(Vectorizer.java:834), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.access$2500(Vectorizer.java:245), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer$VectorizationDispatcher.validateAndVectorizeMapOperators(Vectorizer.java:2103), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer$VectorizationDispatcher.validateAndVectorizeMapOperators(Vectorizer.java:2055), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer$VectorizationDispatcher.validateAndVectorizeMapWork(Vectorizer.java:2030), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer$VectorizationDispatcher.convertMapWork(Vectorizer.java:1185), org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer$VectorizationDispatcher.dispatch(Vectorizer.java:1017), org.apache.hadoop.hive.ql.lib.TaskGraphWalker.dispatch(TaskGraphWalker.java:111), org.apache.hadoop.hive.ql.lib.TaskGraphWalker.walk(TaskGraphWalker.java:180), ...
-                vectorized: false
+                allNative: false
+                usesVectorUDFAdaptor: false
+                vectorized: true
+                rowBatchContext:
+                    dataColumnCount: 6
+                    includeColumns: [0]
+                    dataColumns: cint1:int, cint2:int, cdouble:double, cvarchar:varchar(50), cdecimal1:decimal(10,2)/DECIMAL_64, cdecimal2:decimal(38,5)
+                    partitionColumnCount: 0
+                    scratchColumnTypeNames: []
         Reducer 2 
             Execution mode: vectorized, llap
             Reduce Vectorization:
