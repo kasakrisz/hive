@@ -4332,11 +4332,12 @@ public class Vectorizer implements PhysicalPlanResolver {
       VectorTopNKeyDesc vectorTopNKeyDesc) throws HiveException {
 
     TopNKeyDesc topNKeyDesc = (TopNKeyDesc) topNKeyOperator.getConf();
-
-    List<ExprNodeDesc> keyColumns = topNKeyDesc.getKeyColumns();
-    VectorExpression[] keyExpressions = vContext.getVectorExpressionsUpConvertDecimal64(keyColumns);
-
+    VectorExpression[] keyExpressions;
+    // this will mark all actual computed columns
+    vContext.markActualScratchColumns();
     try {
+      List<ExprNodeDesc> keyColumns = topNKeyDesc.getKeyColumns();
+      keyExpressions = vContext.getVectorExpressionsUpConvertDecimal64(keyColumns);
       fixDecimalDataTypePhysicalVariations(vContext, keyExpressions);
     } finally {
       vContext.freeMarkedScratchColumns();
