@@ -71,7 +71,7 @@ public class TopNKeyProcessor implements NodeProcessor {
     }
 
     TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), reduceSinkDesc.getOrder(),
-            reduceSinkDesc.getNullOrder(), reduceSinkDesc.getKeyCols());
+            reduceSinkDesc.getNullOrder(), reduceSinkDesc.getKeyCols(), null);
 
     copyDown(reduceSinkOperator, topNKeyDesc);
     return null;

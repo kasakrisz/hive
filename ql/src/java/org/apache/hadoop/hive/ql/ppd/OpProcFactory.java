@@ -61,7 +61,9 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PTFDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
+import org.apache.hadoop.hive.ql.plan.TopNKeyDesc;
 import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
+import org.apache.hadoop.hive.ql.plan.ptf.PartitionDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFunctionDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowTableFunctionDef;
@@ -254,7 +256,7 @@ public final class OpProcFactory {
         wTFn.setRankLimit(rLimit);
         wTFn.setRankLimitFunction(fnIdx);
         if ( canPushLimitToReduceSink(wTFn)) {
-          pushRankLimitToRedSink(ptfOp, owi.getParseContext().getConf(), rLimit);
+          pushRankLimitToRedSink(ptfOp, owi.getParseContext().getConf(), rLimit, wTFn.getPartition());
         }
       }
     }
@@ -344,7 +346,7 @@ public final class OpProcFactory {
       return true;
     }
 
-    private void pushRankLimitToRedSink(PTFOperator ptfOp, HiveConf conf, int rLimit) throws SemanticException {
+    private void pushRankLimitToRedSink(PTFOperator ptfOp, HiveConf conf, int rLimit, PartitionDef partitionDef) throws SemanticException {
 
       Operator<? extends OperatorDesc> parent = ptfOp.getParentOperators().get(0);
       Operator<? extends OperatorDesc> gP = parent == null ? null : parent.getParentOperators().get(0);
@@ -361,6 +363,10 @@ public final class OpProcFactory {
       rDesc.setTopNMemoryUsage(threshold);
       rDesc.setMapGroupBy(true);
       rDesc.setPTFReduceSink(true);
+
+      TopNKeyDesc topNKeyDesc = new TopNKeyDesc(rDesc.getTopN(), rDesc.getOrder(),
+              rDesc.getNullOrder(), rDesc.getKeyCols(), null);
+
     }
   }
 

@@ -160,7 +160,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
     LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), groupBy.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), commonKeyPrefix.getMappedOrder(),
-            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
+            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(), null);
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
@@ -190,7 +190,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
     LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), reduceSink.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
+            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(), null);
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
@@ -249,7 +249,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     LOG.debug("Pushing a copy of {} through {} and {}",
             topNKey.getName(), join.getName(), reduceSinkOperator.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns());
+            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(), null);
     pushdown(copyDown(reduceSinkOperator, newTopNKeyDesc));
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {

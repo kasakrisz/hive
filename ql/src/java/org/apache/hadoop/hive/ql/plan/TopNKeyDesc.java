@@ -35,6 +35,7 @@ public class TopNKeyDesc extends AbstractOperatorDesc {
   private String columnSortOrder;
   private String nullOrder;
   private List<ExprNodeDesc> keyColumns;
+  private List<ExprNodeDesc> partitionKeyColumns;
 
   public TopNKeyDesc() {
   }
@@ -43,12 +44,14 @@ public class TopNKeyDesc extends AbstractOperatorDesc {
       final int topN,
       final String columnSortOrder,
       final String nullOrder,
-      final List<ExprNodeDesc> keyColumns) {
+      final List<ExprNodeDesc> keyColumns,
+      final List<ExprNodeDesc> partitionKeyColumns) {
 
     this.topN = topN;
     this.columnSortOrder = columnSortOrder;
     this.nullOrder = nullOrder;
     this.keyColumns = keyColumns;
+    this.partitionKeyColumns = partitionKeyColumns;
   }
 
   @Explain(displayName = "top n", explainLevels = { Level.DEFAULT, Level.EXTENDED, Level.USER })
@@ -103,6 +106,25 @@ public class TopNKeyDesc extends AbstractOperatorDesc {
     }
     return ret;
   }
+
+  public List<ExprNodeDesc> getPartitionKeyColumns() {
+    return partitionKeyColumns;
+  }
+
+  public void setPartitionKeyColumns(List<ExprNodeDesc> partitionKeyColumns) {
+    this.partitionKeyColumns = partitionKeyColumns;
+  }
+
+  @Explain(displayName = "keys")
+  public String getPartitionKeyString() {
+    return PlanUtils.getExprListString(partitionKeyColumns);
+  }
+
+  @Explain(displayName = "keys", explainLevels = { Level.USER })
+  public String getUserLevelExplainPartitionKeyString() {
+    return PlanUtils.getExprListString(partitionKeyColumns, true);
+  }
+
 
   @Override
   public boolean isSame(OperatorDesc other) {
