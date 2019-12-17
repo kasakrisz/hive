@@ -12,40 +12,38 @@ set hive.tez.min.bloom.filter.entries=1;
 set hive.stats.fetch.column.stats=true;
 set hive.cbo.enable=true;
 
-CREATE TABLE t_test(
+CREATE TABLE t_test_grouping_sets(
   a int,
   b int,
   c int
 );
 
-INSERT INTO t_test VALUES
---(NULL, NULL, NULL),
+INSERT INTO t_test_grouping_sets VALUES
+(NULL, NULL, NULL),
 (5, 2, 3),
---(NULL, NULL, NULL),
---(NULL, NULL, NULL),
+(10, 11, 12),
+(NULL, NULL, NULL),
+(NULL, NULL, NULL),
 (6, 2, 1),
 (7, 8, 4), (7, 8, 4), (7, 8, 4),
-(5, 1, 2), (5, 1, 2), (5, 1, 2);
---(NULL, NULL, NULL);
+(5, 1, 2), (5, 1, 2), (5, 1, 2),
+(NULL, NULL, NULL);
 
 explain
-SELECT a, b, grouping(a), grouping(b), grouping(a, b) FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 3;
-SELECT a, b, grouping(a), grouping(b), grouping(a, b) FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 3;
-
-set hive.optimize.topnkey=false;
-SELECT a, b FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 3;
+SELECT a, b, grouping(a), grouping(b), grouping(a, b) FROM t_test_grouping_sets GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 3;
+SELECT a, b, grouping(a), grouping(b), grouping(a, b) FROM t_test_grouping_sets GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 3;
 
 set hive.optimize.topnkey=true;
-SELECT a, b FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 10;
+SELECT a, b FROM t_test_grouping_sets GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 10;
 
 set hive.optimize.topnkey=false;
-SELECT a, b FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 10;
+SELECT a, b FROM t_test_grouping_sets GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY a LIMIT 10;
 
 set hive.optimize.topnkey=true;
-SELECT a, b FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY b LIMIT 3;
+SELECT a, b FROM t_test_grouping_sets GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY b LIMIT 3;
 
 set hive.optimize.topnkey=false;
-SELECT a, b FROM t_test GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY b LIMIT 3;
+SELECT a, b FROM t_test_grouping_sets GROUP BY a,b GROUPING SETS ((a,b), (a), (b), ()) ORDER BY b LIMIT 3;
 
 
-DROP TABLE IF EXISTS tstore;
+DROP TABLE IF EXISTS t_test_grouping_sets;
