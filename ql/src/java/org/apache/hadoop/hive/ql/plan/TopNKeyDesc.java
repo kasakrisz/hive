@@ -115,12 +115,12 @@ public class TopNKeyDesc extends AbstractOperatorDesc {
     this.partitionKeyColumns = partitionKeyColumns;
   }
 
-  @Explain(displayName = "keys")
+  @Explain(displayName = "Map-reduce partition columns")
   public String getPartitionKeyString() {
     return PlanUtils.getExprListString(partitionKeyColumns);
   }
 
-  @Explain(displayName = "keys", explainLevels = { Level.USER })
+  @Explain(displayName = "PartitionCols", explainLevels = { Level.USER })
   public String getUserLevelExplainPartitionKeyString() {
     return PlanUtils.getExprListString(partitionKeyColumns, true);
   }

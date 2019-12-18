@@ -28,8 +28,11 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.apache.hadoop.hive.ql.plan.api.OperatorType.TOPNKEY;
 
@@ -60,37 +63,51 @@ public class TopNKeyOperator extends Operator<TopNKeyDesc> implements Serializab
   protected void initializeOp(Configuration hconf) throws HiveException {
     super.initializeOp(hconf);
 
-    String columnSortOrder = conf.getColumnSortOrder();
-    String nullSortOrder = conf.getNullOrder();
+    StringBuilder columnSortOrder = new StringBuilder(conf.getColumnSortOrder());
+    StringBuilder nullSortOrder = new StringBuilder(conf.getNullOrder());
 
     ObjectInspector rowInspector = inputObjInspectors[0];
     outputObjInspector = rowInspector;
 
+    List<ExprNodeDesc> keyColumns = new ArrayList<>(conf.getKeyColumns());
+    for (ExprNodeDesc partitionKeyExprNodeDesc : conf.getPartitionKeyColumns()) {
+      int i = IntStream.range(0, keyColumns.size())
+              .filter(value -> partitionKeyExprNodeDesc.isSame(keyColumns.get(value)))
+              .findFirst()
+              .orElse(-1);
+      if (i == -1) {
+        continue;
+      }
+
+      keyColumns.remove(i);
+      columnSortOrder.deleteCharAt(i);
+      nullSortOrder.deleteCharAt(i);
+    }
+
     // init keyFields
-    int numKeys = conf.getKeyColumns().size();
-    ObjectInspector[] keyObjectInspectors = new ObjectInspector[numKeys];
-    ObjectInspector[] currentKeyObjectInspectors = new ObjectInspector[numKeys];
-    keyWrapper = initObjectInspectors(numKeys, hconf, rowInspector, keyObjectInspectors, currentKeyObjectInspectors);
+    ObjectInspector[] keyObjectInspectors = new ObjectInspector[keyColumns.size()];
+    ObjectInspector[] currentKeyObjectInspectors = new ObjectInspector[keyColumns.size()];
+    keyWrapper = initObjectInspectors(hconf, keyColumns, rowInspector, keyObjectInspectors, currentKeyObjectInspectors);
     int numPartitionKeys = conf.getPartitionKeyColumns().size();
     ObjectInspector[] partitionKeyObjectInspectors = new ObjectInspector[numPartitionKeys];
     ObjectInspector[] partitionCurrentKeyObjectInspectors = new ObjectInspector[numPartitionKeys];
-    partitionKeyWrapper = initObjectInspectors(numPartitionKeys, hconf, rowInspector, partitionKeyObjectInspectors,
+    partitionKeyWrapper = initObjectInspectors(hconf, conf.getPartitionKeyColumns(), rowInspector, partitionKeyObjectInspectors,
             partitionCurrentKeyObjectInspectors);
 
     keyWrapperComparator = new KeyWrapperComparator(
-            keyObjectInspectors, currentKeyObjectInspectors, columnSortOrder, nullSortOrder);
+            keyObjectInspectors, currentKeyObjectInspectors, columnSortOrder.toString(), nullSortOrder.toString());
 
     this.topNKeyFilters = new HashMap<>();
   }
 
-  private KeyWrapper initObjectInspectors(int numKeys,
-                                    Configuration hconf,
+  private KeyWrapper initObjectInspectors(Configuration hconf,
+                                    List<ExprNodeDesc> keyColumns,
                                     ObjectInspector rowInspector,
                                     ObjectInspector[] keyObjectInspectors,
                                     ObjectInspector[] currentKeyObjectInspectors) throws HiveException {
-    ExprNodeEvaluator[] keyFields = new ExprNodeEvaluator[numKeys];
-    for (int i = 0; i < numKeys; i++) {
-      ExprNodeDesc key = conf.getKeyColumns().get(i);
+    ExprNodeEvaluator[] keyFields = new ExprNodeEvaluator[keyColumns.size()];
+    for (int i = 0; i < keyColumns.size(); i++) {
+      ExprNodeDesc key = keyColumns.get(i);
       keyFields[i] = ExprNodeEvaluatorFactory.get(key, hconf);
       keyObjectInspectors[i] = keyFields[i].initialize(rowInspector);
       currentKeyObjectInspectors[i] = ObjectInspectorUtils.getStandardObjectInspector(keyObjectInspectors[i],

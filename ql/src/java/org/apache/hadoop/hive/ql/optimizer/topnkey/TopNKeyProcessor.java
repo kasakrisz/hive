@@ -58,12 +58,6 @@ public class TopNKeyProcessor implements NodeProcessor {
       return null;
     }
 
-    // Currently, per partitioning top n key is not supported
-    // in TopNKey operator
-    if (reduceSinkDesc.isPTFReduceSink()) {
-      return null;
-    }
-
     // Check whether there already is a top n key operator
     Operator<? extends OperatorDesc> parentOperator = reduceSinkOperator.getParentOperators().get(0);
     if (parentOperator instanceof TopNKeyOperator) {
@@ -71,7 +65,7 @@ public class TopNKeyProcessor implements NodeProcessor {
     }
 
     TopNKeyDesc topNKeyDesc = new TopNKeyDesc(reduceSinkDesc.getTopN(), reduceSinkDesc.getOrder(),
-            reduceSinkDesc.getNullOrder(), reduceSinkDesc.getKeyCols(), null);
+            reduceSinkDesc.getNullOrder(), reduceSinkDesc.getKeyCols(), reduceSinkDesc.getPartitionCols());
 
     copyDown(reduceSinkOperator, topNKeyDesc);
     return null;
