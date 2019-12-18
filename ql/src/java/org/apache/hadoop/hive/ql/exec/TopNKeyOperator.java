@@ -63,32 +63,18 @@ public class TopNKeyOperator extends Operator<TopNKeyDesc> implements Serializab
   protected void initializeOp(Configuration hconf) throws HiveException {
     super.initializeOp(hconf);
 
-    StringBuilder columnSortOrder = new StringBuilder(conf.getColumnSortOrder());
-    StringBuilder nullSortOrder = new StringBuilder(conf.getNullOrder());
-
     ObjectInspector rowInspector = inputObjInspectors[0];
     outputObjInspector = rowInspector;
 
-    List<ExprNodeDesc> keyColumns = new ArrayList<>(conf.getKeyColumns());
-    for (ExprNodeDesc partitionKeyExprNodeDesc : conf.getPartitionKeyColumns()) {
-      int i = IntStream.range(0, keyColumns.size())
-              .filter(value -> partitionKeyExprNodeDesc.isSame(keyColumns.get(value)))
-              .findFirst()
-              .orElse(-1);
-      if (i == -1) {
-        continue;
-      }
-
-      keyColumns.remove(i);
-      columnSortOrder.deleteCharAt(i);
-      nullSortOrder.deleteCharAt(i);
-    }
+    int numPartitionKeys = conf.getPartitionKeyColumns().size();
+    List<ExprNodeDesc> keyColumns = conf.getKeyColumns().subList(numPartitionKeys, conf.getKeyColumns().size());
+    String columnSortOrder = conf.getColumnSortOrder().substring(numPartitionKeys);
+    String nullSortOrder = conf.getNullOrder().substring(numPartitionKeys);
 
     // init keyFields
     ObjectInspector[] keyObjectInspectors = new ObjectInspector[keyColumns.size()];
     ObjectInspector[] currentKeyObjectInspectors = new ObjectInspector[keyColumns.size()];
     keyWrapper = initObjectInspectors(hconf, keyColumns, rowInspector, keyObjectInspectors, currentKeyObjectInspectors);
-    int numPartitionKeys = conf.getPartitionKeyColumns().size();
     ObjectInspector[] partitionKeyObjectInspectors = new ObjectInspector[numPartitionKeys];
     ObjectInspector[] partitionCurrentKeyObjectInspectors = new ObjectInspector[numPartitionKeys];
     partitionKeyWrapper = initObjectInspectors(hconf, conf.getPartitionKeyColumns(), rowInspector, partitionKeyObjectInspectors,
