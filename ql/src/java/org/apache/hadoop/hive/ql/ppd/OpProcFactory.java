@@ -256,7 +256,7 @@ public final class OpProcFactory {
         wTFn.setRankLimit(rLimit);
         wTFn.setRankLimitFunction(fnIdx);
         if ( canPushLimitToReduceSink(wTFn)) {
-          pushRankLimitToRedSink(ptfOp, owi.getParseContext().getConf(), rLimit, wTFn.getPartition());
+          pushRankLimitToRedSink(ptfOp, owi.getParseContext().getConf(), rLimit);
         }
       }
     }
@@ -346,7 +346,7 @@ public final class OpProcFactory {
       return true;
     }
 
-    private void pushRankLimitToRedSink(PTFOperator ptfOp, HiveConf conf, int rLimit, PartitionDef partitionDef) throws SemanticException {
+    private void pushRankLimitToRedSink(PTFOperator ptfOp, HiveConf conf, int rLimit) throws SemanticException {
 
       Operator<? extends OperatorDesc> parent = ptfOp.getParentOperators().get(0);
       Operator<? extends OperatorDesc> gP = parent == null ? null : parent.getParentOperators().get(0);
@@ -363,10 +363,6 @@ public final class OpProcFactory {
       rDesc.setTopNMemoryUsage(threshold);
       rDesc.setMapGroupBy(true);
       rDesc.setPTFReduceSink(true);
-
-      TopNKeyDesc topNKeyDesc = new TopNKeyDesc(rDesc.getTopN(), rDesc.getOrder(),
-              rDesc.getNullOrder(), rDesc.getKeyCols(), null);
-
     }
   }
 
