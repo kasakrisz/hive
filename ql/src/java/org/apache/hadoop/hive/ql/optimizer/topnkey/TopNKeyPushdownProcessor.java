@@ -160,7 +160,8 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
     LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), groupBy.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(), commonKeyPrefix.getMappedOrder(),
-            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(), null);
+            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(),
+            getCommonPartitionKeyColumns(topNKeyDesc, commonKeyPrefix));
     pushdown(copyDown(groupBy, newTopNKeyDesc));
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
@@ -190,7 +191,8 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
 
     LOG.debug("Pushing a copy of {} through {}", topNKey.getName(), reduceSink.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(), null);
+            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(),
+            getCommonPartitionKeyColumns(topNKeyDesc, commonKeyPrefix));
     pushdown(copyDown(reduceSink, newTopNKeyDesc));
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
@@ -249,13 +251,21 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     LOG.debug("Pushing a copy of {} through {} and {}",
             topNKey.getName(), join.getName(), reduceSinkOperator.getName());
     final TopNKeyDesc newTopNKeyDesc = new TopNKeyDesc(topNKeyDesc.getTopN(),
-            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(), null);
+            commonKeyPrefix.getMappedOrder(), commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(),
+            getCommonPartitionKeyColumns(topNKeyDesc, commonKeyPrefix));
     pushdown(copyDown(reduceSinkOperator, newTopNKeyDesc));
 
     if (topNKeyDesc.getKeyColumns().size() == commonKeyPrefix.size()) {
       LOG.debug("Removing {} above {}", topNKey.getName(), join.getName());
       join.removeChildAndAdoptItsChildren(topNKey);
     }
+  }
+
+  private List<ExprNodeDesc> getCommonPartitionKeyColumns(TopNKeyDesc topNKeyDesc, CommonKeyPrefix commonKeyPrefix) {
+    if (commonKeyPrefix.getMappedColumns().size() > topNKeyDesc.getPartitionKeyColumns().size()) {
+      return commonKeyPrefix.getMappedColumns().subList(0, topNKeyDesc.getPartitionKeyColumns().size());
+    }
+    return commonKeyPrefix.getMappedColumns();
   }
 
   private List<ExprNodeDesc> mapUntilColumnEquals(List<ExprNodeDesc> columns, Map<String,
