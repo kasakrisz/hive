@@ -1,5 +1,6 @@
 set hive.auto.convert.join.noconditionaltask=true;
 set hive.auto.convert.join.noconditionaltask.size=1431655765;
+set hive.vectorized.execution.enabled=false;
 
 
 create table testtable_n1000 (s_state string, ss_net_profit double);

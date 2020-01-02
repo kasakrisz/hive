@@ -240,6 +240,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
             mapUntilColumnEquals(topNKeyDesc.getKeyColumns(), join.getColumnExprMap()),
             topNKeyDesc.getColumnSortOrder(),
             topNKeyDesc.getNullOrder(),
+            topNKeyDesc.getPartitionKeyColumns().size(),
             reduceSinkDesc.getKeyCols(),
             reduceSinkDesc.getColumnExprMap(),
             reduceSinkDesc.getOrder(),
@@ -309,6 +310,7 @@ public class TopNKeyPushdownProcessor implements NodeProcessor {
     TopNKeyDesc parentTopNKeyDesc = parent.getConf();
     CommonKeyPrefix commonKeyPrefix = CommonKeyPrefix.map(
             topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
+            topNKeyDesc.getPartitionKeyColumns().size(),
             parentTopNKeyDesc.getKeyColumns(), parentTopNKeyDesc.getColumnSortOrder(),
             parentTopNKeyDesc.getNullOrder());
 
