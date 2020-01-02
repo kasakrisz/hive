@@ -91,6 +91,7 @@ public final class CommonKeyPrefix {
    * @param opKeys {@link List} of {@link ExprNodeDesc}. contains the operator's key columns
    * @param opOrder operator's key column ordering in {@link String} format
    * @param opNullOrder operator's key column null ordering in {@link String} format
+   * @param opPartitionKeyCount number of partition keys in the beginning of the <code>opKeys</code> list.
    * @param parentKeys {@link List} of {@link ExprNodeDesc}. contains the parent operator's key columns
    * @param parentColExprMap {@link Map} of {@link String} -> {@link ExprNodeDesc}.
    *                                    contains parent operator's key column name {@link ExprNodeDesc} mapping
