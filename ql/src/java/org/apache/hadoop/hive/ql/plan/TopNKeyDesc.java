@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.ql.plan;
 
+import org.apache.hadoop.hive.ql.optimizer.topnkey.CommonKeyPrefix;
 import org.apache.hadoop.hive.ql.plan.Explain.Level;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Objects;
  */
 @Explain(displayName = "Top N Key Operator", explainLevels = { Level.USER, Level.DEFAULT, Level.EXTENDED })
 public class TopNKeyDesc extends AbstractOperatorDesc {
+
   private static final long serialVersionUID = 1L;
 
   private int topN;
@@ -172,4 +174,11 @@ public class TopNKeyDesc extends AbstractOperatorDesc {
     }
     return new TopNKeyDescExplainVectorization(this, vectorTopNKeyDesc);
   }
+
+  public TopNKeyDesc combine(CommonKeyPrefix commonKeyPrefix) {
+    return new TopNKeyDesc(topN, commonKeyPrefix.getMappedOrder(),
+            commonKeyPrefix.getMappedNullOrder(), commonKeyPrefix.getMappedColumns(),
+            commonKeyPrefix.getMappedColumns().subList(0, partitionKeyColumns.size()));
+  }
+
 }

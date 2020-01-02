@@ -36,7 +36,7 @@ public final class CommonKeyPrefix {
   /**
    * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and a
    * {@link org.apache.hadoop.hive.ql.exec.GroupByOperator}'s keys.
-   * This method calls the {@link #map(List, String, String, int, List, Map, String, String)} method to do the mapping.
+   * This method calls the {@link #map(List, String, String, List, Map, String, String)} method to do the mapping.
    * Since the {@link GroupByDesc} does not contains any ordering information {@link TopNKeyDesc} ordering is passed
    * for both operators.
    * @param topNKeyDesc {@link TopNKeyDesc} contains {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator} keys.
@@ -45,7 +45,6 @@ public final class CommonKeyPrefix {
    */
   public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, GroupByDesc groupByDesc) {
     return map(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
-            topNKeyDesc.getPartitionKeyColumns().size(),
             groupByDesc.getKeys(), groupByDesc.getColumnExprMap(),
             topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder());
   }
@@ -53,7 +52,7 @@ public final class CommonKeyPrefix {
   /**
    * Factory method to map a {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator}'s and
    * a {@link org.apache.hadoop.hive.ql.exec.ReduceSinkOperator}'s keys.
-   * This method calls the {@link #map(List, String, String, int, List, Map, String, String)} method to do the mapping.
+   * This method calls the {@link #map(List, String, String, List, Map, String, String)} method to do the mapping.
    * @param topNKeyDesc {@link TopNKeyDesc} contains {@link org.apache.hadoop.hive.ql.exec.TopNKeyOperator} keys.
    * @param reduceSinkDesc {@link ReduceSinkDesc} contains
    *   {@link org.apache.hadoop.hive.ql.exec.ReduceSinkOperator} keys.
@@ -61,7 +60,6 @@ public final class CommonKeyPrefix {
    */
   public static CommonKeyPrefix map(TopNKeyDesc topNKeyDesc, ReduceSinkDesc reduceSinkDesc) {
     return map(topNKeyDesc.getKeyColumns(), topNKeyDesc.getColumnSortOrder(), topNKeyDesc.getNullOrder(),
-            topNKeyDesc.getPartitionKeyColumns().size(),
             reduceSinkDesc.getKeyCols(), reduceSinkDesc.getColumnExprMap(),
             reduceSinkDesc.getOrder(), reduceSinkDesc.getNullOrder());
   }
@@ -86,12 +84,11 @@ public final class CommonKeyPrefix {
    * Ex.: a ASC NULLS FIRST, b DESC NULLS LAST, c ASC NULLS LAST -> order="+-+", null order="azz"
    *
    * When <code>parentColExprMap</code> is null this method falls back to
-   * {@link #map(List, String, String, int, List, String, String)}.
+   * {@link #map(List, String, String, List, String, String)}.
    *
    * @param opKeys {@link List} of {@link ExprNodeDesc}. contains the operator's key columns
    * @param opOrder operator's key column ordering in {@link String} format
    * @param opNullOrder operator's key column null ordering in {@link String} format
-   * @param opPartitionKeyCount number of partition keys in the beginning of the <code>opKeys</code> list.
    * @param parentKeys {@link List} of {@link ExprNodeDesc}. contains the parent operator's key columns
    * @param parentColExprMap {@link Map} of {@link String} -> {@link ExprNodeDesc}.
    *                                    contains parent operator's key column name {@link ExprNodeDesc} mapping
@@ -100,15 +97,15 @@ public final class CommonKeyPrefix {
    * @return {@link CommonKeyPrefix} object containing the common key prefix of the mapped operators.
    */
   public static CommonKeyPrefix map(
-          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder, int opPartitionKeyCount,
+          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
           List<ExprNodeDesc> parentKeys, Map<String, ExprNodeDesc> parentColExprMap,
           String parentOrder, String parentNullOrder) {
 
     if (parentColExprMap == null) {
-      return map(opKeys, opOrder, opNullOrder, opPartitionKeyCount, parentKeys, parentOrder, parentNullOrder);
+      return map(opKeys, opOrder, opNullOrder, parentKeys, parentOrder, parentNullOrder);
     }
 
-    CommonKeyPrefix commonPrefix = new CommonKeyPrefix(opPartitionKeyCount);
+    CommonKeyPrefix commonPrefix = new CommonKeyPrefix();
     int size = Stream.of(opKeys.size(), opOrder.length(), opNullOrder.length(),
             parentKeys.size(), parentColExprMap.size(), parentOrder.length(), parentNullOrder.length())
             .min(Integer::compareTo)
@@ -133,11 +130,11 @@ public final class CommonKeyPrefix {
   // compared using the
   // {@link ExprNodeDesc.isSame} method.
   public static CommonKeyPrefix map(
-          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder, int opPartitionKeyCount,
+          List<ExprNodeDesc> opKeys, String opOrder, String opNullOrder,
           List<ExprNodeDesc> parentKeys,
           String parentOrder, String parentNullOrder) {
 
-    CommonKeyPrefix commonPrefix = new CommonKeyPrefix(opPartitionKeyCount);
+    CommonKeyPrefix commonPrefix = new CommonKeyPrefix();
     int size = Stream.of(opKeys.size(), opOrder.length(), opNullOrder.length(),
             parentKeys.size(), parentOrder.length(), parentNullOrder.length())
             .min(Integer::compareTo)
@@ -160,10 +157,8 @@ public final class CommonKeyPrefix {
   private List<ExprNodeDesc> mappedColumns = new ArrayList<>();
   private StringBuilder mappedOrder = new StringBuilder();
   private StringBuilder mappedNullOrder = new StringBuilder();
-  private final int partitionKeyCount;
 
-  private CommonKeyPrefix(int partitionKeyCount) {
-    this.partitionKeyCount = partitionKeyCount;
+  private CommonKeyPrefix() {
   }
 
   public void add(ExprNodeDesc column, char order, char nullOrder) {
@@ -173,15 +168,11 @@ public final class CommonKeyPrefix {
   }
 
   public boolean isEmpty() {
-    return mappedColumns.size() <= partitionKeyCount;
+    return mappedColumns.isEmpty();
   }
 
   public List<ExprNodeDesc> getMappedColumns() {
     return mappedColumns;
-  }
-
-  public List<ExprNodeDesc> getMappedPartitionKeys() {
-    return mappedColumns.subList(0, partitionKeyCount);
   }
 
   public String getMappedOrder() {
@@ -193,9 +184,6 @@ public final class CommonKeyPrefix {
   }
 
   public int size() {
-    if (isEmpty()) {
-      return 0;
-    }
     return mappedColumns.size();
   }
 }

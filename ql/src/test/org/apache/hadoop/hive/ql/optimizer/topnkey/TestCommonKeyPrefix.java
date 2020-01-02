@@ -40,7 +40,7 @@ public class TestCommonKeyPrefix {
   public void testmapWhenNoKeysExists() {
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            new ArrayList<>(0), "", "", 0, new ArrayList<>(0), new HashMap<>(0), "", "");
+            new ArrayList<>(0), "", "", new ArrayList<>(0), new HashMap<>(0), "", "");
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
     assertThat(commonPrefix.size(), is(0));
@@ -62,7 +62,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "aa", 0, asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
+            asList(childCol0, childCol1), "++", "aa", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -93,7 +93,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, differentChildCol), "++", "aa", 0,
+            asList(childCol0, differentChildCol), "++", "aa",
             asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
@@ -116,7 +116,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "+-", "aa", 0, asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
+            asList(childCol0, childCol1), "+-", "aa", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -127,7 +127,7 @@ public class TestCommonKeyPrefix {
 
     // when
     commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "-+", "aa", 0, asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
+            asList(childCol0, childCol1), "-+", "aa", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
@@ -146,7 +146,7 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "az", 0, asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
+            asList(childCol0, childCol1), "++", "az", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
@@ -157,7 +157,7 @@ public class TestCommonKeyPrefix {
 
     // when
     commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "za", 0, asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
+            asList(childCol0, childCol1), "++", "za", asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(true));
@@ -174,59 +174,12 @@ public class TestCommonKeyPrefix {
 
     // when
     CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1), "++", "aa", 0, singletonList(parentCol0), exprNodeDescMap, "++", "aa");
+            asList(childCol0, childCol1), "++", "aa", singletonList(parentCol0), exprNodeDescMap, "++", "aa");
 
     // then
     assertThat(commonPrefix.isEmpty(), is(false));
     assertThat(commonPrefix.size(), is(1));
     assertThat(commonPrefix.getMappedOrder(), is("+"));
     assertThat(commonPrefix.getMappedColumns().get(0), is(parentCol0));
-  }
-
-  @Test
-  public void testmapWhenTheCommonPrefixAndPartitionKeysAreEquals() {
-    // given
-    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
-    ExprNodeColumnDesc differentChildCol = exprNodeColumnDesc("_col2");
-    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
-    ExprNodeColumnDesc parentCol1 = exprNodeColumnDesc("KEY._col1");
-    Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
-    exprNodeDescMap.put("_col0", parentCol0);
-    exprNodeDescMap.put("_col1", parentCol1);
-
-    // when
-    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, differentChildCol), "++", "aa", 1,
-            asList(parentCol0, parentCol1), exprNodeDescMap, "++", "aa");
-
-    // then
-    assertThat(commonPrefix.isEmpty(), is(true));
-    assertThat(commonPrefix.size(), is(0));
-  }
-
-  @Test
-  public void testmapWhenPartitionKeysExists() {
-    // given
-    ExprNodeColumnDesc childCol0 = exprNodeColumnDesc("_col0");
-    ExprNodeColumnDesc childCol1 = exprNodeColumnDesc("_col1");
-    ExprNodeColumnDesc differentChildCol = exprNodeColumnDesc("_col2");
-    ExprNodeColumnDesc parentCol0 = exprNodeColumnDesc("KEY._col0");
-    ExprNodeColumnDesc parentCol1 = exprNodeColumnDesc("KEY._col1");
-    ExprNodeColumnDesc parentCol2 = exprNodeColumnDesc("KEY._col3");
-    Map<String, ExprNodeDesc> exprNodeDescMap = new HashMap<>();
-    exprNodeDescMap.put("_col0", parentCol0);
-    exprNodeDescMap.put("_col1", parentCol1);
-    exprNodeDescMap.put("_col3", parentCol2);
-
-    // when
-    CommonKeyPrefix commonPrefix = CommonKeyPrefix.map(
-            asList(childCol0, childCol1, differentChildCol), "++", "aa", 1,
-            asList(parentCol0, parentCol1, parentCol2), exprNodeDescMap, "++", "aa");
-
-    // then
-    assertThat(commonPrefix.isEmpty(), is(false));
-    assertThat(commonPrefix.size(), is(2));
-    assertThat(commonPrefix.getMappedPartitionKeys().size(), is(1));
-    assertThat(commonPrefix.getMappedPartitionKeys().get(0), is(parentCol0));
   }
 }
