@@ -58,6 +58,12 @@ public class TopNKeyProcessor implements NodeProcessor {
       return null;
     }
 
+    // All keys are partition keys.
+    // Note: partition cols are prefix of key cols
+    if (reduceSinkDesc.getPartitionCols().size() == reduceSinkDesc.getKeyCols().size()) {
+      return null;
+    }
+
     // Check whether there already is a top n key operator
     Operator<? extends OperatorDesc> parentOperator = reduceSinkOperator.getParentOperators().get(0);
     if (parentOperator instanceof TopNKeyOperator) {
