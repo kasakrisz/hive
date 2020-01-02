@@ -180,6 +180,10 @@ public final class CommonKeyPrefix {
     return mappedColumns;
   }
 
+  public List<ExprNodeDesc> getMappedPartitionKeys() {
+    return mappedColumns.subList(0, partitionKeyCount);
+  }
+
   public String getMappedOrder() {
     return mappedOrder.toString();
   }
