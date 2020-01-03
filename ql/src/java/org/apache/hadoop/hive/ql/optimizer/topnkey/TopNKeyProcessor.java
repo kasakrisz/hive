@@ -58,9 +58,9 @@ public class TopNKeyProcessor implements NodeProcessor {
       return null;
     }
 
-    // All keys are partition keys.
+    // All keys are partition keys or no keys at all
     // Note: partition cols are prefix of key cols
-    if (reduceSinkDesc.getPartitionCols().size() == reduceSinkDesc.getKeyCols().size()) {
+    if (reduceSinkDesc.getPartitionCols().size() >= reduceSinkDesc.getKeyCols().size()) {
       return null;
     }
 
