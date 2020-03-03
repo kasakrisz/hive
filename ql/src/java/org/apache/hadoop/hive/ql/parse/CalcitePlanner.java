@@ -3971,7 +3971,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 4. Construct SortRel
       RelTraitSet traitSet = cluster.traitSetOf(HiveRelNode.CONVENTION);
-      RelCollation canonizedCollation = traitSet.canonize(RelCollationImpl.of(obLogicalPlanGenState.getCanonizedCollation()));
+      RelCollation canonizedCollation = traitSet.canonize(
+              RelCollationImpl.of(obLogicalPlanGenState.getFieldCollation()));
       RelNode sortRel = new HiveSortLimit(
               cluster, traitSet, obLogicalPlanGenState.getObInputRel(), canonizedCollation, null, null);
 
@@ -3993,7 +3994,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 4. Construct SortRel
       RelTraitSet traitSet = cluster.traitSetOf(HiveRelNode.CONVENTION);
-      RelCollation canonizedCollation = traitSet.canonize(RelCollationImpl.of(obLogicalPlanGenState.getCanonizedCollation()));
+      RelCollation canonizedCollation = traitSet.canonize(RelCollationImpl.of(obLogicalPlanGenState.getFieldCollation()));
       List<Integer> joinKeyPositions = new ArrayList<>(canonizedCollation.getFieldCollations().size());
       ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
       for (RelFieldCollation relFieldCollation : canonizedCollation.getFieldCollations()) {
@@ -4065,7 +4066,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
           } else { // if not using position alias and it is a number.
             LOG.warn("Using constant number "
                     + ref.getText()
-                    + " in order by. If you try to use position alias when hive.orderby.position.alias is false, the position alias will be ignored.");
+                    + " in order by. If you try to use position alias when hive.orderby.position.alias is false, " +
+                    "the position alias will be ignored.");
           }
         } else {
           // first try to get it from select
@@ -4126,13 +4128,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
       // for top constraining Sel
       RelNode obInputRel = srcRel;
       if (!newVCLst.isEmpty()) {
-        List<RexNode> originalInputRefs = Lists.transform(srcRel.getRowType().getFieldList(),
-                new Function<RelDataTypeField, RexNode>() {
-                  @Override
-                  public RexNode apply(RelDataTypeField input) {
-                    return new RexInputRef(input.getIndex(), input.getType());
-                  }
-                });
+        List<RexNode> originalInputRefs = toRexNodeList(srcRel);
         RowResolver obSyntheticProjectRR = new RowResolver();
         if (!RowResolver.add(obSyntheticProjectRR, inputRR)) {
           throw new CalciteSemanticException(
@@ -4173,7 +4169,14 @@ public class CalcitePlanner extends SemanticAnalyzer {
       return new OBLogicalPlanGenState(obInputRel, fieldCollations, selectOutputRR, outputRR, srcRel);
     }
 
-    public RelNode endGenOBLogicalPlan(OBLogicalPlanGenState obLogicalPlanGenState, RelNode sortRel) throws CalciteSemanticException {
+    private List<RexNode> toRexNodeList(RelNode srcRel) {
+      return srcRel.getRowType().getFieldList().stream()
+              .map(input -> new RexInputRef(input.getIndex(), input.getType()))
+              .collect(Collectors.toList());
+    }
+
+    public RelNode endGenOBLogicalPlan(OBLogicalPlanGenState obLogicalPlanGenState, RelNode sortRel)
+            throws CalciteSemanticException {
 
       // 5. Update the maps
       // NOTE: Output RR for SortRel is considered same as its input; we may
@@ -4187,13 +4190,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
       relToHiveColNameCalcitePosMap.put(sortRel, hiveColNameCalcitePosMap);
 
       if (obLogicalPlanGenState.getSelectOutputRR() != null) {
-        List<RexNode> originalInputRefs = Lists.transform(obLogicalPlanGenState.getSrcRel().getRowType().getFieldList(),
-                new Function<RelDataTypeField, RexNode>() {
-                  @Override
-                  public RexNode apply(RelDataTypeField input) {
-                    return new RexInputRef(input.getIndex(), input.getType());
-                  }
-                });
+        List<RexNode> originalInputRefs = toRexNodeList(obLogicalPlanGenState.getSrcRel());
         List<RexNode> selectedRefs = Lists.newArrayList();
         for (int index = 0; index < obLogicalPlanGenState.getSelectOutputRR().getColumnInfos().size(); index++) {
           selectedRefs.add(originalInputRefs.get(index));
@@ -5300,7 +5297,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
     private final RowResolver outputRR;
     private final RelNode srcRel;
 
-    public OBLogicalPlanGenState(RelNode obInputRel, List<RelFieldCollation> canonizedCollation,
+    OBLogicalPlanGenState(RelNode obInputRel, List<RelFieldCollation> canonizedCollation,
                                  RowResolver selectOutputRR, RowResolver outputRR, RelNode srcRel) {
       this.obInputRel = obInputRel;
       this.canonizedCollation = canonizedCollation;
@@ -5313,7 +5310,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
       return obInputRel;
     }
 
-    public List<RelFieldCollation> getCanonizedCollation() {
+    public List<RelFieldCollation> getFieldCollation() {
       return canonizedCollation;
     }
 
