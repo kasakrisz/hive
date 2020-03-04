@@ -812,8 +812,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if (selectExpr.getChildCount() == 1 && selectExpr.getChild(0).getType() == HiveParser.TOK_TABLE_OR_COL) {
         //first child should be rowid
         if (i == 0 && !selectExpr.getChild(0).getChild(0).getText().equals("ROW__ID")) {
-          throw new SemanticException("Unexpected element when replacing default keyword for UPDATE."
-                                          + " Expected ROW_ID, found: " + selectExpr.getChild(0).getChild(0).getText());
+//          throw new SemanticException("Unexpected element when replacing default keyword for UPDATE."
+//                                          + " Expected ROW_ID, found: " + selectExpr.getChild(0).getChild(0).getText());
         }
         else if (selectExpr.getChild(0).getChild(0).getText().toLowerCase().equals("default")) {
           if (defaultConstraints == null) {
