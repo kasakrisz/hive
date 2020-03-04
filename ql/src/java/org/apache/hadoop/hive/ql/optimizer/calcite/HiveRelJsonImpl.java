@@ -43,6 +43,8 @@ public class HiveRelJsonImpl extends RelJsonWriter {
 
   public HiveRelJsonImpl() {
     super();
+
+    // Remove this when calcite support RelDistribution serialization
     try {
       final Field fieldRelJson = RelJsonWriter.class.getDeclaredField("relJson");
       fieldRelJson.setAccessible(true);
