@@ -34,6 +34,7 @@ public class HiveRelJson extends RelJson {
     return super.toJson(value);
   }
 
+  // Remove this when calcite support RelDistribution serialization
   private Object toJson(RelDistribution value) {
     return value.getType().name();
   }
