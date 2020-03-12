@@ -204,6 +204,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectFilterPullUp
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectJoinTransposeRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectMergeRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectOverIntersectRemoveRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectSortExchangeTransposeRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectSortTransposeRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveReduceExpressionsRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveReduceExpressionsWithStatsRule;
@@ -213,6 +214,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveRemoveGBYSemiJoinRu
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveRemoveSqCountCheck;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveRulesRegistry;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSemiJoinRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortExchangeProjectTransposeRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortJoinReduceRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortLimitPullUpConstantsRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortLimitRemoveRule;
@@ -2432,6 +2434,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
         // 9.2.  Introduce exchange operators below join/multijoin operators
         generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
             HiveInsertExchange4JoinRule.EXCHANGE_BELOW_JOIN, HiveInsertExchange4JoinRule.EXCHANGE_BELOW_MULTIJOIN);
+      } else {
+        generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+                HiveSortExchangeProjectTransposeRule.INSTANCE, HiveProjectSortExchangeTransposeRule.INSTANCE);
       }
 
       // Trigger program
