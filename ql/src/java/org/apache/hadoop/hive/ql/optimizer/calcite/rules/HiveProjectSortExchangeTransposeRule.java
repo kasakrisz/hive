@@ -87,7 +87,11 @@ public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     Set<Integer> needed = new HashSet<>();
     for (RelFieldCollation fc : sortExchange.getCollation().getFieldCollations()) {
       needed.add(fc.getFieldIndex());
-      final RexNode node = project.getProjects().get(map.getTarget(fc.getFieldIndex()));
+      int index = map.getTargetOpt(fc.getFieldIndex());
+      if (index < 0) {
+        return;
+      }
+      final RexNode node = project.getProjects().get(index);
       if (node.isA(SqlKind.CAST)) {
         // Check whether it is a monotonic preserving cast, otherwise we cannot push
         final RexCall cast = (RexCall) node;
