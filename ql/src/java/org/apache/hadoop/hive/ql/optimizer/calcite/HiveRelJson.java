@@ -21,6 +21,7 @@ import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.util.JsonBuilder;
 
+// Upgrade to Calcite 1.23.0 to remove this class
 public class HiveRelJson extends RelJson {
   public HiveRelJson(JsonBuilder jsonBuilder) {
     super(jsonBuilder);
@@ -34,7 +35,7 @@ public class HiveRelJson extends RelJson {
     return super.toJson(value);
   }
 
-  // Remove this when calcite support RelDistribution serialization
+  // Upgrade to Calcite 1.23.0 to remove this method
   private Object toJson(RelDistribution value) {
     return value.getType().name();
   }
