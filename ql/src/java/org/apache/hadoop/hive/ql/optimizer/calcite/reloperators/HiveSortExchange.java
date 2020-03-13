@@ -27,7 +27,6 @@ import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rex.RexNode;
-import org.apache.hadoop.hive.ql.optimizer.calcite.TraitsUtil;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 
 import com.google.common.collect.ImmutableList;
@@ -84,6 +83,5 @@ public class HiveSortExchange extends SortExchange implements HiveRelNode {
 
   @Override
   public void implement(Implementor implementor) {
-    int i = 0;
   }
 }
