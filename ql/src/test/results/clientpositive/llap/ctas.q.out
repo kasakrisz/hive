@@ -37,7 +37,7 @@ STAGE PLANS:
 #### A masked pattern was here ####
       Edges:
         Reducer 2 <- Map 1 (SIMPLE_EDGE)
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+        Reducer 3 <- Reducer 2 (CUSTOM_SIMPLE_EDGE)
         Reducer 4 <- Reducer 3 (CUSTOM_SIMPLE_EDGE)
 #### A masked pattern was here ####
       Vertices:
@@ -74,23 +74,17 @@ STAGE PLANS:
                 Limit
                   Number of rows: 10
                   Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                  Top N Key Operator
-                    sort order: ++
-                    keys: _col0 (type: string), _col1 (type: string)
-                    null sort order: zz
+                  Reduce Output Operator
+                    null sort order: 
+                    sort order: 
                     Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                    top n: 10
-                    Reduce Output Operator
-                      key expressions: _col0 (type: string), _col1 (type: string)
-                      null sort order: zz
-                      sort order: ++
-                      Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                      TopN Hash Memory Usage: 0.1
+                    TopN Hash Memory Usage: 0.1
+                    value expressions: _col0 (type: string), _col1 (type: string)
         Reducer 3 
             Execution mode: llap
             Reduce Operator Tree:
               Select Operator
-                expressions: KEY.reducesinkkey0 (type: string), KEY.reducesinkkey1 (type: string)
+                expressions: VALUE._col0 (type: string), VALUE._col1 (type: string)
                 outputColumnNames: _col0, _col1
                 Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
                 Limit
@@ -248,7 +242,7 @@ STAGE PLANS:
 #### A masked pattern was here ####
       Edges:
         Reducer 2 <- Map 1 (SIMPLE_EDGE)
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+        Reducer 3 <- Reducer 2 (CUSTOM_SIMPLE_EDGE)
         Reducer 4 <- Reducer 3 (CUSTOM_SIMPLE_EDGE)
 #### A masked pattern was here ####
       Vertices:
@@ -285,23 +279,17 @@ STAGE PLANS:
                 Limit
                   Number of rows: 10
                   Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                  Top N Key Operator
-                    sort order: ++
-                    keys: _col0 (type: string), _col1 (type: string)
-                    null sort order: zz
+                  Reduce Output Operator
+                    null sort order: 
+                    sort order: 
                     Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                    top n: 10
-                    Reduce Output Operator
-                      key expressions: _col0 (type: string), _col1 (type: string)
-                      null sort order: zz
-                      sort order: ++
-                      Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                      TopN Hash Memory Usage: 0.1
+                    TopN Hash Memory Usage: 0.1
+                    value expressions: _col0 (type: string), _col1 (type: string)
         Reducer 3 
             Execution mode: llap
             Reduce Operator Tree:
               Select Operator
-                expressions: KEY.reducesinkkey0 (type: string), KEY.reducesinkkey1 (type: string)
+                expressions: VALUE._col0 (type: string), VALUE._col1 (type: string)
                 outputColumnNames: _col0, _col1
                 Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
                 Limit
@@ -459,7 +447,7 @@ STAGE PLANS:
 #### A masked pattern was here ####
       Edges:
         Reducer 2 <- Map 1 (SIMPLE_EDGE)
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+        Reducer 3 <- Reducer 2 (CUSTOM_SIMPLE_EDGE)
         Reducer 4 <- Reducer 3 (CUSTOM_SIMPLE_EDGE)
 #### A masked pattern was here ####
       Vertices:
@@ -470,12 +458,12 @@ STAGE PLANS:
                   Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
                   Top N Key Operator
                     sort order: ++
-                    keys: (key / 2) (type: double), concat(value, '_con') (type: string)
+                    keys: (UDFToDouble(key) / 2.0D) (type: double), concat(value, '_con') (type: string)
                     null sort order: zz
                     Statistics: Num rows: 500 Data size: 89000 Basic stats: COMPLETE Column stats: COMPLETE
                     top n: 10
                     Select Operator
-                      expressions: (key / 2) (type: double), concat(value, '_con') (type: string)
+                      expressions: (UDFToDouble(key) / 2.0D) (type: double), concat(value, '_con') (type: string)
                       outputColumnNames: _col0, _col1
                       Statistics: Num rows: 500 Data size: 96000 Basic stats: COMPLETE Column stats: COMPLETE
                       Reduce Output Operator
@@ -496,23 +484,17 @@ STAGE PLANS:
                 Limit
                   Number of rows: 10
                   Statistics: Num rows: 10 Data size: 1920 Basic stats: COMPLETE Column stats: COMPLETE
-                  Top N Key Operator
-                    sort order: ++
-                    keys: _col0 (type: double), _col1 (type: string)
-                    null sort order: zz
+                  Reduce Output Operator
+                    null sort order: 
+                    sort order: 
                     Statistics: Num rows: 10 Data size: 1920 Basic stats: COMPLETE Column stats: COMPLETE
-                    top n: 10
-                    Reduce Output Operator
-                      key expressions: _col0 (type: double), _col1 (type: string)
-                      null sort order: zz
-                      sort order: ++
-                      Statistics: Num rows: 10 Data size: 1920 Basic stats: COMPLETE Column stats: COMPLETE
-                      TopN Hash Memory Usage: 0.1
+                    TopN Hash Memory Usage: 0.1
+                    value expressions: _col0 (type: double), _col1 (type: string)
         Reducer 3 
             Execution mode: llap
             Reduce Operator Tree:
               Select Operator
-                expressions: KEY.reducesinkkey0 (type: double), KEY.reducesinkkey1 (type: string)
+                expressions: VALUE._col0 (type: double), VALUE._col1 (type: string)
                 outputColumnNames: _col0, _col1
                 Statistics: Num rows: 10 Data size: 1920 Basic stats: COMPLETE Column stats: COMPLETE
                 Limit
@@ -734,7 +716,7 @@ STAGE PLANS:
 #### A masked pattern was here ####
       Edges:
         Reducer 2 <- Map 1 (SIMPLE_EDGE)
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+        Reducer 3 <- Reducer 2 (CUSTOM_SIMPLE_EDGE)
         Reducer 4 <- Reducer 3 (CUSTOM_SIMPLE_EDGE)
 #### A masked pattern was here ####
       Vertices:
@@ -771,23 +753,17 @@ STAGE PLANS:
                 Limit
                   Number of rows: 10
                   Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                  Top N Key Operator
-                    sort order: ++
-                    keys: _col0 (type: string), _col1 (type: string)
-                    null sort order: zz
+                  Reduce Output Operator
+                    null sort order: 
+                    sort order: 
                     Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                    top n: 10
-                    Reduce Output Operator
-                      key expressions: _col0 (type: string), _col1 (type: string)
-                      null sort order: zz
-                      sort order: ++
-                      Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                      TopN Hash Memory Usage: 0.1
+                    TopN Hash Memory Usage: 0.1
+                    value expressions: _col0 (type: string), _col1 (type: string)
         Reducer 3 
             Execution mode: llap
             Reduce Operator Tree:
               Select Operator
-                expressions: KEY.reducesinkkey0 (type: string), KEY.reducesinkkey1 (type: string)
+                expressions: VALUE._col0 (type: string), VALUE._col1 (type: string)
                 outputColumnNames: _col0, _col1
                 Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
                 Limit
@@ -947,7 +923,7 @@ STAGE PLANS:
 #### A masked pattern was here ####
       Edges:
         Reducer 2 <- Map 1 (SIMPLE_EDGE)
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE)
+        Reducer 3 <- Reducer 2 (CUSTOM_SIMPLE_EDGE)
         Reducer 4 <- Reducer 3 (CUSTOM_SIMPLE_EDGE)
 #### A masked pattern was here ####
       Vertices:
@@ -984,23 +960,17 @@ STAGE PLANS:
                 Limit
                   Number of rows: 10
                   Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                  Top N Key Operator
-                    sort order: ++
-                    keys: _col0 (type: string), _col1 (type: string)
-                    null sort order: zz
+                  Reduce Output Operator
+                    null sort order: 
+                    sort order: 
                     Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                    top n: 10
-                    Reduce Output Operator
-                      key expressions: _col0 (type: string), _col1 (type: string)
-                      null sort order: zz
-                      sort order: ++
-                      Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
-                      TopN Hash Memory Usage: 0.1
+                    TopN Hash Memory Usage: 0.1
+                    value expressions: _col0 (type: string), _col1 (type: string)
         Reducer 3 
             Execution mode: llap
             Reduce Operator Tree:
               Select Operator
-                expressions: KEY.reducesinkkey0 (type: string), KEY.reducesinkkey1 (type: string)
+                expressions: VALUE._col0 (type: string), VALUE._col1 (type: string)
                 outputColumnNames: _col0, _col1
                 Statistics: Num rows: 10 Data size: 1780 Basic stats: COMPLETE Column stats: COMPLETE
                 Limit
