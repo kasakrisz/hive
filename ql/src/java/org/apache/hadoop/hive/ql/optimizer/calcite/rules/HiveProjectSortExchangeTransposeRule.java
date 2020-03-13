@@ -44,6 +44,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.validate.SqlMonotonicity;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveCalciteUtil;
+import org.apache.hadoop.hive.ql.optimizer.calcite.TraitsUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveRelNode;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
@@ -126,13 +127,14 @@ public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
               fc.nullDirection));
     }
 
-    RelTraitSet traitSet = sortExchange.getCluster().traitSetOf(HiveRelNode.CONVENTION);
-    RelCollation newCollation = traitSet.canonize(RelCollationImpl.of(fieldCollations));
+    RelTraitSet newTraitSet = TraitsUtil.getDefaultTraitSet(sortExchange.getCluster());
+    RelCollation newCollation = newTraitSet.canonize(RelCollationImpl.of(fieldCollations));
+    newTraitSet = newTraitSet.plus(newCollation);
 
     // New operators
     final RelNode newProject = project.copy(sortExchange.getInput().getTraitSet(),
-            ImmutableList.<RelNode>of(sortExchange.getInput()));
-    final SortExchange newSort = sortExchange.copy(sortExchange.getInput().getTraitSet(),
+            ImmutableList.of(sortExchange.getInput()));
+    final SortExchange newSort = sortExchange.copy(newTraitSet,
             newProject, sortExchange.getDistribution(), newCollation);
 
     call.transformTo(newSort);
