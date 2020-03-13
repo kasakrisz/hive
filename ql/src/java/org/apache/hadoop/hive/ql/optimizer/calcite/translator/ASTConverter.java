@@ -307,15 +307,6 @@ public class ASTConverter {
     List<RelFieldCollation> fieldCollations = hiveSortExchange.getCollation().getFieldCollations();
     convertFieldCollationsToASTNode(hiveSortExchange, new Schema(hiveSortExchange), fieldCollations,
             null, HiveParser.TOK_SORTBY, "TOK_SORTBY");
-
-    // TODO: sort by limit
-//      RexNode offsetExpr = hiveSortExchange.getOffsetExpr();
-//      RexNode fetchExpr = hiveSortExchange.getFetchExpr();
-//      if (fetchExpr != null) {
-//        Object offset = (offsetExpr == null) ? Integer.valueOf(0) : ((RexLiteral) offsetExpr).getValue2();
-//        Object fetch = ((RexLiteral) fetchExpr).getValue2();
-//        hiveAST.limit = ASTBuilder.limit(offset, fetch);
-//      }
   }
 
   private void convertFieldCollationsToASTNode(
