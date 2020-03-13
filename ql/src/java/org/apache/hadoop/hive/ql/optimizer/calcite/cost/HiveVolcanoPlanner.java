@@ -63,7 +63,6 @@ public class HiveVolcanoPlanner extends VolcanoPlanner {
     if (ENABLE_COLLATION_TRAIT) {
       planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
     }
-    planner.addRelTraitDef(RelDistributionTraitDef.INSTANCE);
     return planner;
   }
 

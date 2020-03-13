@@ -54,7 +54,7 @@ public class HiveSortExchange extends SortExchange implements HiveRelNode {
     RelOptCluster cluster = input.getCluster();
     distribution = RelDistributionTraitDef.INSTANCE.canonize(distribution);
     collation = RelCollationTraitDef.INSTANCE.canonize(collation);
-    RelTraitSet traitSet = RelTraitSet.createEmpty().plus(HiveRelNode.CONVENTION).plus(distribution).plus(collation);
+    RelTraitSet traitSet = RelTraitSet.createEmpty().plus(HiveRelNode.CONVENTION).plus(collation);
     return new HiveSortExchange(cluster, traitSet, input, distribution, collation, joinKeys);
   }
 
