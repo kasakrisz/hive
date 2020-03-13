@@ -5145,15 +5145,15 @@ public class CalcitePlanner extends SemanticAnalyzer {
       obRel = genOBLogicalPlan(qb, selPair, outerMostQB);
       srcRel = (obRel == null) ? srcRel : obRel;
 
-//       6. Build Rel for OB Clause
+      // 7. Build Rel for Sort By Clause
       sbRel = genSBLogicalPlan(qb, selPair, outerMostQB);
       srcRel = (sbRel == null) ? srcRel : sbRel;
 
-      // 7. Build Rel for Limit Clause
+      // 8. Build Rel for Limit Clause
       limitRel = genLimitLogicalPlan(qb, srcRel);
       srcRel = (limitRel == null) ? srcRel : limitRel;
 
-      // 8. Incase this QB corresponds to subquery then modify its RR to point
+      // 9. Incase this QB corresponds to subquery then modify its RR to point
       // to subquery alias.
       if (qb.getParseInfo().getAlias() != null) {
         RowResolver rr = this.relToHiveRR.get(srcRel);
