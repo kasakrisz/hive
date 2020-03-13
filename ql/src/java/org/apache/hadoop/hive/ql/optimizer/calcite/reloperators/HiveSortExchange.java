@@ -32,13 +32,13 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 
 import com.google.common.collect.ImmutableList;
 
-public class HiveSortExchange extends SortExchange {
+public class HiveSortExchange extends SortExchange implements HiveRelNode {
   private ImmutableList<RexNode> joinKeys;
   private ExprNodeDesc[] joinExpressions;
 
   private HiveSortExchange(RelOptCluster cluster, RelTraitSet traitSet,
       RelNode input, RelDistribution distribution, RelCollation collation, ImmutableList<RexNode> joinKeys) {
-    super(cluster, TraitsUtil.getSortTraitSet(cluster, traitSet, collation), input, distribution, collation);
+    super(cluster, traitSet, input, distribution, collation);
     this.joinKeys = new ImmutableList.Builder<RexNode>().addAll(joinKeys).build();
   }
 
@@ -55,7 +55,7 @@ public class HiveSortExchange extends SortExchange {
     RelOptCluster cluster = input.getCluster();
     distribution = RelDistributionTraitDef.INSTANCE.canonize(distribution);
     collation = RelCollationTraitDef.INSTANCE.canonize(collation);
-    RelTraitSet traitSet = RelTraitSet.createEmpty().plus(distribution).plus(collation);
+    RelTraitSet traitSet = RelTraitSet.createEmpty().plus(HiveRelNode.CONVENTION).plus(distribution).plus(collation);
     return new HiveSortExchange(cluster, traitSet, input, distribution, collation, joinKeys);
   }
 
@@ -82,4 +82,8 @@ public class HiveSortExchange extends SortExchange {
     this.joinExpressions = joinExpressions;
   }
 
+  @Override
+  public void implement(Implementor implementor) {
+    int i = 0;
+  }
 }
