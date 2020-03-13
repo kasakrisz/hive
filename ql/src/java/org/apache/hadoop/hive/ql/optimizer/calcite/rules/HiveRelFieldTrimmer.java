@@ -917,26 +917,10 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
       return result(exchange, Mappings.createIdentity(fieldCount));
     }
 
-    // leave the Sort unchanged in case we have dynamic limits
-//    if (exchange.offset instanceof RexDynamicParam
-//            || exchange.fetch instanceof RexDynamicParam) {
-//      return result(exchange, inputMapping);
-//    }
-
     final RelBuilder relBuilder = REL_BUILDER.get();
     relBuilder.push(newInput);
-//    final int offset =
-//            exchange.offset == null ? 0 : RexLiteral.intValue(exchange.offset);
-//    final int fetch =
-//            exchange.fetch == null ? -1 : RexLiteral.intValue(exchange.fetch);
-    final ImmutableList<RexNode> fields =
-            relBuilder.fields(RexUtil.apply(inputMapping, collation));
-//    relBuilder.sortLimit(offset, fetch, fields);
-    relBuilder.sortExchange(distribution, collation);
+    relBuilder.sortExchange(distribution, RexUtil.apply(inputMapping, collation));
 
-    // The result has the same mapping as the input gave us. Sometimes we
-    // return fields that the consumer didn't ask for, because the filter
-    // needs them for its condition.
     return result(relBuilder.build(), inputMapping);
   }
 }
