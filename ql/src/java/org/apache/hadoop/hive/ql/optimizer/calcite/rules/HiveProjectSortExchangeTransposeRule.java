@@ -79,7 +79,8 @@ public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     final RelOptCluster cluster = project.getCluster();
 
     // Determine mapping between project input and output fields.
-    // In Hive, Sort is always based on RexInputRef
+    // In Hive, Sort is always based on RexInputRef,
+    // HiveSortExchangePullUpConstantsRule should remove constants (RexLiteral)
     // We only need to check if project can contain all the positions that sortExchange needs.
     final Mappings.TargetMapping map =
             RelOptUtil.permutationIgnoreCast(
@@ -87,11 +88,6 @@ public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     Set<Integer> needed = new HashSet<>();
     for (RelFieldCollation fc : sortExchange.getCollation().getFieldCollations()) {
       needed.add(fc.getFieldIndex());
-//      int index = map.getTargetOpt(fc.getFieldIndex());
-//      if (index < 0) {
-//        return;
-//      }
-//      final RexNode node = project.getProjects().get(index);
       final RexNode node = project.getProjects().get(map.getTarget(fc.getFieldIndex()));
       if (node.isA(SqlKind.CAST)) {
         // Check whether it is a monotonic preserving cast, otherwise we cannot push

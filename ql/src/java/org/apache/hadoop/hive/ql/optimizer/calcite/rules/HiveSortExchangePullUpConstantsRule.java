@@ -30,12 +30,10 @@ import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
@@ -44,7 +42,6 @@ import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
-import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortLimit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,8 +139,6 @@ public class HiveSortExchangePullUpConstantsRule extends RelOptRule {
     relBuilder.project(Pair.left(newChildExprs), Pair.right(newChildExprs));
     final ImmutableList<RexNode> sortFields =
             relBuilder.fields(RelCollations.of(fieldCollations));
-//    relBuilder.sortLimit(sortExchange.offset == null ? -1 : RexLiteral.intValue(sortExchange.offset),
-//            sortExchange.fetch == null ? -1 : RexLiteral.intValue(sortExchange.fetch), sortFields);
     relBuilder.sortExchange(sortExchange.getDistribution(), RelCollations.of(fieldCollations));
 
     // Create top Project fixing nullability of fields
