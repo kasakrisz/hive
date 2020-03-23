@@ -17,14 +17,25 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.util.JsonBuilder;
 
-// Upgrade to Calcite 1.23.0 to remove this class
+/**
+ * Hive extension of RelJson.
+ * Implement
+ * This class can be removed when Calcite is upgraded to 1.23.0
+ */
 public class HiveRelJson extends RelJson {
+  private final JsonBuilder jsonBuilder;
+
   public HiveRelJson(JsonBuilder jsonBuilder) {
     super(jsonBuilder);
+    this.jsonBuilder = jsonBuilder;
   }
 
   @Override
@@ -36,7 +47,17 @@ public class HiveRelJson extends RelJson {
   }
 
   // Upgrade to Calcite 1.23.0 to remove this method
-  private Object toJson(RelDistribution value) {
-    return value.getType().name();
+  private Object toJson(RelDistribution relDistribution) {
+    final Map<String, Object> map = jsonBuilder.map();
+    map.put("type", relDistribution.getType().name());
+
+    if (!relDistribution.getKeys().isEmpty()) {
+      List<Object> keys = new ArrayList<>(relDistribution.getKeys().size());
+      for (Integer key : relDistribution.getKeys()) {
+        keys.add(toJson(key));
+      }
+      map.put("keys", keys);
+    }
+    return map;
   }
 }
