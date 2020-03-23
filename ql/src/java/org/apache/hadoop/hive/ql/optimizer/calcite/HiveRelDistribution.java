@@ -100,4 +100,12 @@ public class HiveRelDistribution implements RelDistribution {
     return type.compareTo(distribution.getType());
   }
 
+  @Override
+  public String toString() {
+    if (keys.isEmpty()) {
+      return type.shortName;
+    } else {
+      return type.shortName + keys;
+    }
+  }
 }
