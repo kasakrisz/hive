@@ -137,8 +137,6 @@ public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> exten
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(sortNode.getInput());
     relBuilder.project(Pair.left(newChildExprs), Pair.right(newChildExprs));
-    final ImmutableList<RexNode> sortFields =
-            relBuilder.fields(RelCollations.of(fieldCollations));
     buildSort(relBuilder, sortNode, fieldCollations);
     // Create top Project fixing nullability of fields
     relBuilder.project(topChildExprs, topChildExprsFields);
