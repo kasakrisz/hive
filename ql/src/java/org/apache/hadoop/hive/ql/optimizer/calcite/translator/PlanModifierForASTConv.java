@@ -177,9 +177,6 @@ public class PlanModifierForASTConv {
           introduceDerivedTable(((HiveSortLimit) rel).getInput(), rel);
         }
       } else if (rel instanceof HiveSortExchange) {
-        if (!validExchangeParent(rel, parent)) {
-          introduceDerivedTable(rel, parent);
-        }
         if (!validExchangeChild((HiveSortExchange) rel)) {
           introduceDerivedTable(((HiveSortExchange) rel).getInput(), rel);
         }
@@ -366,27 +363,9 @@ public class PlanModifierForASTConv {
 
     return validChild;
   }
-  private static boolean validExchangeParent(RelNode sortNode, RelNode parent) {
-    boolean validParent = true;
-
-    if (parent != null && !(parent instanceof Project) &&
-            !(HiveCalciteUtil.pureLimitRelNode(parent) && HiveCalciteUtil.pureOrderRelNode(sortNode))) {
-      validParent = false;
-    }
-
-    return validParent;
-  }
 
   private static boolean validExchangeChild(HiveSortExchange sortNode) {
-    boolean validChild = true;
-    RelNode child = sortNode.getInput();
-
-    if (!(child instanceof Project) &&
-            !(HiveCalciteUtil.pureLimitRelNode(sortNode) && HiveCalciteUtil.pureOrderRelNode(child))) {
-      validChild = false;
-    }
-
-    return validChild;
+    return sortNode.getInput() instanceof Project;
   }
 
   private static boolean validSetopParent(RelNode setop, RelNode parent) {
