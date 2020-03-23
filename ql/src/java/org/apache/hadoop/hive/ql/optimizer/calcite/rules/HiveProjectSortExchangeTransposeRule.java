@@ -17,36 +17,22 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import static org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectSortTransposeRule.getNewRelFieldCollations;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SortExchange;
-import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexCallBinding;
-import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.validate.SqlMonotonicity;
-import org.apache.calcite.util.mapping.Mappings;
-import org.apache.hadoop.hive.ql.optimizer.calcite.HiveCalciteUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.TraitsUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
-import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveRelNode;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
 
 import com.google.common.collect.ImmutableList;
@@ -79,52 +65,9 @@ public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     final HiveSortExchange sortExchange = call.rel(1);
     final RelOptCluster cluster = project.getCluster();
 
-    // Determine mapping between project input and output fields.
-    // In Hive, Sort is always based on RexInputRef,
-    // HiveSortExchangePullUpConstantsRule should remove constants (RexLiteral)
-    // We only need to check if project can contain all the positions that sortExchange needs.
-    final Mappings.TargetMapping map =
-            RelOptUtil.permutationIgnoreCast(
-                    project.getProjects(), project.getInput().getRowType()).inverse();
-    Set<Integer> needed = new HashSet<>();
-    for (RelFieldCollation fc : sortExchange.getCollation().getFieldCollations()) {
-      needed.add(fc.getFieldIndex());
-      final RexNode node = project.getProjects().get(map.getTarget(fc.getFieldIndex()));
-      if (node.isA(SqlKind.CAST)) {
-        // Check whether it is a monotonic preserving cast, otherwise we cannot push
-        final RexCall cast = (RexCall) node;
-        final RexCallBinding binding =
-                RexCallBinding.create(cluster.getTypeFactory(), cast,
-                        ImmutableList.of(RexUtil.apply(map, sortExchange.getCollation())));
-        if (cast.getOperator().getMonotonicity(binding) == SqlMonotonicity.NOT_MONOTONIC) {
-          return;
-        }
-      }
-    }
-    Map<Integer,Integer> m = new HashMap<>();
-    for (int projPos = 0; projPos < project.getChildExps().size(); projPos++) {
-      RexNode expr = project.getChildExps().get(projPos);
-      if (expr instanceof RexInputRef) {
-        Set<Integer> positions = HiveCalciteUtil.getInputRefs(expr);
-        if (positions.size() > 1) {
-          continue;
-        } else {
-          int parentPos = positions.iterator().next();
-          if(needed.contains(parentPos)){
-            m.put(parentPos, projPos);
-            needed.remove(parentPos);
-          }
-        }
-      }
-    }
-    if(!needed.isEmpty()){
+    List<RelFieldCollation> fieldCollations = getNewRelFieldCollations(project, sortExchange.getCollation(), cluster);
+    if (fieldCollations == null) {
       return;
-    }
-
-    List<RelFieldCollation> fieldCollations = new ArrayList<>();
-    for (RelFieldCollation fc : sortExchange.getCollation().getFieldCollations()) {
-      fieldCollations.add(new RelFieldCollation(m.get(fc.getFieldIndex()), fc.direction,
-              fc.nullDirection));
     }
 
     RelTraitSet newTraitSet = TraitsUtil.getDefaultTraitSet(sortExchange.getCluster());
