@@ -27,6 +27,7 @@ import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SortExchange;
 import org.apache.calcite.rex.RexNode;
+import org.apache.hadoop.hive.ql.optimizer.calcite.TraitsUtil;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 
 import com.google.common.collect.ImmutableList;
@@ -54,7 +55,7 @@ public class HiveSortExchange extends SortExchange implements HiveRelNode {
     RelOptCluster cluster = input.getCluster();
     distribution = RelDistributionTraitDef.INSTANCE.canonize(distribution);
     collation = RelCollationTraitDef.INSTANCE.canonize(collation);
-    RelTraitSet traitSet = RelTraitSet.createEmpty().plus(HiveRelNode.CONVENTION).plus(collation);
+    RelTraitSet traitSet = TraitsUtil.getDefaultTraitSet(cluster).replace(collation);
     return new HiveSortExchange(cluster, traitSet, input, distribution, collation, joinKeys);
   }
 

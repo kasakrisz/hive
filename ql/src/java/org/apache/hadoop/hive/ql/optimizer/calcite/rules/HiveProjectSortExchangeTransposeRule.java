@@ -72,7 +72,7 @@ public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
 
     RelTraitSet newTraitSet = TraitsUtil.getDefaultTraitSet(sortExchange.getCluster());
     RelCollation newCollation = newTraitSet.canonize(RelCollationImpl.of(fieldCollations));
-    newTraitSet = newTraitSet.plus(newCollation);
+    newTraitSet = newTraitSet.replace(newCollation);
 
     // New operators
     final RelNode newProject = project.copy(sortExchange.getInput().getTraitSet(),
