@@ -51,8 +51,7 @@ import com.google.common.collect.ImmutableList;
 
 public class HiveProjectSortTransposeRule extends RelOptRule {
 
-  public static final HiveProjectSortTransposeRule INSTANCE =
-      new HiveProjectSortTransposeRule();
+  public static final HiveProjectSortTransposeRule INSTANCE = new HiveProjectSortTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -84,7 +83,7 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
 
     RelTraitSet traitSet = sort.getCluster().traitSetOf(HiveRelNode.CONVENTION);
     RelCollation newCollation = traitSet.canonize(RelCollationImpl.of(fieldCollations));
-    
+
     // New operators
     final RelNode newProject = project.copy(sort.getInput().getTraitSet(),
             ImmutableList.of(sort.getInput()));
