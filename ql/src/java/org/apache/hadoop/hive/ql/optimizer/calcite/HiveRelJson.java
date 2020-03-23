@@ -27,7 +27,7 @@ import org.apache.calcite.util.JsonBuilder;
 
 /**
  * Hive extension of RelJson.
- * Implement
+ * Implement json serialization of types which are not support by Calcite 1.21.0.
  * This class can be removed when Calcite is upgraded to 1.23.0
  */
 public class HiveRelJson extends RelJson {
