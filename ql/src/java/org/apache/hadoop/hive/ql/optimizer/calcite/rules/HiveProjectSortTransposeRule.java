@@ -77,15 +77,34 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
     final HiveProject project = call.rel(0);
     final HiveSortLimit sort = call.rel(1);
     final RelOptCluster cluster = project.getCluster();
+    List<RelFieldCollation> fieldCollations = getNewRelFieldCollations(project, sort.getCollation(), cluster);
+    if (fieldCollations == null) {
+      return;
+    }
 
-    // Determine mapping between project input and output fields. 
+    RelTraitSet traitSet = sort.getCluster().traitSetOf(HiveRelNode.CONVENTION);
+    RelCollation newCollation = traitSet.canonize(RelCollationImpl.of(fieldCollations));
+    
+    // New operators
+    final RelNode newProject = project.copy(sort.getInput().getTraitSet(),
+            ImmutableList.of(sort.getInput()));
+    final HiveSortLimit newSort = sort.copy(newProject.getTraitSet(),
+            newProject, newCollation, sort.offset, sort.fetch);
+
+    call.transformTo(newSort);
+  }
+
+  public static List<RelFieldCollation> getNewRelFieldCollations(
+          HiveProject project, RelCollation sortCollation, RelOptCluster cluster) {
+    // Determine mapping between project input and output fields.
     // In Hive, Sort is always based on RexInputRef
-    // We only need to check if project can contain all the positions that sort needs.
+    // HiveSort*PullUpConstantsRule should remove constants (RexLiteral)
+    // We only need to check if project can contain all the positions that sortCollation needs.
     final Mappings.TargetMapping map =
         RelOptUtil.permutationIgnoreCast(
             project.getProjects(), project.getInput().getRowType()).inverse();
     Set<Integer> needed = new HashSet<>();
-    for (RelFieldCollation fc : sort.getCollation().getFieldCollations()) {
+    for (RelFieldCollation fc : sortCollation.getFieldCollations()) {
       needed.add(fc.getFieldIndex());
       final RexNode node = project.getProjects().get(map.getTarget(fc.getFieldIndex()));
       if (node.isA(SqlKind.CAST)) {
@@ -93,9 +112,9 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
         final RexCall cast = (RexCall) node;
         final RexCallBinding binding =
             RexCallBinding.create(cluster.getTypeFactory(), cast,
-                ImmutableList.of(RexUtil.apply(map, sort.getCollation())));
+                ImmutableList.of(RexUtil.apply(map, sortCollation)));
         if (cast.getOperator().getMonotonicity(binding) == SqlMonotonicity.NOT_MONOTONIC) {
-          return;
+          return null;
         }
       }
     }
@@ -104,9 +123,7 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
       RexNode expr = project.getChildExps().get(projPos);
       if (expr instanceof RexInputRef) {
         Set<Integer> positions = HiveCalciteUtil.getInputRefs(expr);
-        if (positions.size() > 1) {
-          continue;
-        } else {
+        if (positions.size() <= 1) {
           int parentPos = positions.iterator().next();
           if(needed.contains(parentPos)){
             m.put(parentPos, projPos);
@@ -116,25 +133,15 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
       }
     }
     if(!needed.isEmpty()){
-      return;
+      return null;
     }
-    
+
     List<RelFieldCollation> fieldCollations = new ArrayList<>();
-    for (RelFieldCollation fc : sort.getCollation().getFieldCollations()) {
+    for (RelFieldCollation fc : sortCollation.getFieldCollations()) {
       fieldCollations.add(new RelFieldCollation(m.get(fc.getFieldIndex()), fc.direction,
           fc.nullDirection));
     }
-
-    RelTraitSet traitSet = sort.getCluster().traitSetOf(HiveRelNode.CONVENTION);
-    RelCollation newCollation = traitSet.canonize(RelCollationImpl.of(fieldCollations));
-    
-    // New operators
-    final RelNode newProject = project.copy(sort.getInput().getTraitSet(),
-            ImmutableList.<RelNode>of(sort.getInput()));
-    final HiveSortLimit newSort = sort.copy(newProject.getTraitSet(),
-            newProject, newCollation, sort.offset, sort.fetch);
-
-    call.transformTo(newSort);
+    return fieldCollations;
   }
 
 }
