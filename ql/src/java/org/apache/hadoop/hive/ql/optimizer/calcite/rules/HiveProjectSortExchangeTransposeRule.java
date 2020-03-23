@@ -37,7 +37,19 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange
 
 import com.google.common.collect.ImmutableList;
 
-public class HiveProjectSortExchangeTransposeRule extends RelOptRule {
+/**
+ * Push down Projection above SortExchange.
+ * HiveProject
+ *   HiveSortExchange
+ *     ...
+ *
+ * =>
+ *
+ * HiveSortExchange
+ *   HiveProject
+ *     ...
+ */
+public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
   public static final HiveProjectSortExchangeTransposeRule INSTANCE =
           new HiveProjectSortExchangeTransposeRule();
 

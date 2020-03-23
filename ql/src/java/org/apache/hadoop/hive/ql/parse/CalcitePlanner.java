@@ -4000,7 +4000,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 4. Construct SortRel
       RelTraitSet traitSet = cluster.traitSetOf(HiveRelNode.CONVENTION);
-      RelCollation canonizedCollation = traitSet.canonize(RelCollationImpl.of(obLogicalPlanGenState.getFieldCollation()));
+      RelCollation canonizedCollation =
+              traitSet.canonize(RelCollationImpl.of(obLogicalPlanGenState.getFieldCollation()));
       List<Integer> joinKeyPositions = new ArrayList<>(canonizedCollation.getFieldCollations().size());
       ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
       for (RelFieldCollation relFieldCollation : canonizedCollation.getFieldCollations()) {
@@ -4018,8 +4019,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
       return endGenOBLogicalPlan(obLogicalPlanGenState, sortRel);
     }
 
-    private OBLogicalPlanGenState beginGenOBLogicalPlan(ASTNode obAST, Pair<RelNode, RowResolver> selPair,
-                                                        boolean outermostOB) throws SemanticException {
+    private OBLogicalPlanGenState beginGenOBLogicalPlan(
+            ASTNode obAST, Pair<RelNode, RowResolver> selPair, boolean outermostOB) throws SemanticException {
       // selPair.getKey() is the operator right before OB
       // selPair.getValue() is RR which only contains columns needed in result
       // set. Extra columns needed by order by will be absent from it.
