@@ -28,8 +28,10 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-public class HiveSortExchangePullUpConstantsRule extends HiveSortPullUpConstantsRuleBase<HiveSortExchange> {
+/**
+ * Planner rule that pulls up constant keys through a SortExchange operator.
+ */
+public final class HiveSortExchangePullUpConstantsRule extends HiveSortPullUpConstantsRuleBase<HiveSortExchange> {
   protected static final Logger LOG = LoggerFactory.getLogger(HiveSortLimitPullUpConstantsRule.class);
 
   public static final HiveSortExchangePullUpConstantsRule INSTANCE =

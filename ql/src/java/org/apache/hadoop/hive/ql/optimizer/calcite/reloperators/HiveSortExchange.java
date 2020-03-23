@@ -32,14 +32,18 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 
 import com.google.common.collect.ImmutableList;
 
-public class HiveSortExchange extends SortExchange implements HiveRelNode {
-  private ImmutableList<RexNode> joinKeys;
-  private ExprNodeDesc[] joinExpressions;
+/**
+ * Hive extension of calcite SortExchange.
+ * Add support of keys used when sorting or joining.
+ */
+public final class HiveSortExchange extends SortExchange implements HiveRelNode {
+  private ImmutableList<RexNode> keys;
+  private ExprNodeDesc[] keyExpressions;
 
   private HiveSortExchange(RelOptCluster cluster, RelTraitSet traitSet,
-      RelNode input, RelDistribution distribution, RelCollation collation, ImmutableList<RexNode> joinKeys) {
+      RelNode input, RelDistribution distribution, RelCollation collation, ImmutableList<RexNode> keys) {
     super(cluster, traitSet, input, distribution, collation);
-    this.joinKeys = new ImmutableList.Builder<RexNode>().addAll(joinKeys).build();
+    this.keys = new ImmutableList.Builder<RexNode>().addAll(keys).build();
   }
 
   /**
@@ -48,38 +52,38 @@ public class HiveSortExchange extends SortExchange implements HiveRelNode {
    * @param input     Input relational expression
    * @param distribution Distribution specification
    * @param collation Collation specification
-   * @param joinKeys Join Keys specification
+   * @param keys Join Keys specification
    */
   public static HiveSortExchange create(RelNode input,
-      RelDistribution distribution, RelCollation collation, ImmutableList<RexNode> joinKeys) {
+      RelDistribution distribution, RelCollation collation, ImmutableList<RexNode> keys) {
     RelOptCluster cluster = input.getCluster();
     distribution = RelDistributionTraitDef.INSTANCE.canonize(distribution);
     collation = RelCollationTraitDef.INSTANCE.canonize(collation);
     RelTraitSet traitSet = TraitsUtil.getDefaultTraitSet(cluster).replace(collation);
-    return new HiveSortExchange(cluster, traitSet, input, distribution, collation, joinKeys);
+    return new HiveSortExchange(cluster, traitSet, input, distribution, collation, keys);
   }
 
   @Override
   public SortExchange copy(RelTraitSet traitSet, RelNode newInput, RelDistribution newDistribution,
           RelCollation newCollation) {
     return new HiveSortExchange(getCluster(), traitSet, newInput,
-            newDistribution, newCollation, joinKeys);
+            newDistribution, newCollation, keys);
   }
 
-  public ImmutableList<RexNode> getJoinKeys() {
-    return joinKeys;
+  public ImmutableList<RexNode> getKeys() {
+    return keys;
   }
 
-  public void setJoinKeys(ImmutableList<RexNode> joinKeys) {
-    this.joinKeys = joinKeys;
+  public void setKeys(ImmutableList<RexNode> keys) {
+    this.keys = keys;
   }
 
-  public ExprNodeDesc[] getJoinExpressions() {
-    return joinExpressions;
+  public ExprNodeDesc[] getKeyExpressions() {
+    return keyExpressions;
   }
 
-  public void setJoinExpressions(ExprNodeDesc[] joinExpressions) {
-    this.joinExpressions = joinExpressions;
+  public void setKeyExpressions(ExprNodeDesc[] keyExpressions) {
+    this.keyExpressions = keyExpressions;
   }
 
   @Override

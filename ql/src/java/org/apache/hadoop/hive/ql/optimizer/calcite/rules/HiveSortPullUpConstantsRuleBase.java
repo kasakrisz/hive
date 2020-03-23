@@ -32,32 +32,23 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
-import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mappings;
-import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
-import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortLimit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
 /**
- * Planner rule that pulls up constant keys through a SortLimit operator.
- * 
- * This rule is only applied on SortLimit operators that are not the root
- * of the plan tree. This is done because the interaction of this rule
- * with the AST conversion may cause some optimizations to not kick in
- * e.g. SimpleFetchOptimizer. Nevertheless, this will not have any
- * performance impact in the resulting plans.
+ * Base class of planner rule that pulls up constant keys through sort like operators.
+ * Known extensions: {@link HiveSortLimitPullUpConstantsRule}, {@link HiveSortExchangePullUpConstantsRule}
  */
 public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> extends RelOptRule {
 
