@@ -45,7 +45,7 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@acidtlb
 #### A masked pattern was here ####
 CBO PLAN:
-HiveSortExchange(distribution=[org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelDistribution@da1382f], collation=[[0, 2]])
+HiveSortExchange(distribution=[org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelDistribution@3ea95c22], collation=[[0, 2]])
   HiveProject(a=[$0], c=[6], b=[$1])
     HiveProject(a=[$0], b=[$1])
       HiveTableScan(table=[[default, acidtlb]], table:alias=[acidtlb])
