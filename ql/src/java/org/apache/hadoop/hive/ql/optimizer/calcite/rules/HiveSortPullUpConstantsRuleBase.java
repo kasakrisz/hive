@@ -157,6 +157,5 @@ public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> exten
 
   protected abstract RelCollation getRelCollation(T sortNode);
 
-  protected abstract void buildSort(
-          RelBuilder relBuilder, T sortNode, List<RelFieldCollation> fieldCollations);
+  protected abstract void buildSort(RelBuilder relBuilder, T sortNode, List<RelFieldCollation> fieldCollations);
 }
