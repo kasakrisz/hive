@@ -4048,8 +4048,6 @@ public class CalcitePlanner extends SemanticAnalyzer {
         ASTNode obASTExpr = (ASTNode) obASTExprLst.get(i);
         ASTNode nullObASTExpr = (ASTNode) obASTExpr.getChild(0);
         ASTNode ref = (ASTNode) nullObASTExpr.getChild(0);
-        Map<ASTNode, ExprNodeDesc> astToExprNDescMap = null;
-        ExprNodeDesc obExprNDesc = null;
 
         boolean isBothByPos = HiveConf.getBoolVar(conf, ConfVars.HIVE_GROUPBY_ORDERBY_POSITION_ALIAS);
         boolean isObyByPos = isBothByPos
@@ -4057,17 +4055,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
         // replace each of the position alias in ORDERBY with the actual column
         if (ref != null && ref.getToken().getType() == HiveParser.Number) {
           if (isObyByPos) {
-            int pos = Integer.parseInt(ref.getText());
-            if (pos > 0 && pos <= selectOutputRR.getColumnInfos().size()) {
-              // fieldIndex becomes so simple
-              // Note that pos starts from 1 while fieldIndex starts from 0;
-              fieldIndex = pos - 1;
-            } else {
-              throw new SemanticException(
-                      ErrorMsg.INVALID_POSITION_ALIAS_IN_ORDERBY.getMsg("Position alias: " + pos
-                              + " does not exist\n" + "The Select List is indexed from 1 to "
-                              + selectOutputRR.getColumnInfos().size()));
-            }
+            fieldIndex = getFieldIndexFromColumnNumber(selectOutputRR, ref);
           } else { // if not using position alias and it is a number.
             LOG.warn("Using constant number "
                     + ref.getText()
@@ -4075,26 +4063,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
                     "the position alias will be ignored.");
           }
         } else {
-          // first try to get it from select
-          // in case of udtf, selectOutputRR may be null.
-          if (selectOutputRR != null) {
-            try {
-              astToExprNDescMap = genAllExprNodeDesc(ref, selectOutputRR);
-              obExprNDesc = astToExprNDescMap.get(ref);
-            } catch (SemanticException ex) {
-              // we can tolerate this as this is the previous behavior
-              LOG.debug("Can not find column in " + ref.getText() + ". The error msg is "
-                      + ex.getMessage());
-            }
-          }
-          // then try to get it from all
-          if (obExprNDesc == null) {
-            astToExprNDescMap = genAllExprNodeDesc(ref, inputRR);
-            obExprNDesc = astToExprNDescMap.get(ref);
-          }
-          if (obExprNDesc == null) {
-            throw new SemanticException("Invalid order by expression: " + obASTExpr.toString());
-          }
+          ExprNodeDesc obExprNDesc = getOrderByExprNodeDesc(selectOutputRR, inputRR, obASTExpr, ref);
           // 2.2 Convert ExprNode to RexNode
           rnd = converter.convert(obExprNDesc);
 
@@ -4106,7 +4075,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
           } else {
             fieldIndex = srcRelRecordSz + newVCLst.size();
             newVCLst.add(rnd);
-            vcASTTypePairs.add(new Pair<ASTNode, TypeInfo>(ref, obExprNDesc.getTypeInfo()));
+            vcASTTypePairs.add(new Pair<>(ref, obExprNDesc.getTypeInfo()));
           }
         }
 
@@ -4172,6 +4141,50 @@ public class CalcitePlanner extends SemanticAnalyzer {
         }
       }
       return new OBLogicalPlanGenState(obInputRel, fieldCollations, selectOutputRR, outputRR, srcRel);
+    }
+
+    private ExprNodeDesc getOrderByExprNodeDesc(
+            RowResolver selectOutputRR, RowResolver inputRR, ASTNode obASTExpr, ASTNode ref)
+            throws SemanticException {
+      // first try to get it from select
+      // in case of udtf, selectOutputRR may be null.
+      ExprNodeDesc obExprNDesc = null;
+      if (selectOutputRR != null) {
+        try {
+          Map<ASTNode, ExprNodeDesc> astToExprNDescMap = genAllExprNodeDesc(ref, selectOutputRR);
+          obExprNDesc = astToExprNDescMap.get(ref);
+        } catch (SemanticException ex) {
+          // we can tolerate this as this is the previous behavior
+          LOG.debug("Can not find column in " + ref.getText() + ". The error msg is "
+                  + ex.getMessage());
+        }
+      }
+      // then try to get it from all
+      if (obExprNDesc == null) {
+        Map<ASTNode, ExprNodeDesc> astToExprNDescMap = genAllExprNodeDesc(ref, inputRR);
+        obExprNDesc = astToExprNDescMap.get(ref);
+      }
+      if (obExprNDesc == null) {
+        throw new SemanticException("Invalid order by expression: " + obASTExpr.toString());
+      }
+      return obExprNDesc;
+    }
+
+    // SELECT a, b FROM t ORDER BY 1
+    private int getFieldIndexFromColumnNumber(RowResolver selectOutputRR, ASTNode ref) throws SemanticException {
+      int fieldIndex;
+      int pos = Integer.parseInt(ref.getText());
+      if (pos > 0 && pos <= selectOutputRR.getColumnInfos().size()) {
+        // fieldIndex becomes so simple
+        // Note that pos starts from 1 while fieldIndex starts from 0;
+        fieldIndex = pos - 1;
+      } else {
+        throw new SemanticException(
+                ErrorMsg.INVALID_POSITION_ALIAS_IN_ORDERBY.getMsg("Position alias: " + pos
+                        + " does not exist\n" + "The Select List is indexed from 1 to "
+                        + selectOutputRR.getColumnInfos().size()));
+      }
+      return fieldIndex;
     }
 
     private List<RexNode> toRexNodeList(RelNode srcRel) {
