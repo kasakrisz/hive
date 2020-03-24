@@ -4029,14 +4029,12 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 2. Walk through OB exprs and extract field collations and additional
       // virtual columns needed
-      final List<RexNode> newVCLst = new ArrayList<RexNode>();
+      final List<RexNode> newVCLst = new ArrayList<>();
       final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
       int fieldIndex = 0;
 
       List<Node> obASTExprLst = obAST.getChildren();
-      ASTNode obASTExpr;
-      ASTNode nullObASTExpr;
-      List<Pair<ASTNode, TypeInfo>> vcASTTypePairs = new ArrayList<Pair<ASTNode, TypeInfo>>();
+      List<Pair<ASTNode, TypeInfo>> vcASTTypePairs = new ArrayList<>();
       RowResolver inputRR = relToHiveRR.get(srcRel);
       RowResolver outputRR = new RowResolver();
 
@@ -4047,8 +4045,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       for (int i = 0; i < obASTExprLst.size(); i++) {
         // 2.1 Convert AST Expr to ExprNode
-        obASTExpr = (ASTNode) obASTExprLst.get(i);
-        nullObASTExpr = (ASTNode) obASTExpr.getChild(0);
+        ASTNode obASTExpr = (ASTNode) obASTExprLst.get(i);
+        ASTNode nullObASTExpr = (ASTNode) obASTExpr.getChild(0);
         ASTNode ref = (ASTNode) nullObASTExpr.getChild(0);
         Map<ASTNode, ExprNodeDesc> astToExprNDescMap = null;
         ExprNodeDesc obExprNDesc = null;
