@@ -47,8 +47,7 @@ POSTHOOK: Input: default@acidtlb
 CBO PLAN:
 HiveSortExchange(distribution=[hash[0, 8, 2]], collation=[[0, 2]])
   HiveProject(a=[$0], c=[6], b=[$1])
-    HiveProject(a=[$0], b=[$1])
-      HiveTableScan(table=[[default, acidtlb]], table:alias=[acidtlb])
+    HiveTableScan(table=[[default, acidtlb]], table:alias=[acidtlb])
 
 PREHOOK: query: select a, 6 as c, b from acidtlb sort by a, c, b
 PREHOOK: type: QUERY

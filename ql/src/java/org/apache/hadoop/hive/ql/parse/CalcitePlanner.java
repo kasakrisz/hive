@@ -2437,7 +2437,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
             HiveInsertExchange4JoinRule.EXCHANGE_BELOW_JOIN, HiveInsertExchange4JoinRule.EXCHANGE_BELOW_MULTIJOIN);
       } else {
         generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-                HiveProjectSortExchangeTransposeRule.INSTANCE);
+                HiveProjectSortExchangeTransposeRule.INSTANCE, HiveProjectMergeRule.INSTANCE);
       }
 
       // Trigger program
