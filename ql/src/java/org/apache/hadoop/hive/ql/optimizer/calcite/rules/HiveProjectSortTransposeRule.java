@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
+import static org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelOptUtil.getNewRelFieldCollations;
+
 import org.apache.calcite.plan.RelOptCluster;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -92,55 +94,4 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
 
     call.transformTo(newSort);
   }
-
-  public static List<RelFieldCollation> getNewRelFieldCollations(
-          HiveProject project, RelCollation sortCollation, RelOptCluster cluster) {
-    // Determine mapping between project input and output fields.
-    // In Hive, Sort is always based on RexInputRef
-    // HiveSort*PullUpConstantsRule should remove constants (RexLiteral)
-    // We only need to check if project can contain all the positions that sortCollation needs.
-    final Mappings.TargetMapping map =
-        RelOptUtil.permutationIgnoreCast(
-            project.getProjects(), project.getInput().getRowType()).inverse();
-    Set<Integer> needed = new HashSet<>();
-    for (RelFieldCollation fc : sortCollation.getFieldCollations()) {
-      needed.add(fc.getFieldIndex());
-      final RexNode node = project.getProjects().get(map.getTarget(fc.getFieldIndex()));
-      if (node.isA(SqlKind.CAST)) {
-        // Check whether it is a monotonic preserving cast, otherwise we cannot push
-        final RexCall cast = (RexCall) node;
-        final RexCallBinding binding =
-            RexCallBinding.create(cluster.getTypeFactory(), cast,
-                ImmutableList.of(RexUtil.apply(map, sortCollation)));
-        if (cast.getOperator().getMonotonicity(binding) == SqlMonotonicity.NOT_MONOTONIC) {
-          return null;
-        }
-      }
-    }
-    Map<Integer,Integer> m = new HashMap<>();
-    for (int projPos = 0; projPos < project.getChildExps().size(); projPos++) {
-      RexNode expr = project.getChildExps().get(projPos);
-      if (expr instanceof RexInputRef) {
-        Set<Integer> positions = HiveCalciteUtil.getInputRefs(expr);
-        if (positions.size() <= 1) {
-          int parentPos = positions.iterator().next();
-          if(needed.contains(parentPos)){
-            m.put(parentPos, projPos);
-            needed.remove(parentPos);
-          }
-        }
-      }
-    }
-    if(!needed.isEmpty()){
-      return null;
-    }
-
-    List<RelFieldCollation> fieldCollations = new ArrayList<>();
-    for (RelFieldCollation fc : sortCollation.getFieldCollations()) {
-      fieldCollations.add(new RelFieldCollation(m.get(fc.getFieldIndex()), fc.direction,
-          fc.nullDirection));
-    }
-    return fieldCollations;
-  }
-
 }

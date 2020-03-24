@@ -17,7 +17,7 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
-import static org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveProjectSortTransposeRule.getNewRelFieldCollations;
+import static org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelOptUtil.getNewRelFieldCollations;
 
 import java.util.List;
 
