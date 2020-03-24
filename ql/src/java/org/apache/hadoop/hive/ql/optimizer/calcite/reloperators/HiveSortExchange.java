@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableList;
  * Add support of keys used when sorting or joining.
  */
 public final class HiveSortExchange extends SortExchange implements HiveRelNode {
-  private ImmutableList<RexNode> keys;
+  private final ImmutableList<RexNode> keys;
   private ExprNodeDesc[] keyExpressions;
 
   private HiveSortExchange(RelOptCluster cluster, RelTraitSet traitSet,
@@ -91,10 +91,6 @@ public final class HiveSortExchange extends SortExchange implements HiveRelNode 
 
   public ImmutableList<RexNode> getKeys() {
     return keys;
-  }
-
-  public void setKeys(ImmutableList<RexNode> keys) {
-    this.keys = keys;
   }
 
   public ExprNodeDesc[] getKeyExpressions() {
