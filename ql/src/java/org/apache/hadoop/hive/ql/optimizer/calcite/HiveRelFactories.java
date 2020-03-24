@@ -208,15 +208,7 @@ public class HiveRelFactories {
   private static class HiveSortExchangeFactoryImpl implements RelFactories.SortExchangeFactory {
     @Override
     public RelNode createSortExchange(RelNode input, RelDistribution distribution, RelCollation collation) {
-      RelOptCluster cluster = input.getCluster();
-      RelTraitSet traitSet = cluster.traitSetOf(HiveRelNode.CONVENTION);
-      RelCollation canonizedCollation = traitSet.canonize(RelCollationImpl.of(collation.getFieldCollations()));
-      ImmutableList.Builder<RexNode> builder = ImmutableList.builder();
-      for (RelFieldCollation relFieldCollation : canonizedCollation.getFieldCollations()) {
-        int index = relFieldCollation.getFieldIndex();
-        builder.add(cluster.getRexBuilder().makeInputRef(input, index));
-      }
-      return HiveSortExchange.create(input, distribution, collation, builder.build());
+      return HiveSortExchange.create(input, distribution, collation);
     }
   }
 
