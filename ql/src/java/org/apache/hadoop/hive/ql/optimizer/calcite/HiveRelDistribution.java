@@ -26,15 +26,23 @@ import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelDistributionTraitDef;
-import org.apache.calcite.rex.RexUtil;
+import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.util.mapping.Mappings.TargetMapping;
 
 import com.google.common.collect.Ordering;
 
 public class HiveRelDistribution implements RelDistribution {
 
-  private static final Ordering<Iterable<Integer>> ORDERING =
-      Ordering.<Integer>natural().lexicographical();
+  private static final Ordering<Iterable<Integer>> ORDERING = Ordering.<Integer>natural().lexicographical();
+
+  public static HiveRelDistribution from(
+          List<RelFieldCollation> fieldCollations, RelDistribution.Type distributionType) {
+    List<Integer> newDistributionKeys = new ArrayList<>(fieldCollations.size());
+    for (RelFieldCollation fieldCollation : fieldCollations) {
+      newDistributionKeys.add(fieldCollation.getFieldIndex());
+    }
+    return new HiveRelDistribution(distributionType, newDistributionKeys);
+  }
 
   List<Integer> keys;
   RelDistribution.Type type;
