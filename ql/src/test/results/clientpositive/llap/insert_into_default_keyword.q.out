@@ -1965,13 +1965,13 @@ STAGE PLANS:
                     Select Operator
                       expressions: ROW__ID (type: struct<writeid:bigint,bucketid:int,rowid:bigint>), value (type: string), i (type: int)
                       outputColumnNames: _col0, _col2, _col3
-                      Statistics: Num rows: 1 Data size: 165 Basic stats: COMPLETE Column stats: COMPLETE
+                      Statistics: Num rows: 1 Data size: 169 Basic stats: COMPLETE Column stats: COMPLETE
                       Reduce Output Operator
                         key expressions: _col0 (type: struct<writeid:bigint,bucketid:int,rowid:bigint>)
                         null sort order: z
                         sort order: +
                         Map-reduce partition columns: UDFToInteger(_col0) (type: int)
-                        Statistics: Num rows: 1 Data size: 165 Basic stats: COMPLETE Column stats: COMPLETE
+                        Statistics: Num rows: 1 Data size: 169 Basic stats: COMPLETE Column stats: COMPLETE
                         value expressions: _col2 (type: string), _col3 (type: int)
             Execution mode: vectorized, llap
             LLAP IO: may be used (ACID table)
@@ -2078,13 +2078,13 @@ STAGE PLANS:
                     Select Operator
                       expressions: ROW__ID (type: struct<writeid:bigint,bucketid:int,rowid:bigint>), i (type: int)
                       outputColumnNames: _col0, _col3
-                      Statistics: Num rows: 1 Data size: 80 Basic stats: COMPLETE Column stats: COMPLETE
+                      Statistics: Num rows: 1 Data size: 88 Basic stats: COMPLETE Column stats: COMPLETE
                       Reduce Output Operator
                         key expressions: _col0 (type: struct<writeid:bigint,bucketid:int,rowid:bigint>)
                         null sort order: z
                         sort order: +
                         Map-reduce partition columns: UDFToInteger(_col0) (type: int)
-                        Statistics: Num rows: 1 Data size: 80 Basic stats: COMPLETE Column stats: COMPLETE
+                        Statistics: Num rows: 1 Data size: 88 Basic stats: COMPLETE Column stats: COMPLETE
                         value expressions: _col3 (type: int)
             Execution mode: vectorized, llap
             LLAP IO: may be used (ACID table)
