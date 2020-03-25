@@ -1105,8 +1105,7 @@ public class HiveRelOptUtil extends RelOptUtil {
 
     List<RelFieldCollation> fieldCollations = new ArrayList<>();
     for (RelFieldCollation fc : sortCollation.getFieldCollations()) {
-      fieldCollations.add(new RelFieldCollation(m.get(fc.getFieldIndex()), fc.direction,
-              fc.nullDirection));
+      fieldCollations.add(new RelFieldCollation(m.get(fc.getFieldIndex()), fc.direction, fc.nullDirection));
     }
     return fieldCollations;
   }

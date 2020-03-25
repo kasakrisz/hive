@@ -31,6 +31,7 @@ import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SortExchange;
+import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelDistribution;
 import org.apache.hadoop.hive.ql.optimizer.calcite.TraitsUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
@@ -89,8 +90,11 @@ public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     // New operators
     final RelNode newProject = project.copy(sortExchange.getInput().getTraitSet(),
             ImmutableList.of(sortExchange.getInput()));
-    final SortExchange newSort = sortExchange.copy(newTraitSet,
-            newProject, sortExchange.getDistribution(), newCollation);
+    final SortExchange newSort = sortExchange.copy(
+            newTraitSet,
+            newProject,
+            HiveRelDistribution.from(newCollation.getFieldCollations(), sortExchange.getDistribution().getType()),
+            newCollation);
 
     call.transformTo(newSort);
   }
