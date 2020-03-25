@@ -4019,6 +4019,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
       return endGenOBLogicalPlan(obLogicalPlanGenState, sortRel);
     }
 
+    // - Walk through OB exprs and extract field collations and additional virtual columns needed
+    // - Add Child Project Rel if needed,
+    // - Generate Output RR, input Sel Rel for top constraining Sel
     private OBLogicalPlanGenState beginGenOBLogicalPlan(
             ASTNode obAST, Pair<RelNode, RowResolver> selPair, boolean outermostOB) throws SemanticException {
       // selPair.getKey() is the operator right before OB
@@ -4193,15 +4196,15 @@ public class CalcitePlanner extends SemanticAnalyzer {
               .collect(Collectors.toList());
     }
 
+    // 5. Update RR maps
+    // NOTE: Output RR for SortRel is considered same as its input; we may
+    // end up not using VC that is present in sort rel. Also note that
+    // rowtype of sortrel is the type of it child; if child happens to be
+    // synthetic project that we introduced then that projectrel would
+    // contain the vc.
     public RelNode endGenOBLogicalPlan(OBLogicalPlanGenState obLogicalPlanGenState, RelNode sortRel)
             throws CalciteSemanticException {
 
-      // 5. Update the maps
-      // NOTE: Output RR for SortRel is considered same as its input; we may
-      // end up not using VC that is present in sort rel. Also note that
-      // rowtype of sortrel is the type of it child; if child happens to be
-      // synthetic project that we introduced then that projectrel would
-      // contain the vc.
       ImmutableMap<String, Integer> hiveColNameCalcitePosMap =
               buildHiveToCalciteColumnMap(obLogicalPlanGenState.getOutputRR());
       relToHiveRR.put(sortRel, obLogicalPlanGenState.getOutputRR());
@@ -5308,6 +5311,10 @@ public class CalcitePlanner extends SemanticAnalyzer {
     }
   }
 
+  /**
+   * This class stores the partial results of Order/Sort by clause logical plan generation.
+   * See {@link CalcitePlannerAction#beginGenOBLogicalPlan}, {@link CalcitePlannerAction#endGenOBLogicalPlan}
+   */
   private static class OBLogicalPlanGenState {
     private final RelNode obInputRel;
     private final List<RelFieldCollation> canonizedCollation;
