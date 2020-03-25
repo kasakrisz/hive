@@ -898,6 +898,9 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
     for (RelFieldCollation field : collation.getFieldCollations()) {
       inputFieldsUsed.set(field.getFieldIndex());
     }
+    for (int keyIndex : distribution.getKeys()) {
+      inputFieldsUsed.set(keyIndex);
+    }
 
     // Create input with trimmed columns.
     final Set<RelDataTypeField> inputExtraFields = Collections.emptySet();
@@ -916,7 +919,9 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
 
     final RelBuilder relBuilder = REL_BUILDER.get();
     relBuilder.push(newInput);
-    relBuilder.sortExchange(distribution, RexUtil.apply(inputMapping, collation));
+    RelCollation newCollation = RexUtil.apply(inputMapping, collation);
+    RelDistribution newDistribution = distribution.apply(inputMapping);
+    relBuilder.sortExchange(newDistribution, newCollation);
 
     return result(relBuilder.build(), inputMapping);
   }

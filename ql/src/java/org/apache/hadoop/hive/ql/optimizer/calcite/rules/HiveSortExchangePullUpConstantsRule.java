@@ -17,12 +17,14 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelDistribution;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
 import org.slf4j.Logger;
@@ -48,6 +50,11 @@ public final class HiveSortExchangePullUpConstantsRule extends HiveSortPullUpCon
 
   @Override
   protected void buildSort(RelBuilder relBuilder, HiveSortExchange sortNode, List<RelFieldCollation> fieldCollations) {
-    relBuilder.sortExchange(sortNode.getDistribution(), RelCollations.of(fieldCollations));
+    List<Integer> newDistributionKeys = new ArrayList<>(fieldCollations.size());
+    for (RelFieldCollation fieldCollation : fieldCollations) {
+      newDistributionKeys.add(fieldCollation.getFieldIndex());
+    }
+    relBuilder.sortExchange(new HiveRelDistribution(
+            sortNode.getDistribution().getType(), newDistributionKeys), RelCollations.of(fieldCollations));
   }
 }
