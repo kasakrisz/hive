@@ -10,7 +10,7 @@ ON (X.key = Z.key)
 SELECT sum(hash(Y.key,Y.value)) GROUP BY Y.key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: EXPLAIN
 FROM
 (SELECT src.* FROM src sort by key) X
@@ -23,7 +23,7 @@ ON (X.key = Z.key)
 SELECT sum(hash(Y.key,Y.value)) GROUP BY Y.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
   Stage-0 depends on stages: Stage-1
@@ -34,7 +34,7 @@ STAGE PLANS:
       Edges:
         Reducer 2 <- Map 1 (PARTITION-LEVEL SORT, 31), Map 4 (PARTITION-LEVEL SORT, 31), Map 5 (PARTITION-LEVEL SORT, 31)
         Reducer 3 <- Reducer 2 (GROUP, 31)
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
       Vertices:
         Map 1 
             Map Operator Tree:
@@ -199,7 +199,7 @@ STAGE PLANS:
       Edges:
         Reducer 2 <- Map 4 (GROUP, 31)
         Reducer 3 <- Map 4 (GROUP, 31)
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
       Vertices:
         Map 4 
             Map Operator Tree:
@@ -298,19 +298,19 @@ STAGE PLANS:
 PREHOOK: query: SELECT dest1_n90.* FROM dest1_n90
 PREHOOK: type: QUERY
 PREHOOK: Input: default@dest1_n90
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: SELECT dest1_n90.* FROM dest1_n90
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@dest1_n90
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 PREHOOK: query: SELECT dest2_n24.* FROM dest2_n24
 PREHOOK: type: QUERY
 PREHOOK: Input: default@dest2_n24
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: SELECT dest2_n24.* FROM dest2_n24
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@dest2_n24
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 PREHOOK: query: DROP TABLE dest1_n90
 PREHOOK: type: DROPTABLE
 PREHOOK: Input: default@dest1_n90
@@ -367,7 +367,7 @@ STAGE PLANS:
         Reducer 2 <- Map 1 (GROUP, 1)
         Reducer 4 <- Map 1 (GROUP, 1)
         Reducer 6 <- Map 1 (GROUP, 1)
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
       Vertices:
         Map 1 
             Map Operator Tree:
@@ -478,11 +478,11 @@ STAGE PLANS:
 PREHOOK: query: SELECT * FROM tmptable_n8 x SORT BY x.key
 PREHOOK: type: QUERY
 PREHOOK: Input: default@tmptable_n8
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: SELECT * FROM tmptable_n8 x SORT BY x.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@tmptable_n8
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 PREHOOK: query: DROP TABLE tmtable
 PREHOOK: type: DROPTABLE
 POSTHOOK: query: DROP TABLE tmtable
@@ -499,7 +499,7 @@ JOIN
 ON (unionsrc1.key = unionsrc2.key)
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: EXPLAIN
 SELECT unionsrc1.key, unionsrc1.value, unionsrc2.key, unionsrc2.value
 FROM (SELECT 'tst1' AS key, cast(count(1) AS string) AS value FROM src s1
@@ -512,7 +512,7 @@ JOIN
 ON (unionsrc1.key = unionsrc2.key)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
   Stage-0 depends on stages: Stage-1
@@ -524,7 +524,7 @@ STAGE PLANS:
         Reducer 2 <- Map 1 (GROUP, 1)
         Reducer 3 <- Map 4 (PARTITION-LEVEL SORT, 31), Map 7 (PARTITION-LEVEL SORT, 31), Reducer 2 (PARTITION-LEVEL SORT, 31), Reducer 6 (PARTITION-LEVEL SORT, 31)
         Reducer 6 <- Map 1 (GROUP, 1)
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
       Vertices:
         Map 1 
             Map Operator Tree:
@@ -719,7 +719,7 @@ PREHOOK: Input: default@date_dim
 PREHOOK: Input: default@inventory
 PREHOOK: Input: default@item
 PREHOOK: Input: default@warehouse
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: EXPLAIN
 WITH inv AS
 (SELECT w_warehouse_name,w_warehouse_sk,i_item_sk,d_moy
@@ -750,7 +750,7 @@ POSTHOOK: Input: default@date_dim
 POSTHOOK: Input: default@inventory
 POSTHOOK: Input: default@item
 POSTHOOK: Input: default@warehouse
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
   Stage-0 depends on stages: Stage-1
@@ -769,7 +769,7 @@ STAGE PLANS:
         Reducer 5 <- Reducer 4 (GROUP, 31)
         Reducer 6 <- Reducer 15 (PARTITION-LEVEL SORT, 31), Reducer 5 (PARTITION-LEVEL SORT, 31)
         Reducer 7 <- Reducer 6 (SORT, 1)
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
       Vertices:
         Map 1 
             Map Operator Tree:
@@ -1158,7 +1158,7 @@ WITH test AS
 SELECT inv_date_sk , inv_item_sk ,inv_quantity_on_hand FROM test SORT BY inv_quantity_on_hand
 PREHOOK: type: QUERY
 PREHOOK: Input: default@inventory
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: EXPLAIN
 WITH test AS
 (SELECT inv_date_sk , inv_item_sk ,inv_quantity_on_hand FROM inventory
@@ -1167,7 +1167,7 @@ WITH test AS
 SELECT inv_date_sk , inv_item_sk ,inv_quantity_on_hand FROM test SORT BY inv_quantity_on_hand
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@inventory
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
   Stage-0 depends on stages: Stage-1
@@ -1177,7 +1177,7 @@ STAGE PLANS:
     Spark
       Edges:
         Reducer 2 <- Map 1 (PARTITION-LEVEL SORT, 31), Map 1 (PARTITION-LEVEL SORT, 31)
-#### A masked pattern was here ####
+PREHOOK: Output: hdfs://### HDFS PATH ###
       Vertices:
         Map 1 
             Map Operator Tree:
