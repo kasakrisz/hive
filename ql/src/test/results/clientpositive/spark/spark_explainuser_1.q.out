@@ -40,7 +40,7 @@ ts                  	string
 ds                  	string              	                    
 ts                  	string              	                    
 	 	 
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: query: explain insert overwrite table src_orc_merge_test_part_n0 partition(ds='2012-01-03', ts='2012-01-03+14:46:31') select * from src
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src
@@ -119,7 +119,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select count(1) from src_orc_merge_test_part_n0 where ds='2012-01-03' and ts='2012-01-03+14:46:31'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_orc_merge_test_part_n0
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -135,7 +135,7 @@ POSTHOOK: query: explain select sum(hash(key)), sum(hash(value)) from src_orc_me
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_orc_merge_test_part_n0
 POSTHOOK: Input: default@src_orc_merge_test_part_n0@ds=2012-01-03/ts=2012-01-03+14%3A46%3A31
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -175,7 +175,7 @@ POSTHOOK: query: explain select count(1) from src_orc_merge_test_part_n0 where d
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_orc_merge_test_part_n0
 POSTHOOK: Input: default@src_orc_merge_test_part_n0@ds=2012-01-03/ts=2012-01-03+14%3A46%3A31
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -206,7 +206,7 @@ POSTHOOK: query: explain select sum(hash(key)), sum(hash(value)) from src_orc_me
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_orc_merge_test_part_n0
 POSTHOOK: Input: default@src_orc_merge_test_part_n0@ds=2012-01-03/ts=2012-01-03+14%3A46%3A31
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -261,7 +261,7 @@ select src1.key as k1, src1.value as v1,
 ) a
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -310,7 +310,7 @@ POSTHOOK: query: explain select key, (c_int+1)+2 as x, sum(c_int) from cbo_t1 gr
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -345,7 +345,7 @@ POSTHOOK: query: explain select x, y, count(*) from (select key, (c_int+c_float+
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -396,7 +396,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -488,7 +488,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -580,7 +580,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -665,7 +665,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -755,7 +755,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -832,7 +832,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select unionsrc.key FROM (select 'tst1' as key, count(1) as value from src) unionsrc
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -854,7 +854,7 @@ POSTHOOK: query: explain select unionsrc.key FROM (select 'max' as key, max(c_in
         select 'avg' as key,  avg(c_int) as value from cbo_t3 s3) unionsrc order by unionsrc.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -915,7 +915,7 @@ POSTHOOK: query: explain select unionsrc.key, count(1) FROM (select 'max' as key
         select 'avg' as key,  avg(c_int) as value from cbo_t3 s3) unionsrc group by unionsrc.key order by unionsrc.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -986,7 +986,7 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1032,7 +1032,7 @@ POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1078,7 +1078,7 @@ POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1124,7 +1124,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1183,7 +1183,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1242,7 +1242,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1303,7 +1303,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1358,7 +1358,7 @@ POSTHOOK: query: explain select key, (c_int+1)+2 as x, sum(c_int) from cbo_t1 gr
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1400,7 +1400,7 @@ POSTHOOK: query: explain select x, y, count(*) from (select key, (c_int+c_float+
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1450,7 +1450,7 @@ POSTHOOK: query: explain select key from(select key from (select key from cbo_t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -1472,7 +1472,7 @@ POSTHOOK: query: explain select key, c_int from(select key, c_int from (select k
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1515,7 +1515,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1627,7 +1627,7 @@ POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1679,7 +1679,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1742,7 +1742,7 @@ POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
 POSTHOOK: Input: default@cbo_t3
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1832,7 +1832,7 @@ POSTHOOK: query: explain select cbo_t1.key as x, c_int as c_int, (((c_int+c_floa
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -1852,7 +1852,7 @@ POSTHOOK: query: explain select null from cbo_t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -1871,7 +1871,7 @@ POSTHOOK: query: explain select key from cbo_t1 where c_int = -6  or c_int = +6
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -1897,7 +1897,7 @@ POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
 POSTHOOK: Input: default@cbo_t2
 POSTHOOK: Input: default@cbo_t2@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -1948,7 +1948,7 @@ where not exists
   )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2016,7 +2016,7 @@ having not exists
   )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2100,7 +2100,7 @@ POSTHOOK: query: explain select * from cv1_n3
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cv1_n3
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2156,7 +2156,7 @@ from (select *
      ) a
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2202,7 +2202,7 @@ from src_cbo
 where src_cbo.key in (select key from src_cbo s1 where s1.key > '9')
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2250,7 +2250,7 @@ where li.l_linenumber = 1 and
  li.l_orderkey in (select l_orderkey from lineitem where l_shipmode = 'AIR' and l_linenumber = li.l_linenumber)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@lineitem
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2321,7 +2321,7 @@ group by key, value
 having count(*) in (select count(*) from src_cbo s1 where s1.key > '9' group by s1.key )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2414,7 +2414,7 @@ having p_name in
   (select first_value(p_name) over(partition by p_mfgr order by p_size) from part)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2482,7 +2482,7 @@ where src_cbo.key not in
   ) order by key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_cbo
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2569,7 +2569,7 @@ where b.p_name not in
   )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2656,7 +2656,7 @@ part where part.p_size not in
   ) order by p_name
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2745,7 +2745,7 @@ having b.p_mfgr not in
   order by b.p_mfgr
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2845,7 +2845,7 @@ POSTHOOK: query: explain select count(c_int) over(), sum(c_float) over(), max(c_
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2878,7 +2878,7 @@ POSTHOOK: query: explain select * from (select count(c_int) over(), sum(c_float)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2911,7 +2911,7 @@ POSTHOOK: query: explain select i, a, h, b, c, d, e, f, g, a as x, a +1 as y fro
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@cbo_t1
 POSTHOOK: Input: default@cbo_t1@dt=2014
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2942,7 +2942,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select *, rank() over(partition by key order by value) as rr from src1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -2983,7 +2983,7 @@ FROM (select x.key AS key, count(1) AS cnt
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Input: default@src1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3050,7 +3050,7 @@ FROM (select x.key AS key, count(1) AS cnt
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Input: default@src1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3117,7 +3117,7 @@ FROM (select x.key AS key, count(1) AS cnt
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Input: default@src1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -3183,7 +3183,7 @@ FROM (select x.key AS key, count(1) AS cnt
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Input: default@src1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3256,11 +3256,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@abcd_n0
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in4.txt' INTO TABLE abcd_n0
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@abcd_n0
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in4.txt' INTO TABLE abcd_n0
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@abcd_n0
 PREHOOK: query: explain select a, count(distinct b), count(distinct c), sum(d) from abcd_n0 group by a
 PREHOOK: type: QUERY
@@ -3269,7 +3269,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select a, count(distinct b), count(distinct c), sum(d) from abcd_n0 group by a
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@abcd_n0
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3300,7 +3300,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select a, count(distinct b), count(distinct c), sum(d) from abcd_n0 group by a
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@abcd_n0
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3343,11 +3343,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@src_rc_merge_test
 PREHOOK: query: load data local inpath '../../data/files/smbbucket_1.rc' into table src_rc_merge_test
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@src_rc_merge_test
 POSTHOOK: query: load data local inpath '../../data/files/smbbucket_1.rc' into table src_rc_merge_test
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@src_rc_merge_test
 PREHOOK: query: explain create table tgt_rc_merge_test(key int, value string) stored as rcfile
 PREHOOK: type: CREATETABLE
@@ -3383,7 +3383,8 @@ PREHOOK: type: SHOW_TABLESTATUS
 POSTHOOK: query: show table extended like `tgt_rc_merge_test`
 POSTHOOK: type: SHOW_TABLESTATUS
 tableName:tgt_rc_merge_test
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
+location:hdfs://### HDFS PATH ###
 inputformat:org.apache.hadoop.hive.ql.io.RCFileInputFormat
 outputformat:org.apache.hadoop.hive.ql.io.RCFileOutputFormat
 columns:struct columns { i32 key, string value}
@@ -3393,7 +3394,7 @@ totalNumberFiles:1
 totalFileSize:171
 maxFileSize:171
 minFileSize:171
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 
 PREHOOK: query: explain select count(1) from tgt_rc_merge_test
 PREHOOK: type: QUERY
@@ -3402,7 +3403,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select count(1) from tgt_rc_merge_test
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@tgt_rc_merge_test
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3429,7 +3430,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select sum(hash(key)), sum(hash(value)) from tgt_rc_merge_test
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@tgt_rc_merge_test
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3463,7 +3464,8 @@ PREHOOK: type: SHOW_TABLESTATUS
 POSTHOOK: query: show table extended like `tgt_rc_merge_test`
 POSTHOOK: type: SHOW_TABLESTATUS
 tableName:tgt_rc_merge_test
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
+location:hdfs://### HDFS PATH ###
 inputformat:org.apache.hadoop.hive.ql.io.RCFileInputFormat
 outputformat:org.apache.hadoop.hive.ql.io.RCFileOutputFormat
 columns:struct columns { i32 key, string value}
@@ -3473,7 +3475,7 @@ totalNumberFiles:1
 totalFileSize:171
 maxFileSize:171
 minFileSize:171
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 
 PREHOOK: query: explain select count(1) from tgt_rc_merge_test
 PREHOOK: type: QUERY
@@ -3482,7 +3484,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select count(1) from tgt_rc_merge_test
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@tgt_rc_merge_test
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3509,7 +3511,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select sum(hash(key)), sum(hash(value)) from tgt_rc_merge_test
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@tgt_rc_merge_test
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3553,7 +3555,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select src.key from src cross join src src2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3755,7 +3757,7 @@ select src1.key as k1, src1.value as v1,
   SORT BY k1, v1, k2, v2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -3801,11 +3803,11 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@myinput1_n6
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in8.txt' INTO TABLE myinput1_n6
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@myinput1_n6
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in8.txt' INTO TABLE myinput1_n6
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@myinput1_n6
 PREHOOK: query: explain select * from myinput1_n6 a join myinput1_n6 b on a.key<=>b.value
 PREHOOK: type: QUERY
@@ -3814,7 +3816,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * from myinput1_n6 a join myinput1_n6 b on a.key<=>b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -3848,7 +3850,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * from myinput1_n6 a join myinput1_n6 b on a.key<=>b.value join myinput1_n6 c on a.key=c.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -3893,7 +3895,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * from myinput1_n6 a join myinput1_n6 b on a.key<=>b.value join myinput1_n6 c on a.key<=>c.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -3932,7 +3934,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * from myinput1_n6 a join myinput1_n6 b on a.key<=>b.value AND a.value=b.key join myinput1_n6 c on a.key<=>c.key AND a.value=c.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -3977,7 +3979,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * from myinput1_n6 a join myinput1_n6 b on a.key<=>b.value AND a.value<=>b.key join myinput1_n6 c on a.key<=>c.key AND a.value<=>c.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -4016,7 +4018,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * FROM myinput1_n6 a LEFT OUTER JOIN myinput1_n6 b ON a.key<=>b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -4050,7 +4052,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * FROM myinput1_n6 a RIGHT OUTER JOIN myinput1_n6 b ON a.key<=>b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -4084,7 +4086,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select * FROM myinput1_n6 a FULL OUTER JOIN myinput1_n6 b ON a.key<=>b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Vertex dependency in root stage
@@ -4118,7 +4120,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ MAPJOIN(b) */ * FROM myinput1_n6 a JOIN myinput1_n6 b ON a.key<=>b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@myinput1_n6
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Stage-0
@@ -4152,19 +4154,19 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@smb_input
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in4.txt' into table smb_input
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@smb_input
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in4.txt' into table smb_input
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@smb_input
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in5.txt' into table smb_input
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@smb_input
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/in5.txt' into table smb_input
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@smb_input
 PREHOOK: query: CREATE TABLE smb_input1_n1(key int, value int) CLUSTERED BY (key) SORTED BY (key) INTO 2 BUCKETS
 PREHOOK: type: CREATETABLE
@@ -4215,7 +4217,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ MAPJOIN(a) */ * FROM smb_input1_n1 a JOIN smb_input1_n1 b ON a.key <=> b.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@smb_input1_n1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Stage-0
@@ -4238,7 +4240,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ MAPJOIN(a) */ * FROM smb_input1_n1 a JOIN smb_input1_n1 b ON a.key <=> b.key AND a.value <=> b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@smb_input1_n1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Stage-0
@@ -4269,7 +4271,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ MAPJOIN(a) */ * FROM smb_input1_n1 a RIGHT OUTER JOIN smb_input1_n1 b ON a.key <=> b.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@smb_input1_n1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Stage-0
@@ -4292,7 +4294,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ MAPJOIN(b) */ * FROM smb_input1_n1 a JOIN smb_input1_n1 b ON a.key <=> b.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@smb_input1_n1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Stage-0
@@ -4315,7 +4317,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ MAPJOIN(b) */ * FROM smb_input1_n1 a LEFT OUTER JOIN smb_input1_n1 b ON a.key <=> b.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@smb_input1_n1
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO due to missing feature [Less_than_equal_greater_than].
 
 Stage-0
@@ -4361,28 +4363,28 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@things
 PREHOOK: query: load data local inpath '../../data/files/sales.txt' INTO TABLE sales
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@sales
 POSTHOOK: query: load data local inpath '../../data/files/sales.txt' INTO TABLE sales
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@sales
 PREHOOK: query: load data local inpath '../../data/files/things.txt' INTO TABLE things partition(ds='2011-10-23')
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@things
 POSTHOOK: query: load data local inpath '../../data/files/things.txt' INTO TABLE things partition(ds='2011-10-23')
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@things
 POSTHOOK: Output: default@things@ds=2011-10-23
 PREHOOK: query: load data local inpath '../../data/files/things2.txt' INTO TABLE things partition(ds='2011-10-24')
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@things
 POSTHOOK: query: load data local inpath '../../data/files/things2.txt' INTO TABLE things partition(ds='2011-10-24')
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@things
 POSTHOOK: Output: default@things@ds=2011-10-24
 PREHOOK: query: explain select name,id FROM sales LEFT SEMI JOIN things ON (sales.id = things.id)
@@ -4398,7 +4400,7 @@ POSTHOOK: Input: default@sales
 POSTHOOK: Input: default@things
 POSTHOOK: Input: default@things@ds=2011-10-23
 POSTHOOK: Input: default@things@ds=2011-10-24
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -4468,7 +4470,7 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -4529,7 +4531,7 @@ POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=11
 POSTHOOK: Input: default@srcpart@ds=2008-04-09/hr=12
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -4594,7 +4596,7 @@ from noop(on part
   )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -4643,7 +4645,7 @@ distribute by j.p_mfgr
 sort by j.p_name)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in Stage-1
@@ -4712,7 +4714,7 @@ from noop(on part
   ) abc
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -4767,7 +4769,7 @@ from noop(on part
           )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -4824,7 +4826,7 @@ from noop(on part
 group by p_mfgr, p_name, p_size
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -4881,7 +4883,7 @@ order by p_name
 ) abc join part p1 on abc.p_partkey = p1.p_partkey
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in Stage-1
@@ -4935,7 +4937,7 @@ partition by p_mfgr
 order by p_name, p_size desc)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -4990,7 +4992,7 @@ from noopwithmap(on part
   order by p_name)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5045,7 +5047,7 @@ partition by p_mfgr
 order by p_name)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5100,7 +5102,7 @@ order by p_mfgr DESC, p_name
 )))
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5171,7 +5173,7 @@ window w1 as (partition by p_mfgr order by p_name rows between 2 preceding and 2
 ) sub1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5230,7 +5232,7 @@ order by p_name
 ) abc join part p1 on abc.p_partkey = p1.p_partkey
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in Stage-1
@@ -5488,7 +5490,7 @@ from noop(on
         order by p_mfgr,p_name)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5567,7 +5569,7 @@ from noop(on
         order by p_mfgr )
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5648,7 +5650,7 @@ from noop(on
           order by p_mfgr))
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan not optimized by CBO because the statement has PTF
 
 Vertex dependency in root stage
@@ -5695,7 +5697,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select distinct src.* from src
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -5730,7 +5732,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select explode(array('a', 'b'))
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -5786,35 +5788,35 @@ POSTHOOK: Output: database:default
 POSTHOOK: Output: default@dest_j1_n14
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T1.txt' INTO TABLE T1_n116
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@t1_n116
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T1.txt' INTO TABLE T1_n116
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t1_n116
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T2.txt' INTO TABLE T2_n68
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@t2_n68
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T2.txt' INTO TABLE T2_n68
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t2_n68
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T3.txt' INTO TABLE T3_n24
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@t3_n24
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T3.txt' INTO TABLE T3_n24
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t3_n24
 PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T1.txt' INTO TABLE T4_n13
 PREHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 PREHOOK: Output: default@t4_n13
 POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T1.txt' INTO TABLE T4_n13
 POSTHOOK: type: LOAD
-PREHOOK: Output: hdfs://### HDFS PATH ###
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t4_n13
 PREHOOK: query: explain
 FROM src src1 JOIN src src2 ON (src1.key = src2.key)
@@ -5919,7 +5921,7 @@ POSTHOOK: Input: default@t1_n116
 POSTHOOK: Input: default@t2_n68
 POSTHOOK: Input: default@t3_n24
 POSTHOOK: Input: default@t4_n13
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -5992,7 +5994,7 @@ POSTHOOK: Input: default@t1_n116
 POSTHOOK: Input: default@t2_n68
 POSTHOOK: Input: default@t3_n24
 POSTHOOK: Input: default@t4_n13
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Stage-0
@@ -6053,7 +6055,7 @@ POSTHOOK: query: explain FROM T1_n116 a JOIN src c ON c.key+1=a.key select /*+ S
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Input: default@t1_n116
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -6105,7 +6107,7 @@ POSTHOOK: query: FROM T1_n116 a JOIN src c ON c.key+1=a.key select /*+ STREAMTAB
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
 POSTHOOK: Input: default@t1_n116
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 198	6274	194
 PREHOOK: query: explain
 select * FROM
@@ -6124,7 +6126,7 @@ JOIN
 ON (x.key = Y.key)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -6181,7 +6183,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ mapjoin(k)*/ sum(hash(k.key)), sum(hash(v.val)) from T1_n116 k join T1_n116 v on k.key=v.val
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -6231,7 +6233,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select sum(hash(k.key)), sum(hash(v.val)) from T1_n116 k join T1_n116 v on k.key=v.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -6281,7 +6283,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select count(1) from  T1_n116 a join T1_n116 b on a.key = b.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -6333,7 +6335,7 @@ POSTHOOK: query: explain FROM T1_n116 a LEFT OUTER JOIN T2_n68 c ON c.key+1=a.ke
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
 POSTHOOK: Input: default@t2_n68
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -6385,7 +6387,7 @@ POSTHOOK: query: explain FROM T1_n116 a RIGHT OUTER JOIN T2_n68 c ON c.key+1=a.k
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
 POSTHOOK: Input: default@t2_n68
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
@@ -6437,7 +6439,7 @@ POSTHOOK: query: explain FROM T1_n116 a FULL OUTER JOIN T2_n68 c ON c.key+1=a.ke
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
 POSTHOOK: Input: default@t2_n68
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in root stage
@@ -6486,7 +6488,7 @@ PREHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: query: explain select /*+ mapjoin(v)*/ sum(hash(k.key)), sum(hash(v.val)) from T1_n116 k left outer join T1_n116 v on k.key+1=v.key
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1_n116
-PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 Plan optimized by CBO.
 
 Vertex dependency in Stage-1
