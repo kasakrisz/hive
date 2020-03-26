@@ -1086,7 +1086,7 @@ public class HiveRelOptUtil extends RelOptUtil {
         }
       }
     }
-    Map<Integer,Integer> m = new HashMap<>();
+    Map<Integer, Integer> m = new HashMap<>();
     for (int projPos = 0; projPos < project.getChildExps().size(); projPos++) {
       RexNode expr = project.getChildExps().get(projPos);
       if (expr instanceof RexInputRef) {
@@ -1120,7 +1120,7 @@ public class HiveRelOptUtil extends RelOptUtil {
   public static List<Integer> getNewRelDistributionKeys(
           HiveProject project, RelDistribution distribution) {
     Set<Integer> needed = new HashSet<>(distribution.getKeys());
-    Map<Integer,Integer> m = new HashMap<>();
+    Map<Integer, Integer> m = new HashMap<>();
     for (int projPos = 0; projPos < project.getChildExps().size(); projPos++) {
       RexNode expr = project.getChildExps().get(projPos);
       if (expr instanceof RexInputRef) {
