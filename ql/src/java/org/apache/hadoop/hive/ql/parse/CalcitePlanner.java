@@ -215,12 +215,11 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveRemoveGBYSemiJoinRu
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveRemoveSqCountCheck;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveRulesRegistry;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSemiJoinRule;
-import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortExchangePullUpConstantsRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortJoinReduceRule;
-import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortLimitPullUpConstantsRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortLimitRemoveRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortMergeRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortProjectTransposeRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortPullUpConstantsRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortRemoveRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSortUnionReduceRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveSubQueryRemoveRule;
@@ -2012,8 +2011,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
       rules.add(HiveJoinPushTransitivePredicatesRule.INSTANCE_JOIN);
       rules.add(HiveJoinPushTransitivePredicatesRule.INSTANCE_SEMIJOIN);
       rules.add(HiveSortMergeRule.INSTANCE);
-      rules.add(HiveSortLimitPullUpConstantsRule.INSTANCE);
-      rules.add(HiveSortExchangePullUpConstantsRule.INSTANCE);
+      rules.add(HiveSortPullUpConstantsRule.SORT_LIMIT_INSTANCE);
+      rules.add(HiveSortPullUpConstantsRule.SORT_EXCHANGE_INSTANCE);
       rules.add(HiveUnionPullUpConstantsRule.INSTANCE);
       rules.add(HiveAggregatePullUpConstantsRule.INSTANCE);
       generatePartialProgram(program, true, HepMatchOrder.BOTTOM_UP,
