@@ -36,6 +36,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelCollation;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelReferentialConstraint;
@@ -1108,5 +1109,39 @@ public class HiveRelOptUtil extends RelOptUtil {
       fieldCollations.add(new RelFieldCollation(m.get(fc.getFieldIndex()), fc.direction, fc.nullDirection));
     }
     return fieldCollations;
+  }
+
+  /**
+   * Map Exchange distribution keys to the specified Project columns.
+   * @param project the Project
+   * @param distribution current distribution in Exchange
+   * @return new distribution should be used in the Exchange
+   */
+  public static List<Integer> getNewRelDistributionKeys(
+          HiveProject project, RelDistribution distribution) {
+    Set<Integer> needed = new HashSet<>(distribution.getKeys());
+    Map<Integer,Integer> m = new HashMap<>();
+    for (int projPos = 0; projPos < project.getChildExps().size(); projPos++) {
+      RexNode expr = project.getChildExps().get(projPos);
+      if (expr instanceof RexInputRef) {
+        Set<Integer> positions = HiveCalciteUtil.getInputRefs(expr);
+        if (positions.size() <= 1) {
+          int parentPos = positions.iterator().next();
+          if(needed.contains(parentPos)){
+            m.put(parentPos, projPos);
+            needed.remove(parentPos);
+          }
+        }
+      }
+    }
+    if(!needed.isEmpty()){
+      return null;
+    }
+
+    List<Integer> distributionKeys = new ArrayList<>();
+    for (Integer keyIndex : distribution.getKeys()) {
+      distributionKeys.add(m.get(keyIndex));
+    }
+    return distributionKeys;
   }
 }

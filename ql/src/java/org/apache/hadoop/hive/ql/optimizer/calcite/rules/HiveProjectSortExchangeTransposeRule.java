@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
+import static org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelOptUtil.getNewRelDistributionKeys;
 import static org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelOptUtil.getNewRelFieldCollations;
 
 import java.util.List;
@@ -51,8 +52,7 @@ import com.google.common.collect.ImmutableList;
  *     ...
  */
 public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
-  public static final HiveProjectSortExchangeTransposeRule INSTANCE =
-          new HiveProjectSortExchangeTransposeRule();
+  public static final HiveProjectSortExchangeTransposeRule INSTANCE = new HiveProjectSortExchangeTransposeRule();
 
   //~ Constructors -----------------------------------------------------------
 
@@ -86,6 +86,7 @@ public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     RelTraitSet newTraitSet = TraitsUtil.getDefaultTraitSet(sortExchange.getCluster());
     RelCollation newCollation = newTraitSet.canonize(RelCollationImpl.of(fieldCollations));
     newTraitSet = newTraitSet.replace(newCollation);
+    List<Integer> newDistributionKeys = getNewRelDistributionKeys(project, sortExchange.getDistribution());
 
     // New operators
     final RelNode newProject = project.copy(sortExchange.getInput().getTraitSet(),
@@ -93,7 +94,7 @@ public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
     final SortExchange newSort = sortExchange.copy(
             newTraitSet,
             newProject,
-            HiveRelDistribution.from(newCollation.getFieldCollations(), sortExchange.getDistribution().getType()),
+            new HiveRelDistribution(sortExchange.getDistribution().getType(), newDistributionKeys),
             newCollation);
 
     call.transformTo(newSort);

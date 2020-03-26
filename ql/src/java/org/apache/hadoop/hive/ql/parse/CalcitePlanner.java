@@ -71,6 +71,7 @@ import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
@@ -4012,7 +4013,11 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       RelNode sortRel = HiveSortExchange.create(
                   obLogicalPlanGenState.getObInputRel(),
-                  new HiveRelDistribution(RelDistribution.Type.HASH_DISTRIBUTED, joinKeyPositions),
+                  // In case of SORT BY we do not need Distribution
+                  // but the instance RelDistributions.ANY can not be used here because
+                  // org.apache.calcite.rel.core.Exchange has
+                  // assert distribution != RelDistributions.ANY;
+                  new HiveRelDistribution(RelDistribution.Type.ANY, RelDistributions.ANY.getKeys()),
               canonizedCollation,
               builder.build());
 
