@@ -953,6 +953,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
       boolean topLevelQB, boolean verbose) {
 
     if (!queryProperties.hasClusterBy() && !queryProperties.hasDistributeBy()
+        && !(queryProperties.hasSortBy() && queryProperties.hasLimit())
         && !queryProperties.hasPTF() && !queryProperties.usesScript()
         && queryProperties.isCBOSupportedLateralViews()) {
       // Ok to run CBO.
@@ -967,6 +968,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
       }
       if (queryProperties.hasDistributeBy()) {
         msg += "has distribute by; ";
+      }
+      if (queryProperties.hasSortBy() && queryProperties.hasLimit()) {
+        msg += "has sort by with limit; ";
       }
       if (queryProperties.hasPTF()) {
         msg += "has PTF; ";
