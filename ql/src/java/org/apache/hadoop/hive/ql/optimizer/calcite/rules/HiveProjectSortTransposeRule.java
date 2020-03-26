@@ -73,9 +73,9 @@ public class HiveProjectSortTransposeRule extends RelOptRule {
 
     // New operators
     final RelNode newProject = project.copy(sort.getInput().getTraitSet(),
-            ImmutableList.of(sort.getInput()));
+        ImmutableList.of(sort.getInput()));
     final HiveSortLimit newSort = sort.copy(newProject.getTraitSet(),
-            newProject, newCollation, sort.offset, sort.fetch);
+        newProject, newCollation, sort.offset, sort.fetch);
 
     call.transformTo(newSort);
   }
