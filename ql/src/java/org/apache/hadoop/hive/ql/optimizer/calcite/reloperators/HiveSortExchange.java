@@ -66,6 +66,7 @@ public final class HiveSortExchange extends SortExchange implements HiveRelNode 
   }
 
   private static RelTraitSet getTraitSet(RelCollation collation, RelOptCluster cluster) {
+    // add distribution
     return TraitsUtil.getDefaultTraitSet(cluster).replace(collation);
   }
 
