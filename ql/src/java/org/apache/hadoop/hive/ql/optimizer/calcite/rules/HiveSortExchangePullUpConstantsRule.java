@@ -19,11 +19,11 @@ package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
 import java.util.List;
 
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.tools.RelBuilder;
-import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelDistribution;
+import org.apache.calcite.util.mapping.Mappings;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
 import org.slf4j.Logger;
@@ -43,14 +43,9 @@ public final class HiveSortExchangePullUpConstantsRule extends HiveSortPullUpCon
   }
 
   @Override
-  protected RelCollation getRelCollation(HiveSortExchange sortNode) {
-    return sortNode.getCollation();
-  }
-
-  @Override
-  protected void buildSort(RelBuilder relBuilder, HiveSortExchange sortNode, List<RelFieldCollation> fieldCollations) {
-    relBuilder.sortExchange(
-            HiveRelDistribution.from(fieldCollations, sortNode.getDistribution().getType()),
-            RelCollations.of(fieldCollations));
+  protected void buildSort(RelBuilder relBuilder, HiveSortExchange sortNode, Mappings.TargetMapping mapping) {
+    List<RelFieldCollation> fieldCollations = applyToFieldCollations(sortNode.getCollation(), mapping);
+    RelDistribution distribution = sortNode.getDistribution().apply(mapping);
+    relBuilder.sortExchange(distribution, RelCollations.of(fieldCollations));
   }
 }

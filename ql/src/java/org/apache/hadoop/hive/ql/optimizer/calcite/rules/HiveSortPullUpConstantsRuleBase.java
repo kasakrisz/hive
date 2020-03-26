@@ -53,8 +53,7 @@ public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> exten
 
   protected static final Logger LOG = LoggerFactory.getLogger(HiveSortPullUpConstantsRuleBase.class);
 
-  protected HiveSortPullUpConstantsRuleBase(Class<? extends SingleRel> sortClass,
-                                          RelBuilderFactory relBuilderFactory) {
+  protected HiveSortPullUpConstantsRuleBase(Class<T> sortClass, RelBuilderFactory relBuilderFactory) {
     super(operand(RelNode.class, unordered(operand(sortClass, any()))), relBuilderFactory, null);
   }
 
@@ -118,16 +117,6 @@ public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> exten
     // Update field collations
     final Mappings.TargetMapping mapping =
             RelOptUtil.permutation(Pair.left(newChildExprs), sortNode.getInput().getRowType()).inverse();
-    List<RelFieldCollation> fieldCollations = new ArrayList<>();
-    RelCollation relCollation = getRelCollation(sortNode);
-    for (RelFieldCollation fc : relCollation.getFieldCollations()) {
-      final int target = mapping.getTargetOpt(fc.getFieldIndex());
-      if (target < 0) {
-        // It is a constant, we can ignore it
-        continue;
-      }
-      fieldCollations.add(fc.copy(target));
-    }
 
     // Update top Project positions
     topChildExprs = ImmutableList.copyOf(RexUtil.apply(mapping, topChildExprs));
@@ -136,7 +125,7 @@ public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> exten
     final RelBuilder relBuilder = call.builder();
     relBuilder.push(sortNode.getInput());
     relBuilder.project(Pair.left(newChildExprs), Pair.right(newChildExprs));
-    buildSort(relBuilder, sortNode, fieldCollations);
+    buildSort(relBuilder, sortNode, mapping);
     // Create top Project fixing nullability of fields
     relBuilder.project(topChildExprs, topChildExprsFields);
     relBuilder.convert(sortNode.getRowType(), false);
@@ -152,7 +141,19 @@ public abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> exten
     call.transformTo(parent.copy(parent.getTraitSet(), inputs));
   }
 
-  protected abstract RelCollation getRelCollation(T sortNode);
+  protected List<RelFieldCollation> applyToFieldCollations(
+          RelCollation relCollation, Mappings.TargetMapping mapping) {
+    List<RelFieldCollation> fieldCollations = new ArrayList<>();
+    for (RelFieldCollation fc : relCollation.getFieldCollations()) {
+      final int target = mapping.getTargetOpt(fc.getFieldIndex());
+      if (target < 0) {
+        // It is a constant, we can ignore it
+        continue;
+      }
+      fieldCollations.add(fc.copy(target));
+    }
+    return fieldCollations;
+  }
 
-  protected abstract void buildSort(RelBuilder relBuilder, T sortNode, List<RelFieldCollation> fieldCollations);
+  protected abstract void buildSort(RelBuilder relBuilder, T sortNode, Mappings.TargetMapping mapping);
 }

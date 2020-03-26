@@ -25,6 +25,7 @@ import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.mapping.Mappings;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortLimit;
 import org.slf4j.Logger;
@@ -54,12 +55,8 @@ public final class HiveSortLimitPullUpConstantsRule extends HiveSortPullUpConsta
   }
 
   @Override
-  protected RelCollation getRelCollation(HiveSortLimit sortNode) {
-    return sortNode.getCollation();
-  }
-
-  @Override
-  protected void buildSort(RelBuilder relBuilder, HiveSortLimit sortNode, List<RelFieldCollation> fieldCollations) {
+  protected void buildSort(RelBuilder relBuilder, HiveSortLimit sortNode, Mappings.TargetMapping mapping) {
+    List<RelFieldCollation> fieldCollations = applyToFieldCollations(sortNode.getCollation(), mapping);
     final ImmutableList<RexNode> sortFields =
             relBuilder.fields(RelCollations.of(fieldCollations));
     relBuilder.sortLimit(sortNode.offset == null ? -1 : RexLiteral.intValue(sortNode.offset),
