@@ -61,9 +61,9 @@ public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
    */
   private HiveProjectSortExchangeTransposeRule() {
     super(
-            operand(
-                    HiveProject.class,
-                    operand(HiveSortExchange.class, any())));
+        operand(
+            HiveProject.class,
+            operand(HiveSortExchange.class, any())));
   }
 
   protected HiveProjectSortExchangeTransposeRule(RelOptRuleOperand operand) {
@@ -90,12 +90,12 @@ public final class HiveProjectSortExchangeTransposeRule extends RelOptRule {
 
     // New operators
     final RelNode newProject = project.copy(sortExchange.getInput().getTraitSet(),
-            ImmutableList.of(sortExchange.getInput()));
+        ImmutableList.of(sortExchange.getInput()));
     final SortExchange newSort = sortExchange.copy(
-            newTraitSet,
-            newProject,
-            new HiveRelDistribution(sortExchange.getDistribution().getType(), newDistributionKeys),
-            newCollation);
+        newTraitSet,
+        newProject,
+        new HiveRelDistribution(sortExchange.getDistribution().getType(), newDistributionKeys),
+        newCollation);
 
     call.transformTo(newSort);
   }
