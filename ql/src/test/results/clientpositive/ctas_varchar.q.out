@@ -62,11 +62,11 @@ POSTHOOK: query: select key, value from ctas_varchar_1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ctas_varchar_1
 #### A masked pattern was here ####
-100	val_100
+0	val_0
+0	val_0
+0	val_0
 10	val_10
-0	val_0
-0	val_0
-0	val_0
+100	val_100
 PREHOOK: query: select * from ctas_varchar_2
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ctas_varchar_2
@@ -75,11 +75,11 @@ POSTHOOK: query: select * from ctas_varchar_2
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ctas_varchar_2
 #### A masked pattern was here ####
-100	val_100
+0	val_0
+0	val_0
+0	val_0
 10	val_10
-0	val_0
-0	val_0
-0	val_0
+100	val_100
 PREHOOK: query: select * from ctas_varchar_3
 PREHOOK: type: QUERY
 PREHOOK: Input: default@ctas_varchar_2
@@ -90,11 +90,11 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@ctas_varchar_2
 POSTHOOK: Input: default@ctas_varchar_3
 #### A masked pattern was here ####
-100	val_100
+0	val_0
+0	val_0
+0	val_0
 10	val_10
-0	val_0
-0	val_0
-0	val_0
+100	val_100
 PREHOOK: query: drop table ctas_varchar_1
 PREHOOK: type: DROPTABLE
 PREHOOK: Input: default@ctas_varchar_1
