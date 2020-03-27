@@ -45,8 +45,6 @@ import org.apache.calcite.util.mapping.Mappings;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortLimit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -60,6 +58,8 @@ import com.google.common.collect.ImmutableList;
  * performance impact in the resulting plans.
  */
 public final class HiveSortPullUpConstantsRule {
+
+  private HiveSortPullUpConstantsRule() {}
 
   public static final HiveSortPullUpConstantsRuleBase<HiveSortLimit> SORT_LIMIT_INSTANCE =
       new HiveSortLimitPullUpConstantsRule();
@@ -100,7 +100,7 @@ public final class HiveSortPullUpConstantsRule {
   }
 
 
-  public static abstract class HiveSortPullUpConstantsRuleBase<T extends SingleRel> extends RelOptRule {
+  private abstract static class HiveSortPullUpConstantsRuleBase<T extends SingleRel> extends RelOptRule {
 
     protected HiveSortPullUpConstantsRuleBase(Class<T> sortClass) {
       super(operand(RelNode.class, unordered(operand(sortClass, any()))), HiveRelFactories.HIVE_BUILDER, null);
