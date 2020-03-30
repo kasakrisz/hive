@@ -3277,6 +3277,38 @@ public class CalcitePlanner extends SemanticAnalyzer {
       return filterRel;
     }
 
+    private RelNode genFilterRelNode(ExprNodeDesc filterCondn, RelNode srcRel,
+            ImmutableMap<String, Integer> outerNameToPosMap, RowResolver outerRR,
+            boolean useCaching) throws SemanticException {
+      if (filterCondn instanceof ExprNodeConstantDesc
+          && !filterCondn.getTypeString().equals(serdeConstants.BOOLEAN_TYPE_NAME)) {
+        // queries like select * from t1 where 'foo';
+        // Calcite's rule PushFilterThroughProject chokes on it. Arguably, we
+        // can insert a cast to
+        // boolean in such cases, but since Postgres, Oracle and MS SQL server
+        // fail on compile time
+        // for such queries, its an arcane corner case, not worth of adding that
+        // complexity.
+        throw new CalciteSemanticException("Filter expression with non-boolean return type.",
+            UnsupportedFeature.Filter_expression_with_non_boolean_return_type);
+      }
+      ImmutableMap<String, Integer> hiveColNameCalcitePosMap = this.relToHiveColNameCalcitePosMap
+          .get(srcRel);
+      RexNode convertedFilterExpr = new RexNodeConverter(cluster, srcRel.getRowType(),
+          outerNameToPosMap, hiveColNameCalcitePosMap, relToHiveRR.get(srcRel), outerRR,
+      HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVEOPT_TRANSFORM_IN_MAXNODES),
+              0, true, subqueryId).convert(filterCondn);
+      RexNode factoredFilterExpr = RexUtil
+          .pullFactors(cluster.getRexBuilder(), convertedFilterExpr);
+      RelNode filterRel = new HiveFilter(cluster, cluster.traitSetOf(HiveRelNode.CONVENTION),
+          srcRel, factoredFilterExpr);
+      this.relToHiveColNameCalcitePosMap.put(filterRel, hiveColNameCalcitePosMap);
+      relToHiveRR.put(filterRel, relToHiveRR.get(srcRel));
+      relToHiveColNameCalcitePosMap.put(filterRel, hiveColNameCalcitePosMap);
+
+      return filterRel;
+    }
+
 
     private RelNode genLateralViewPlans(ASTNode lateralView, Map<String, RelNode> aliasToRel)
             throws SemanticException {
@@ -5072,6 +5104,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
                                    RowResolver outerRR) throws SemanticException {
       RelNode srcRel = null;
       RelNode filterRel = null;
+      RelNode constraintRel = null;
       RelNode gbRel = null;
       RelNode gbHavingRel = null;
       RelNode selectRel = null;
@@ -5150,6 +5183,17 @@ public class CalcitePlanner extends SemanticAnalyzer {
       filterRel = genFilterLogicalPlan(qb, srcRel, outerNameToPosMap, outerRR, false);
       srcRel = (filterRel == null) ? srcRel : filterRel;
       RelNode starSrcRel = srcRel;
+
+      // Build Rel for Constraint checks
+      boolean isInsertOrUpdate = false;
+      String dest = qb.getParseInfo().getClauseNames().iterator().next();
+      isInsertOrUpdate = updating(dest);
+      if (isInsertOrUpdate) {
+        ExprNodeDesc constraintUDF = genConstraintsExpr(dest, qb, relToHiveRR.get(srcRel));
+        constraintRel = genFilterRelNode(constraintUDF, srcRel, outerNameToPosMap, outerRR, false);
+        srcRel = constraintRel;
+      }
+
 
       // 3. Build Rel for GB Clause
       gbRel = genGBLogicalPlan(qb, srcRel);
