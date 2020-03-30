@@ -5184,17 +5184,6 @@ public class CalcitePlanner extends SemanticAnalyzer {
       srcRel = (filterRel == null) ? srcRel : filterRel;
       RelNode starSrcRel = srcRel;
 
-      // Build Rel for Constraint checks
-      boolean isInsertOrUpdate = false;
-      String dest = qb.getParseInfo().getClauseNames().iterator().next();
-      isInsertOrUpdate = updating(dest);
-      if (isInsertOrUpdate) {
-        ExprNodeDesc constraintUDF = genConstraintsExpr(dest, qb, relToHiveRR.get(srcRel));
-        constraintRel = genFilterRelNode(constraintUDF, srcRel, outerNameToPosMap, outerRR, false);
-        srcRel = constraintRel;
-      }
-
-
       // 3. Build Rel for GB Clause
       gbRel = genGBLogicalPlan(qb, srcRel);
       srcRel = (gbRel == null) ? srcRel : gbRel;
@@ -5207,6 +5196,15 @@ public class CalcitePlanner extends SemanticAnalyzer {
       Pair<RelNode, RowResolver> selPair = genSelectLogicalPlan(qb, srcRel, starSrcRel, outerNameToPosMap, outerRR, false);
       selectRel = selPair.getKey();
       srcRel = (selectRel == null) ? srcRel : selectRel;
+
+      // Build Rel for Constraint checks
+      String dest = qb.getParseInfo().getClauseNames().iterator().next();
+      if (updating(dest)) { // TODO: or insert
+        ExprNodeDesc constraintUDF = genConstraintsExpr(dest, qb, relToHiveRR.get(srcRel));
+        constraintRel = genFilterRelNode(constraintUDF, srcRel, outerNameToPosMap, outerRR, false);
+        selPair = new Pair<>(constraintRel, relToHiveRR.get(srcRel));
+        srcRel = constraintRel;
+      }
 
       // 6. Build Rel for OB Clause
       obRel = genOBLogicalPlan(qb, selPair, outerMostQB);
