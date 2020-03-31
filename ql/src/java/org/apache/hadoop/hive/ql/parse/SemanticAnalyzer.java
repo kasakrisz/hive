@@ -7259,46 +7259,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       return input;
     }
 
-    // if this is an insert into statement we might need to add constraint check
-    Table targetTable = null;
-    Integer dest_type = qb.getMetaData().getDestTypeForAlias(dest);
-    if(dest_type == QBMetaData.DEST_TABLE) {
-      targetTable= qb.getMetaData().getDestTableForAlias(dest);
-
-    }
-    else if(dest_type == QBMetaData.DEST_PARTITION){
-      Partition dest_part = qb.getMetaData().getDestPartitionForAlias(dest);
-      targetTable = dest_part.getTable();
-
-    }
-    else {
-      throw new SemanticException("Generating constraint check plan: Invalid target type: " + dest);
-    }
-
     RowResolver inputRR = opParseCtx.get(input).getRowResolver();
-    List<ColumnInfo> inputColInfos = input.getSchema().getSignature();
-    ExprNodeDesc nullConstraintExpr = getNotNullConstraintExpr(targetTable, inputColInfos, dest);
-    ExprNodeDesc checkConstraintExpr = getCheckConstraintExpr(targetTable, inputColInfos, inputRR, dest);
-
-    ExprNodeDesc combinedConstraintExpr = null;
-    if(nullConstraintExpr != null && checkConstraintExpr != null) {
-      assert (input.getParentOperators().size() == 1);
-      combinedConstraintExpr = ExprNodeTypeCheck.getExprNodeDefaultExprProcessor()
-          .getFuncExprNodeDesc("and", nullConstraintExpr, checkConstraintExpr);
-
-    }
-    else if(nullConstraintExpr != null) {
-      combinedConstraintExpr = nullConstraintExpr;
-    }
-    else if(checkConstraintExpr != null) {
-      combinedConstraintExpr = checkConstraintExpr;
-    }
-
+    ExprNodeDesc combinedConstraintExpr = genConstraintsExpr(dest, qb, inputRR);
     if (combinedConstraintExpr != null) {
-      ExprNodeDesc constraintUDF = ExprNodeTypeCheck.getExprNodeDefaultExprProcessor()
-          .getFuncExprNodeDesc("enforce_constraint", combinedConstraintExpr);
       return putOpInsertMap(OperatorFactory.getAndMakeChild(
-          new FilterDesc(constraintUDF, false), new RowSchema(
+          new FilterDesc(combinedConstraintExpr, false), new RowSchema(
               inputRR.getColumnInfos()), input), inputRR);
     }
     return input;
