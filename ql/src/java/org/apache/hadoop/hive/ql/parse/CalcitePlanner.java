@@ -5199,11 +5199,13 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // Build Rel for Constraint checks
       String dest = qb.getParseInfo().getClauseNames().iterator().next();
-      if (updating(dest)) { // TODO: or insert
+      if (!qb.getIsQuery() && !deleting(dest)) {
         ExprNodeDesc constraintUDF = genConstraintsExpr(dest, qb, relToHiveRR.get(srcRel));
-        constraintRel = genFilterRelNode(constraintUDF, srcRel, outerNameToPosMap, outerRR, false);
-        selPair = new Pair<>(constraintRel, relToHiveRR.get(srcRel));
-        srcRel = constraintRel;
+        if (constraintUDF != null) {
+          constraintRel = genFilterRelNode(constraintUDF, srcRel, outerNameToPosMap, outerRR, false);
+          selPair = new Pair<>(constraintRel, relToHiveRR.get(srcRel));
+          srcRel = constraintRel;
+        }
       }
 
       // 6. Build Rel for OB Clause

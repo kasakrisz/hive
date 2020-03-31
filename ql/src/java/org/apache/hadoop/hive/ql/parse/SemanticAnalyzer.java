@@ -7208,7 +7208,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   protected ExprNodeDesc genConstraintsExpr(String dest, QB qb, RowResolver inputRR) throws SemanticException {
     // if this is an insert into statement we might need to add constraint check
-    Table targetTable = null;
+    Table targetTable;
     Integer dest_type = qb.getMetaData().getDestTypeForAlias(dest);
     if(dest_type == QBMetaData.DEST_TABLE) {
       targetTable= qb.getMetaData().getDestTableForAlias(dest);
@@ -15048,11 +15048,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
-  protected boolean updating(String destination) {
+  private boolean updating(String destination) {
     return destination.startsWith(Context.DestClausePrefix.UPDATE.toString());
   }
 
-  private boolean deleting(String destination) {
+  protected boolean deleting(String destination) {
     return destination.startsWith(Context.DestClausePrefix.DELETE.toString());
   }
 

@@ -8,13 +8,16 @@ create table acid_uami(i int,
 
 --explain
 --insert into acid_uami values(1, NULL, 'first');
-
-
---insert into acid_uami values(1, NULL, 'first');
---insert into acid_uami values(1, 1.4, 'first');
---explain cbo
---update acid_uami set de=20.0 where i=1;
 explain
-update acid_uami set de=null where i=1;
+insert into acid_uami(i, de) values(1, 1.4);
+
+explain cbo
+insert into acid_uami values(1, 1.4, 'first');
+explain
+insert into acid_uami values(1, 1.4, 'first');
+insert into acid_uami values(1, 1.4, 'first');
+
+--explain
+--update acid_uami set de=null where i=1;
 --explain
 --UPDATE acid_uami set de=de + 20 where i=1;
