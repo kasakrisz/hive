@@ -7229,7 +7229,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     ExprNodeDesc combinedConstraintExpr = null;
     if(nullConstraintExpr != null && checkConstraintExpr != null) {
-//      assert (input.getParentOperators().size() == 1);
       combinedConstraintExpr = ExprNodeTypeCheck.getExprNodeDefaultExprProcessor()
           .getFuncExprNodeDesc("and", nullConstraintExpr, checkConstraintExpr);
 
@@ -7259,6 +7258,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       return input;
     }
 
+    assert (input.getParentOperators().size() == 1);
     RowResolver inputRR = opParseCtx.get(input).getRowResolver();
     ExprNodeDesc combinedConstraintExpr = genConstraintsExpr(dest, qb, inputRR);
     if (combinedConstraintExpr != null) {
