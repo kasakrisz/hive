@@ -12,9 +12,9 @@ create table acid_uami(i int,
 
 --insert into acid_uami values(1, NULL, 'first');
 --insert into acid_uami values(1, 1.4, 'first');
-explain cbo
-update acid_uami set de=20.0 where i=1;
+--explain cbo
+--update acid_uami set de=20.0 where i=1;
 explain
-update acid_uami set de=20.0 where i=1;
+update acid_uami set de=null where i=1;
 --explain
 --UPDATE acid_uami set de=de + 20 where i=1;
