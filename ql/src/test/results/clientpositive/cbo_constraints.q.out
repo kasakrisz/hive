@@ -10,16 +10,6 @@ POSTHOOK: query: create table acid_uami(i int,
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@acid_uami
-PREHOOK: query: explain cbo
-update acid_uami set de=20.0 where i=1
-PREHOOK: type: QUERY
-PREHOOK: Input: default@acid_uami
-PREHOOK: Output: default@acid_uami
-POSTHOOK: query: explain cbo
-update acid_uami set de=20.0 where i=1
-POSTHOOK: type: QUERY
-POSTHOOK: Input: default@acid_uami
-POSTHOOK: Output: default@acid_uami
 PREHOOK: query: explain
 update acid_uami set de=20.0 where i=1
 PREHOOK: type: QUERY
