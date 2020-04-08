@@ -4032,10 +4032,11 @@ public class HiveConf extends Configuration {
         "The name of counter group for internal Hive variables (CREATED_FILE, FATAL_ERROR, etc.)"),
 
     HIVE_QUOTEDID_SUPPORT("hive.support.quoted.identifiers", "column",
-        new StringSet("none", "column"),
-        "Whether to use quoted identifier. 'none' or 'column' can be used. \n" +
-        "  none: default(past) behavior. Implies only alphaNumeric and underscore are valid characters in identifiers.\n" +
-        "  column: implies column names can contain any character."
+        new StringSet("none", "column", "standard"),
+        "Whether to use quoted identifier. 'none', 'column', and 'standard' can be used. \n" +
+        "  none: past behavior, it implies only alphaNumeric and underscore are valid characters in identifiers.\n" +
+        "  column: implies identifier names can contain any character by using backticks `col1`.\n" +
+        "  standard: implies identifier names can contain any character by using double quotes \"col1\"."
     ),
     /**
      * @deprecated Use MetastoreConf.SUPPORT_SPECIAL_CHARACTERS_IN_TABLE_NAMES

@@ -286,8 +286,14 @@ public final class HiveUtils {
     // the time has come
     String qIdSupport = conf == null ? null :
       HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_QUOTEDID_SUPPORT);
-    if ( qIdSupport != null && !"none".equals(qIdSupport) ) {
-      identifier = identifier.replaceAll("`", "``");
+    if (qIdSupport != null) {
+      if ("column".equals(qIdSupport)) {
+        identifier = identifier.replaceAll("`", "``");
+        return "`" + identifier + "`";
+      } else if ("standard".equals(qIdSupport)) {
+        identifier = identifier.replaceAll("\"", "\"\"");
+        return "\"" + identifier + "\"";
+      }
     }
     return "`" + identifier + "`";
   }

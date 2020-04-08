@@ -4390,7 +4390,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    */
   boolean isRegex(String pattern, HiveConf conf) {
     String qIdSupport = HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_QUOTEDID_SUPPORT);
-    if ( "column".equals(qIdSupport)) {
+    if ( !"none".equals(qIdSupport)) {
       return false;
     }
     for (int i = 0; i < pattern.length(); i++) {
@@ -11655,8 +11655,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     // db_name.table_name + partitionSec
     // as the prefix for easy of read during explain and debugging.
     // Currently, partition spec can only be static partition.
-    String k = org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.encodeTableName(tblName) + Path.SEPARATOR;
-    tsDesc.setStatsAggPrefix(tab.getDbName()+"."+k);
+    String k = FileUtils.escapePathName(tblName).toLowerCase() + Path.SEPARATOR;
+    tsDesc.setStatsAggPrefix(FileUtils.escapePathName(tab.getDbName()).toLowerCase() + "." + k);
 
     // set up WriteEntity for replication and txn stats
     WriteEntity we = new WriteEntity(tab, WriteEntity.WriteType.DDL_SHARED);
@@ -15111,7 +15111,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     int endIdx = ast.getTokenStopIndex();
 
     boolean queryNeedsQuotes = true;
-    if (conf.getVar(ConfVars.HIVE_QUOTEDID_SUPPORT).equals("none")) {
+    String qIdSupport = conf.getVar(ConfVars.HIVE_QUOTEDID_SUPPORT);
+    if ("none".equals(qIdSupport)) {
       queryNeedsQuotes = false;
     }
 
@@ -15122,10 +15123,16 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       } else if (queryNeedsQuotes && curTok.getType() == HiveLexer.Identifier) {
         // The Tokens have no distinction between Identifiers and QuotedIdentifiers.
         // Ugly solution is just to surround all identifiers with quotes.
-        sb.append('`');
-        // Re-escape any backtick (`) characters in the identifier.
-        sb.append(curTok.getText().replaceAll("`", "``"));
-        sb.append('`');
+        if ("column".equals(qIdSupport)) {
+          sb.append('`');
+          // Re-escape any backtick (`) characters in the identifier.
+          sb.append(curTok.getText().replaceAll("`", "``"));
+          sb.append('`');
+        } else if ("standard".equals(qIdSupport)) {
+          sb.append('\"');
+          sb.append(curTok.getText());
+          sb.append('\"');
+        }
       } else {
         sb.append(curTok.getText());
       }
