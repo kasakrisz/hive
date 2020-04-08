@@ -72,13 +72,17 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
 
   public ColumnStatsSemanticAnalyzer(QueryState queryState) throws SemanticException {
     super(queryState);
+    quote = getQuote(conf);
+  }
+
+  public static String getQuote(HiveConf conf) {
     String qIdSupport = conf.getVar(ConfVars.HIVE_QUOTEDID_SUPPORT);
     if ("column".equals(qIdSupport)) {
-      quote = "`";
+      return "`";
     } else if ("standard".equals(qIdSupport)) {
-      quote = "\"";
+      return "\"";
     } else {
-      quote = "";
+      return "";
     }
   }
 
@@ -157,7 +161,7 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
     }
   }
 
-  private StringBuilder genPartitionClause(Table tbl, Map<String, String> partSpec)
+  private static StringBuilder genPartitionClause(Table tbl, Map<String, String> partSpec, String quote)
       throws SemanticException {
     StringBuilder whereClause = new StringBuilder(" where ");
     boolean predPresent = false;
@@ -226,19 +230,15 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
     return colTypes;
   }
 
-  private String escapeBackTicks(String colName) {
-    return colName.replaceAll(quote, quote + quote);
-  }
-
   private String genRewrittenQuery(List<String> colNames, HiveConf conf, Map<String, String> partSpec,
       boolean isPartitionStats, boolean useTableValues) throws SemanticException {
-    String rewrittenQuery = genRewrittenQuery(tbl, colNames, conf, partSpec, isPartitionStats, useTableValues);
+    String rewrittenQuery = genRewrittenQuery(tbl, colNames, conf, partSpec, isPartitionStats, useTableValues, quote);
     isRewritten = true;
     return rewrittenQuery;
   }
 
-  public String genRewrittenQuery(Table tbl, List<String> colNames, HiveConf conf, Map<String, String> partSpec,
-      boolean isPartitionStats, boolean useTableValues) throws SemanticException{
+  public static String genRewrittenQuery(Table tbl, List<String> colNames, HiveConf conf, Map<String, String> partSpec,
+      boolean isPartitionStats, boolean useTableValues, String quote) throws SemanticException{
     StringBuilder rewrittenQueryBuilder = new StringBuilder("select ");
 
     StringBuilder columnNamesBuilder = new StringBuilder();
@@ -252,7 +252,7 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
       String func = HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_STATS_NDV_ALGO).toLowerCase();
       rewrittenQueryBuilder.append("compute_stats(");
       rewrittenQueryBuilder.append(quote);
-      final String columnName = escapeBackTicks(colNames.get(i));
+      final String columnName = colNames.get(i).replaceAll(quote, quote + quote);
       rewrittenQueryBuilder.append(columnName);
       rewrittenQueryBuilder.append(quote);
       rewrittenQueryBuilder.append(", '" + func + "'");
@@ -314,7 +314,7 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
     // If partition level statistics is requested, add predicate and group by as needed to rewritten
     // query
     if (isPartitionStats) {
-      rewrittenQueryBuilder.append(genPartitionClause(tbl, partSpec));
+      rewrittenQueryBuilder.append(genPartitionClause(tbl, partSpec, quote));
     }
 
     String rewrittenQuery = rewrittenQueryBuilder.toString();
