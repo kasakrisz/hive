@@ -107,7 +107,7 @@ public class MetaStoreUtils {
   // NOTE:
   // If the following array is updated, please also be sure to update the
   // configuration parameter documentation
-  // HIVE_SUPPORT_SPECICAL_CHARACTERS_IN_TABLE_NAMES in HiveConf as well.
+  // HIVE_SUPPORT_SPECICAL_CHARACTERS_IN_TABLE_NAMES in MetastoreConf as well.
   private static final char[] specialCharactersInTableNames = new char[] {
       // standard
       ' ', '"', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '[', ']',
