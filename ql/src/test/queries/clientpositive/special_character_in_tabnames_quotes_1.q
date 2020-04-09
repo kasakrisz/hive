@@ -1,3 +1,5 @@
+--! qt:dataset:src1
+--! qt:dataset:src
 set hive.cbo.enable=true;
 set hive.exec.check.crossproducts=false;
 set hive.stats.fetch.column.stats=true;

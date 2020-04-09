@@ -15531,8 +15531,12 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 #### A masked pattern was here ####
+<<<<<<< HEAD
 <<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 NULL	NULL	NULL
+=======
+ 1	4	2
+>>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 PREHOOK: query: select x, y, count(*) from (select key, (c_int+c_float+1+2) as x, sum(c_int) as y from "c/b/o_t1" group by c_float, "c/b/o_t1".c_int, key) R group by y, x order by x,y limit 1
 =======
  1	4	2
@@ -15547,8 +15551,12 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 #### A masked pattern was here ####
+<<<<<<< HEAD
 <<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 NULL	NULL	1
+=======
+5.0	2	3
+>>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 PREHOOK: query: select key from(select key from (select key from "c/b/o_t1" limit 5)"//cbo_t2"  limit 5)"cbo_/t3////"  limit 5
 =======
 5.0	2	3
@@ -15581,9 +15589,14 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 1	1
 1	1
 1	1
+<<<<<<< HEAD
 <<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 NULL	NULL
 NULL	NULL
+=======
+1	1
+1	1
+>>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 PREHOOK: query: select "cbo_/t3////".c_int, c, count(*) from (select key as a, c_int+1 as b, sum(c_int) as c from "c/b/o_t1" where ("c/b/o_t1".c_int + 1 >= 0) and ("c/b/o_t1".c_int > 0 or "c/b/o_t1".c_float >= 0) group by c_float, "c/b/o_t1".c_int, key order by a limit 5) "c/b/o_t1" join (select key as p, c_int+1 as q, sum(c_int) as r from "//cbo_t2" where ("//cbo_t2".c_int + 1 >= 0) and ("//cbo_t2".c_int > 0 or "//cbo_t2".c_float >= 0)  group by c_float, "//cbo_t2".c_int, key order by q/10 desc, r asc limit 5) "//cbo_t2" on "c/b/o_t1".a=p join "cbo_/t3////" on "c/b/o_t1".a=key where (b + "//cbo_t2".q >= 0) and (b > 0 or c_int >= 0) group by "cbo_/t3////".c_int, c order by "cbo_/t3////".c_int+c desc, c limit 5
 =======
 1	1
@@ -19471,7 +19484,12 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@t//
 POSTHOOK: Output: db~!@#$%^&*(),<>@t//
 PREHOOK: query: explain select * from "t//"
 PREHOOK: type: QUERY
+<<<<<<< HEAD
 <<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
+=======
+PREHOOK: Input: db~!@#$%^&*(),<>@t//
+#### A masked pattern was here ####
+>>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 POSTHOOK: query: explain select * from "t//"
 =======
 PREHOOK: Input: db~!@#$%^&*(),<>@t//
