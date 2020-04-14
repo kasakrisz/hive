@@ -4,10 +4,13 @@ set hive.mapred.mode=nonstrict;
 
 set hive.support.quoted.identifiers=standard;
 
+select 3 as "a", 10 as "~!@#$%^&*()_q<>";
+
 -- basic
 create table t1("x+1" string, "y&y" string, "~!@#$%^&*()_q<>" string);
 describe t1;
 select "x+1", "y&y", "~!@#$%^&*()_q<>" from t1;
+select "x+1", `y&y`, "~!@#$%^&*()_q<>" from t1;
 explain select "x+1", "y&y", "~!@#$%^&*()_q<>" from t1;
 explain select "x+1", "y&y", "~!@#$%^&*()_q<>" from t1 where "~!@#$%^&*()_q<>" = '1';
 explain select "x+1", "y&y", "~!@#$%^&*()_q<>" from t1 where "~!@#$%^&*()_q<>" = '1' group by "x+1", "y&y", "~!@#$%^&*()_q<>" having "~!@#$%^&*()_q<>" = '1';

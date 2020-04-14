@@ -1,3 +1,12 @@
+PREHOOK: query: select 3 as "a", 10 as "~!@#$%^&*()_q<>"
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+#### A masked pattern was here ####
+POSTHOOK: query: select 3 as "a", 10 as "~!@#$%^&*()_q<>"
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+#### A masked pattern was here ####
+3	10
 PREHOOK: query: create table t1("x+1" string, "y&y" string, "~!@#$%^&*()_q<>" string)
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
@@ -20,6 +29,14 @@ PREHOOK: type: QUERY
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
 POSTHOOK: query: select "x+1", "y&y", "~!@#$%^&*()_q<>" from t1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+PREHOOK: query: select "x+1", `y&y`, "~!@#$%^&*()_q<>" from t1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: select "x+1", `y&y`, "~!@#$%^&*()_q<>" from t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 #### A masked pattern was here ####

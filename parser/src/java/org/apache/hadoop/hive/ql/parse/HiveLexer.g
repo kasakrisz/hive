@@ -549,8 +549,8 @@ Identifier
 fragment
 QuotedIdentifier
     :
-    {allowQuotedId() == Quotation.BACKTICKS}? ('`'  ( '``' | ~('`') )* '`') { setText(StringUtils.replace(getText().substring(1, getText().length() -1 ), "``", "`")); }
-    | {allowQuotedId() == Quotation.STANDARD}? ('\"'  ( '\"\"' | ~('\"') )* '\"') { setText(StringUtils.replace(getText().substring(1, getText().length() -1 ), "\"\"", "\"")); }
+    ('`'  ( '``' | ~('`') )* '`') { setText(StringUtils.replace(getText().substring(1, getText().length() -1 ), "``", "`")); }
+    | ('\"'  ( '\"\"' | ~('\"') )* '\"') { setText(StringUtils.replace(getText().substring(1, getText().length() -1 ), "\"\"", "\"")); }
     ;
 
 CharSetName
