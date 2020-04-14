@@ -275,15 +275,11 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
 
     if (isPartitionStats) {
       for (FieldSchema fs : tbl.getPartCols()) {
-        // TODO: String.format ?
-        final String partColumnName = " , " + quote + fs.getName() + quote;
-        rewrittenQueryBuilder.append(partColumnName);
+        rewrittenQueryBuilder.append(" , ").append(quote).append(fs.getName()).append(quote);
+        columnNamesBuilder.append(" , ").append(quote).append(fs.getName()).append(quote);
 
-        columnNamesBuilder.append(partColumnName);
-
-        // TODO: appends ?
-        columnDummyValuesBuilder.append(
-            " , cast(null as " + TypeInfoUtils.getTypeInfoFromTypeString(fs.getType()).toString() + ")");
+        columnDummyValuesBuilder.append(" , cast(null as ")
+            .append(TypeInfoUtils.getTypeInfoFromTypeString(fs.getType()).toString()).append(")");
       }
     }
 
