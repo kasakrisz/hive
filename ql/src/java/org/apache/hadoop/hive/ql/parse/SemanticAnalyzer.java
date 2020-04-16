@@ -4390,8 +4390,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    */
   boolean isRegex(String pattern, HiveConf conf) {
     String qIdSupport = HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_QUOTEDID_SUPPORT);
-    if ( "none".equals(qIdSupport)) {
-      return true;
+    if ( !"none".equals(qIdSupport)) {
+      return false;
     }
     for (int i = 0; i < pattern.length(); i++) {
       if (!Character.isLetterOrDigit(pattern.charAt(i))
