@@ -43,10 +43,6 @@ import org.apache.commons.lang3.StringUtils;
     if (quotation != null) {
       return quotation;
     }
-    if (hiveConf == null) {
-      quotation = Quotation.NONE;
-      return quotation;
-    }
     String supportedQIds = HiveConf.getVar(hiveConf, HiveConf.ConfVars.HIVE_QUOTEDID_SUPPORT);
     if ("none".equalsIgnoreCase(supportedQIds)) {
       quotation = Quotation.NONE;
