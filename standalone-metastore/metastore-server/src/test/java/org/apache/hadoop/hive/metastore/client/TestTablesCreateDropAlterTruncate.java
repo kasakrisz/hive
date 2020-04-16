@@ -394,7 +394,7 @@ public class TestTablesCreateDropAlterTruncate extends MetaStoreClientTest {
   @Test(expected = InvalidObjectException.class)
   public void testCreateTableInvalidTableName() throws Exception {
     Table table = testTables[0];
-    table.setTableName("test_table;");
+    table.setTableName("test§table;");
 
     client.createTable(table);
   }
