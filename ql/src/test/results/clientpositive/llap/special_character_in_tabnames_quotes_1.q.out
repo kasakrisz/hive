@@ -15531,17 +15531,8 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 #### A masked pattern was here ####
-<<<<<<< HEAD
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
-NULL	NULL	NULL
-=======
  1	4	2
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 PREHOOK: query: select x, y, count(*) from (select key, (c_int+c_float+1+2) as x, sum(c_int) as y from "c/b/o_t1" group by c_float, "c/b/o_t1".c_int, key) R group by y, x order by x,y limit 1
-=======
- 1	4	2
-PREHOOK: query: select x, y, count(*) from (select key, (c_int+c_float+1+2) as x, sum(c_int) as y from `c/b/o_t1` group by c_float, `c/b/o_t1`.c_int, key) R group by y, x order by x,y limit 1
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
@@ -15551,17 +15542,8 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 #### A masked pattern was here ####
-<<<<<<< HEAD
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
-NULL	NULL	1
-=======
 5.0	2	3
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 PREHOOK: query: select key from(select key from (select key from "c/b/o_t1" limit 5)"//cbo_t2"  limit 5)"cbo_/t3////"  limit 5
-=======
-5.0	2	3
-PREHOOK: query: select key from(select key from (select key from `c/b/o_t1` limit 5)`//cbo_t2`  limit 5)`cbo_/t3////`  limit 5
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
@@ -15589,20 +15571,9 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 1	1
 1	1
 1	1
-<<<<<<< HEAD
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
-NULL	NULL
-NULL	NULL
-=======
 1	1
 1	1
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 PREHOOK: query: select "cbo_/t3////".c_int, c, count(*) from (select key as a, c_int+1 as b, sum(c_int) as c from "c/b/o_t1" where ("c/b/o_t1".c_int + 1 >= 0) and ("c/b/o_t1".c_int > 0 or "c/b/o_t1".c_float >= 0) group by c_float, "c/b/o_t1".c_int, key order by a limit 5) "c/b/o_t1" join (select key as p, c_int+1 as q, sum(c_int) as r from "//cbo_t2" where ("//cbo_t2".c_int + 1 >= 0) and ("//cbo_t2".c_int > 0 or "//cbo_t2".c_float >= 0)  group by c_float, "//cbo_t2".c_int, key order by q/10 desc, r asc limit 5) "//cbo_t2" on "c/b/o_t1".a=p join "cbo_/t3////" on "c/b/o_t1".a=key where (b + "//cbo_t2".q >= 0) and (b > 0 or c_int >= 0) group by "cbo_/t3////".c_int, c order by "cbo_/t3////".c_int+c desc, c limit 5
-=======
-1	1
-1	1
-PREHOOK: query: select `cbo_/t3////`.c_int, c, count(*) from (select key as a, c_int+1 as b, sum(c_int) as c from `c/b/o_t1` where (`c/b/o_t1`.c_int + 1 >= 0) and (`c/b/o_t1`.c_int > 0 or `c/b/o_t1`.c_float >= 0) group by c_float, `c/b/o_t1`.c_int, key order by a limit 5) `c/b/o_t1` join (select key as p, c_int+1 as q, sum(c_int) as r from `//cbo_t2` where (`//cbo_t2`.c_int + 1 >= 0) and (`//cbo_t2`.c_int > 0 or `//cbo_t2`.c_float >= 0)  group by c_float, `//cbo_t2`.c_int, key order by q/10 desc, r asc limit 5) `//cbo_t2` on `c/b/o_t1`.a=p join `cbo_/t3////` on `c/b/o_t1`.a=key where (b + `//cbo_t2`.q >= 0) and (b > 0 or c_int >= 0) group by `cbo_/t3////`.c_int, c order by `cbo_/t3////`.c_int+c desc, c limit 5
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2@dt=2014
@@ -17032,7 +17003,7 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@src/_/cbo
 118	val_118
 119	val_119
 12	val_12
-PREHOOK: query: create view cv1_n0 as 
+PREHOOK: query: create view cv1 as 
 
 select * 
 
@@ -17048,8 +17019,8 @@ where exists
 PREHOOK: type: CREATEVIEW
 PREHOOK: Input: db~!@#$%^&*(),<>@src/_/cbo
 PREHOOK: Output: database:db~!@#$%^&*(),<>
-PREHOOK: Output: db~!@#$%^&*(),<>@cv1_n0
-POSTHOOK: query: create view cv1_n0 as 
+PREHOOK: Output: db~!@#$%^&*(),<>@cv1
+POSTHOOK: query: create view cv1 as 
 
 select * 
 
@@ -17065,17 +17036,17 @@ where exists
 POSTHOOK: type: CREATEVIEW
 POSTHOOK: Input: db~!@#$%^&*(),<>@src/_/cbo
 POSTHOOK: Output: database:db~!@#$%^&*(),<>
-POSTHOOK: Output: db~!@#$%^&*(),<>@cv1_n0
-POSTHOOK: Lineage: cv1_n0.key SIMPLE [(src/_/cbo)b.FieldSchema(name:key, type:string, comment:null), ]
-POSTHOOK: Lineage: cv1_n0.value SIMPLE [(src/_/cbo)b.FieldSchema(name:value, type:string, comment:null), ]
-PREHOOK: query: select * from cv1_n0
+POSTHOOK: Output: db~!@#$%^&*(),<>@cv1
+POSTHOOK: Lineage: cv1.key SIMPLE [(src/_/cbo)b.FieldSchema(name:key, type:string, comment:null), ]
+POSTHOOK: Lineage: cv1.value SIMPLE [(src/_/cbo)b.FieldSchema(name:value, type:string, comment:null), ]
+PREHOOK: query: select * from cv1
 PREHOOK: type: QUERY
-PREHOOK: Input: db~!@#$%^&*(),<>@cv1_n0
+PREHOOK: Input: db~!@#$%^&*(),<>@cv1
 PREHOOK: Input: db~!@#$%^&*(),<>@src/_/cbo
 #### A masked pattern was here ####
-POSTHOOK: query: select * from cv1_n0
+POSTHOOK: query: select * from cv1
 POSTHOOK: type: QUERY
-POSTHOOK: Input: db~!@#$%^&*(),<>@cv1_n0
+POSTHOOK: Input: db~!@#$%^&*(),<>@cv1
 POSTHOOK: Input: db~!@#$%^&*(),<>@src/_/cbo
 #### A masked pattern was here ####
 90	val_90
@@ -18813,7 +18784,6 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@cbo_/t3////
 3
 3
 3
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 PREHOOK: query: create view v1 as select c_int, value, c_boolean, dt from "c/b/o_t1"
 PREHOOK: type: CREATEVIEW
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
@@ -18834,155 +18804,116 @@ PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 PREHOOK: Output: database:db~!@#$%^&*(),<>
 PREHOOK: Output: db~!@#$%^&*(),<>@v2
 POSTHOOK: query: create view v2 as select c_int, value from "//cbo_t2"
-=======
-PREHOOK: query: create view v1_n7 as select c_int, value, c_boolean, dt from `c/b/o_t1`
-PREHOOK: type: CREATEVIEW
-PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
-PREHOOK: Output: database:db~!@#$%^&*(),<>
-PREHOOK: Output: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: query: create view v1_n7 as select c_int, value, c_boolean, dt from `c/b/o_t1`
-POSTHOOK: type: CREATEVIEW
-POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
-POSTHOOK: Output: database:db~!@#$%^&*(),<>
-POSTHOOK: Output: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: Lineage: v1_n7.c_boolean SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:c_boolean, type:boolean, comment:null), ]
-POSTHOOK: Lineage: v1_n7.c_int SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:c_int, type:int, comment:null), ]
-POSTHOOK: Lineage: v1_n7.dt SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:dt, type:string, comment:null), ]
-POSTHOOK: Lineage: v1_n7.value SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:value, type:string, comment:null), ]
-PREHOOK: query: create view v2_n2 as select c_int, value from `//cbo_t2`
-PREHOOK: type: CREATEVIEW
-PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
-PREHOOK: Output: database:db~!@#$%^&*(),<>
-PREHOOK: Output: db~!@#$%^&*(),<>@v2_n2
-POSTHOOK: query: create view v2_n2 as select c_int, value from `//cbo_t2`
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 POSTHOOK: type: CREATEVIEW
 POSTHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 POSTHOOK: Output: database:db~!@#$%^&*(),<>
-POSTHOOK: Output: db~!@#$%^&*(),<>@v2_n2
-POSTHOOK: Lineage: v2_n2.c_int SIMPLE [(//cbo_t2)//cbo_t2.FieldSchema(name:c_int, type:int, comment:null), ]
-POSTHOOK: Lineage: v2_n2.value SIMPLE [(//cbo_t2)//cbo_t2.FieldSchema(name:value, type:string, comment:null), ]
-PREHOOK: query: select value from v1_n7 where c_boolean=false
+POSTHOOK: Output: db~!@#$%^&*(),<>@v2
+POSTHOOK: Lineage: v2.c_int SIMPLE [(//cbo_t2)//cbo_t2.FieldSchema(name:c_int, type:int, comment:null), ]
+POSTHOOK: Lineage: v2.value SIMPLE [(//cbo_t2)//cbo_t2.FieldSchema(name:value, type:string, comment:null), ]
+PREHOOK: query: select value from v1 where c_boolean=false
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
-POSTHOOK: query: select value from v1_n7 where c_boolean=false
+POSTHOOK: query: select value from v1 where c_boolean=false
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 1
 1
-PREHOOK: query: select max(c_int) from v1_n7 group by (c_boolean)
+PREHOOK: query: select max(c_int) from v1 group by (c_boolean)
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
-POSTHOOK: query: select max(c_int) from v1_n7 group by (c_boolean)
+POSTHOOK: query: select max(c_int) from v1 group by (c_boolean)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 1
 1
 NULL
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 PREHOOK: query: select count(v1.c_int)  from v1 join "//cbo_t2" on v1.c_int = "//cbo_t2".c_int
-=======
-PREHOOK: query: select count(v1_n7.c_int)  from v1_n7 join `//cbo_t2` on v1_n7.c_int = `//cbo_t2`.c_int
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2@dt=2014
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 POSTHOOK: query: select count(v1.c_int)  from v1 join "//cbo_t2" on v1.c_int = "//cbo_t2".c_int
-=======
-POSTHOOK: query: select count(v1_n7.c_int)  from v1_n7 join `//cbo_t2` on v1_n7.c_int = `//cbo_t2`.c_int
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 POSTHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2@dt=2014
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 234
-PREHOOK: query: select count(v1_n7.c_int)  from v1_n7 join v2_n2 on v1_n7.c_int = v2_n2.c_int
+PREHOOK: query: select count(v1.c_int)  from v1 join v2 on v1.c_int = v2.c_int
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 PREHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2@dt=2014
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-PREHOOK: Input: db~!@#$%^&*(),<>@v2_n2
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
+PREHOOK: Input: db~!@#$%^&*(),<>@v2
 #### A masked pattern was here ####
-POSTHOOK: query: select count(v1_n7.c_int)  from v1_n7 join v2_n2 on v1_n7.c_int = v2_n2.c_int
+POSTHOOK: query: select count(v1.c_int)  from v1 join v2 on v1.c_int = v2.c_int
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2
 POSTHOOK: Input: db~!@#$%^&*(),<>@//cbo_t2@dt=2014
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: Input: db~!@#$%^&*(),<>@v2_n2
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
+POSTHOOK: Input: db~!@#$%^&*(),<>@v2
 #### A masked pattern was here ####
 234
-PREHOOK: query: select count(*) from v1_n7 a join v1_n7 b on a.value = b.value
+PREHOOK: query: select count(*) from v1 a join v1 b on a.value = b.value
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
-POSTHOOK: query: select count(*) from v1_n7 a join v1_n7 b on a.value = b.value
+POSTHOOK: query: select count(*) from v1 a join v1 b on a.value = b.value
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 156
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 PREHOOK: query: create view v3 as select v1.value val from v1 join "c/b/o_t1" on v1.c_boolean = "c/b/o_t1".c_boolean
-=======
-PREHOOK: query: create view v3_n0 as select v1_n7.value val from v1_n7 join `c/b/o_t1` on v1_n7.c_boolean = `c/b/o_t1`.c_boolean
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 PREHOOK: type: CREATEVIEW
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 PREHOOK: Output: database:db~!@#$%^&*(),<>
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 PREHOOK: Output: db~!@#$%^&*(),<>@v3
 POSTHOOK: query: create view v3 as select v1.value val from v1 join "c/b/o_t1" on v1.c_boolean = "c/b/o_t1".c_boolean
-=======
-PREHOOK: Output: db~!@#$%^&*(),<>@v3_n0
-POSTHOOK: query: create view v3_n0 as select v1_n7.value val from v1_n7 join `c/b/o_t1` on v1_n7.c_boolean = `c/b/o_t1`.c_boolean
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 POSTHOOK: type: CREATEVIEW
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 POSTHOOK: Output: database:db~!@#$%^&*(),<>
-POSTHOOK: Output: db~!@#$%^&*(),<>@v3_n0
-POSTHOOK: Lineage: v3_n0.val SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:value, type:string, comment:null), ]
-PREHOOK: query: select count(val) from v3_n0 where val != '1'
+POSTHOOK: Output: db~!@#$%^&*(),<>@v3
+POSTHOOK: Lineage: v3.val SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:value, type:string, comment:null), ]
+PREHOOK: query: select count(val) from v3 where val != '1'
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-PREHOOK: Input: db~!@#$%^&*(),<>@v3_n0
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
+PREHOOK: Input: db~!@#$%^&*(),<>@v3
 #### A masked pattern was here ####
-POSTHOOK: query: select count(val) from v3_n0 where val != '1'
+POSTHOOK: query: select count(val) from v3 where val != '1'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: Input: db~!@#$%^&*(),<>@v3_n0
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
+POSTHOOK: Input: db~!@#$%^&*(),<>@v3
 #### A masked pattern was here ####
 96
 PREHOOK: query: with q1 as ( select key from "c/b/o_t1" where key = '1')
@@ -19000,24 +18931,24 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
 #### A masked pattern was here ####
 12
-PREHOOK: query: with q1 as ( select value from v1_n7 where c_boolean = false)
+PREHOOK: query: with q1 as ( select value from v1 where c_boolean = false)
 
 select count(value) from q1
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
-POSTHOOK: query: with q1 as ( select value from v1_n7 where c_boolean = false)
+POSTHOOK: query: with q1 as ( select value from v1 where c_boolean = false)
 
 select count(value) from q1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 2
-PREHOOK: query: create view v4_n0 as
+PREHOOK: query: create view v4 as
 
 with q1 as ( select key,c_int from "c/b/o_t1"  where key = '1')
 
@@ -19025,8 +18956,8 @@ select * from q1
 PREHOOK: type: CREATEVIEW
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Output: database:db~!@#$%^&*(),<>
-PREHOOK: Output: db~!@#$%^&*(),<>@v4_n0
-POSTHOOK: query: create view v4_n0 as
+PREHOOK: Output: db~!@#$%^&*(),<>@v4
+POSTHOOK: query: create view v4 as
 
 with q1 as ( select key,c_int from "c/b/o_t1"  where key = '1')
 
@@ -19034,92 +18965,86 @@ select * from q1
 POSTHOOK: type: CREATEVIEW
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Output: database:db~!@#$%^&*(),<>
-POSTHOOK: Output: db~!@#$%^&*(),<>@v4_n0
-POSTHOOK: Lineage: v4_n0.c_int SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:c_int, type:int, comment:null), ]
-POSTHOOK: Lineage: v4_n0.key SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:key, type:string, comment:null), ]
+POSTHOOK: Output: db~!@#$%^&*(),<>@v4
+POSTHOOK: Lineage: v4.c_int SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:c_int, type:int, comment:null), ]
+POSTHOOK: Lineage: v4.key SIMPLE [(c/b/o_t1)c/b/o_t1.FieldSchema(name:key, type:string, comment:null), ]
 PREHOOK: query: with q1 as ( select c_int from q2 where c_boolean = false),
 
-q2 as ( select c_int,c_boolean from v1_n7  where value = '1')
+q2 as ( select c_int,c_boolean from v1  where value = '1')
 
 select sum(c_int) from (select c_int from q1) a
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 POSTHOOK: query: with q1 as ( select c_int from q2 where c_boolean = false),
 
-q2 as ( select c_int,c_boolean from v1_n7  where value = '1')
+q2 as ( select c_int,c_boolean from v1  where value = '1')
 
 select sum(c_int) from (select c_int from q1) a
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
 #### A masked pattern was here ####
 2
 PREHOOK: query: with q1 as ( select "c/b/o_t1".c_int c_int from q2 join "c/b/o_t1" where q2.c_int = "c/b/o_t1".c_int  and "c/b/o_t1".dt='2014'),
 
-q2 as ( select c_int,c_boolean from v1_n7  where value = '1' or dt = '14')
+q2 as ( select c_int,c_boolean from v1  where value = '1' or dt = '14')
 
-select count(*) from q1 join q2 join v4_n0 on q1.c_int = q2.c_int and v4_n0.c_int = q2.c_int
+select count(*) from q1 join q2 join v4 on q1.c_int = q2.c_int and v4.c_int = q2.c_int
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-PREHOOK: Input: db~!@#$%^&*(),<>@v4_n0
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
+PREHOOK: Input: db~!@#$%^&*(),<>@v4
 #### A masked pattern was here ####
 POSTHOOK: query: with q1 as ( select "c/b/o_t1".c_int c_int from q2 join "c/b/o_t1" where q2.c_int = "c/b/o_t1".c_int  and "c/b/o_t1".dt='2014'),
 
-q2 as ( select c_int,c_boolean from v1_n7  where value = '1' or dt = '14')
+q2 as ( select c_int,c_boolean from v1  where value = '1' or dt = '14')
 
-select count(*) from q1 join q2 join v4_n0 on q1.c_int = q2.c_int and v4_n0.c_int = q2.c_int
+select count(*) from q1 join q2 join v4 on q1.c_int = q2.c_int and v4.c_int = q2.c_int
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: Input: db~!@#$%^&*(),<>@v4_n0
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
+POSTHOOK: Input: db~!@#$%^&*(),<>@v4
 #### A masked pattern was here ####
 31104
-PREHOOK: query: drop view v1_n7
+PREHOOK: query: drop view v1
 PREHOOK: type: DROPVIEW
-PREHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-PREHOOK: Output: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: query: drop view v1_n7
+PREHOOK: Input: db~!@#$%^&*(),<>@v1
+PREHOOK: Output: db~!@#$%^&*(),<>@v1
+POSTHOOK: query: drop view v1
 POSTHOOK: type: DROPVIEW
-POSTHOOK: Input: db~!@#$%^&*(),<>@v1_n7
-POSTHOOK: Output: db~!@#$%^&*(),<>@v1_n7
-PREHOOK: query: drop view v2_n2
+POSTHOOK: Input: db~!@#$%^&*(),<>@v1
+POSTHOOK: Output: db~!@#$%^&*(),<>@v1
+PREHOOK: query: drop view v2
 PREHOOK: type: DROPVIEW
-PREHOOK: Input: db~!@#$%^&*(),<>@v2_n2
-PREHOOK: Output: db~!@#$%^&*(),<>@v2_n2
-POSTHOOK: query: drop view v2_n2
+PREHOOK: Input: db~!@#$%^&*(),<>@v2
+PREHOOK: Output: db~!@#$%^&*(),<>@v2
+POSTHOOK: query: drop view v2
 POSTHOOK: type: DROPVIEW
-POSTHOOK: Input: db~!@#$%^&*(),<>@v2_n2
-POSTHOOK: Output: db~!@#$%^&*(),<>@v2_n2
-PREHOOK: query: drop view v3_n0
+POSTHOOK: Input: db~!@#$%^&*(),<>@v2
+POSTHOOK: Output: db~!@#$%^&*(),<>@v2
+PREHOOK: query: drop view v3
 PREHOOK: type: DROPVIEW
-PREHOOK: Input: db~!@#$%^&*(),<>@v3_n0
-PREHOOK: Output: db~!@#$%^&*(),<>@v3_n0
-POSTHOOK: query: drop view v3_n0
+PREHOOK: Input: db~!@#$%^&*(),<>@v3
+PREHOOK: Output: db~!@#$%^&*(),<>@v3
+POSTHOOK: query: drop view v3
 POSTHOOK: type: DROPVIEW
-POSTHOOK: Input: db~!@#$%^&*(),<>@v3_n0
-POSTHOOK: Output: db~!@#$%^&*(),<>@v3_n0
-PREHOOK: query: drop view v4_n0
+POSTHOOK: Input: db~!@#$%^&*(),<>@v3
+POSTHOOK: Output: db~!@#$%^&*(),<>@v3
+PREHOOK: query: drop view v4
 PREHOOK: type: DROPVIEW
-PREHOOK: Input: db~!@#$%^&*(),<>@v4_n0
-PREHOOK: Output: db~!@#$%^&*(),<>@v4_n0
-POSTHOOK: query: drop view v4_n0
+PREHOOK: Input: db~!@#$%^&*(),<>@v4
+PREHOOK: Output: db~!@#$%^&*(),<>@v4
+POSTHOOK: query: drop view v4
 POSTHOOK: type: DROPVIEW
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
 POSTHOOK: Input: db~!@#$%^&*(),<>@v4
 POSTHOOK: Output: db~!@#$%^&*(),<>@v4
 PREHOOK: query: select count(c_int) over() from "c/b/o_t1"
-=======
-POSTHOOK: Input: db~!@#$%^&*(),<>@v4_n0
-POSTHOOK: Output: db~!@#$%^&*(),<>@v4_n0
-PREHOOK: query: select count(c_int) over() from `c/b/o_t1`
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 PREHOOK: type: QUERY
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Input: db~!@#$%^&*(),<>@c/b/o_t1@dt=2014
@@ -19484,18 +19409,9 @@ POSTHOOK: Input: db~!@#$%^&*(),<>@t//
 POSTHOOK: Output: db~!@#$%^&*(),<>@t//
 PREHOOK: query: explain select * from "t//"
 PREHOOK: type: QUERY
-<<<<<<< HEAD
-<<<<<<< HEAD:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_quotes_1.q.out
-=======
 PREHOOK: Input: db~!@#$%^&*(),<>@t//
 #### A masked pattern was here ####
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - add Lexer changes
 POSTHOOK: query: explain select * from "t//"
-=======
-PREHOOK: Input: db~!@#$%^&*(),<>@t//
-#### A masked pattern was here ####
-POSTHOOK: query: explain select * from `t//`
->>>>>>> HIVE-19064: Add mode to support delimited identifiers enclosed within double quotation - update q test:ql/src/test/results/clientpositive/llap/special_character_in_tabnames_1.q.out
 POSTHOOK: type: QUERY
 POSTHOOK: Input: db~!@#$%^&*(),<>@t//
 #### A masked pattern was here ####
@@ -19521,7 +19437,7 @@ PREHOOK: Output: database:db~!@#$%^&*(),<>
 PREHOOK: Output: db~!@#$%^&*(),<>@//cbo_t2
 PREHOOK: Output: db~!@#$%^&*(),<>@c/b/o_t1
 PREHOOK: Output: db~!@#$%^&*(),<>@cbo_/t3////
-PREHOOK: Output: db~!@#$%^&*(),<>@cv1_n0
+PREHOOK: Output: db~!@#$%^&*(),<>@cv1
 PREHOOK: Output: db~!@#$%^&*(),<>@line/item
 PREHOOK: Output: db~!@#$%^&*(),<>@p/a/r/t
 PREHOOK: Output: db~!@#$%^&*(),<>@src/_/cbo
@@ -19533,7 +19449,7 @@ POSTHOOK: Output: database:db~!@#$%^&*(),<>
 POSTHOOK: Output: db~!@#$%^&*(),<>@//cbo_t2
 POSTHOOK: Output: db~!@#$%^&*(),<>@c/b/o_t1
 POSTHOOK: Output: db~!@#$%^&*(),<>@cbo_/t3////
-POSTHOOK: Output: db~!@#$%^&*(),<>@cv1_n0
+POSTHOOK: Output: db~!@#$%^&*(),<>@cv1
 POSTHOOK: Output: db~!@#$%^&*(),<>@line/item
 POSTHOOK: Output: db~!@#$%^&*(),<>@p/a/r/t
 POSTHOOK: Output: db~!@#$%^&*(),<>@src/_/cbo
