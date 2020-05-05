@@ -121,6 +121,8 @@ public class HiveReflectUtil {
         return VarArgsFunc3.class;
       case 4:
         return VarArgsFunc4.class;
+      case 5:
+        return VarArgsFunc5.class;
       default:
         throw new RuntimeException("Unsupported function with length " + length);
     }
@@ -136,6 +138,8 @@ public class HiveReflectUtil {
         return (VarArgsFunc3) site.getTarget().invokeExact();
       case 4:
         return (VarArgsFunc4) site.getTarget().invokeExact();
+      case 5:
+        return (VarArgsFunc5) site.getTarget().invokeExact();
       default:
         throw new RuntimeException("Unsupported function with length " + length);
     }
@@ -218,7 +222,7 @@ public class HiveReflectUtil {
       VarArgsFunc method = null;
       try {
         method = lookupVisitFunc(args[0]);
-        final Object o = method.apply(visitor, args[0], args[1], args[2]);
+        final Object o = method.apply(visitor, args[0], args[1], args[2], args[3]);
         return returnClazz.cast(o);
       } catch (Throwable e) {
         throw new RuntimeException("While invoking method " +
@@ -323,6 +327,15 @@ public class HiveReflectUtil {
     }
 
     R apply(T t, U u, V v, W w);
+  }
+
+  @FunctionalInterface
+  private interface VarArgsFunc5<T, U, V, W, X, R> extends VarArgsFunc<R> {
+    default R apply(Object... args) {
+      return apply((T) args[0], (U) args[1], (V) args[2], (W) args[3], (X) args[4]);
+    }
+
+    R apply(T t, U u, V v, W w, X x);
   }
 
   private interface VarArgsFunc<R> {

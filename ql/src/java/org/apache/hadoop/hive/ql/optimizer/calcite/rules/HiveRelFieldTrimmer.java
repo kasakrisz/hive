@@ -199,7 +199,8 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
           });
     }
 
-    return dispatchTrimFields(input, fieldsUsedBuilder.build(), extraFields);
+    ImmutableBitSet newFieldsUsed = fieldsUsedBuilder.build();
+    return dispatchTrimFields(input, newFieldsUsed, newFieldsUsed, extraFields);
   }
 
   /**
@@ -208,6 +209,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
    */
   public TrimResult trimFields(
       HiveMultiJoin join,
+      ImmutableBitSet fieldsProjectUsed,
       ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
     final int fieldCount = join.getRowType().getFieldCount();
@@ -306,15 +308,15 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
    * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.adapter.druid.DruidQuery}.
    */
-  public TrimResult trimFields(DruidQuery dq, ImmutableBitSet fieldsUsed,
-      Set<RelDataTypeField> extraFields) {
+  public TrimResult trimFields(DruidQuery dq, ImmutableBitSet fieldsProjectUsed,
+                               ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
     final int fieldCount = dq.getRowType().getFieldCount();
     if (fieldsUsed.equals(ImmutableBitSet.range(fieldCount))
         && extraFields.isEmpty()) {
       // if there is nothing to project or if we are projecting everything
       // then no need to introduce another RelNode
       return trimFields(
-          (RelNode) dq, fieldsUsed, extraFields);
+          (RelNode) dq, fieldsProjectUsed, fieldsUsed, extraFields);
     }
     final RelNode newTableAccessRel = project(dq, fieldsUsed, extraFields, REL_BUILDER.get());
 
@@ -588,7 +590,8 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
   }
 
   @Override
-  public TrimResult trimFields(Aggregate aggregate, ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+  public TrimResult trimFields(Aggregate aggregate, ImmutableBitSet fieldsProjectUsed,
+                               ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
     // Fields:
     //
     // | sys fields | group fields | indicator fields | agg functions |
@@ -736,11 +739,13 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.rel.logical.LogicalProject}.
    */
-  public TrimResult trimFields(Project project, ImmutableBitSet fieldsUsed,
-      Set<RelDataTypeField> extraFields) {
+  public TrimResult trimFields(Project project,
+                               ImmutableBitSet fieldsProjectUsed,
+                               ImmutableBitSet fieldsUsed,
+                               Set<RelDataTypeField> extraFields) {
     // set columnAccessInfo for ViewColumnAuthorization
     final ColumnAccessInfo columnAccessInfo = COLUMN_ACCESS_INFO.get();
     final Map<HiveProject, Table> viewProjectToTableSchema = VIEW_PROJECT_TO_TABLE_SCHEMA.get();
@@ -753,12 +758,14 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
         }
       }
     }
-    return super.trimFields(project, fieldsUsed, extraFields);
+    return super.trimFields(project, fieldsProjectUsed, fieldsUsed, extraFields);
   }
 
-  public TrimResult trimFields(HiveTableScan tableAccessRel, ImmutableBitSet fieldsUsed,
-      Set<RelDataTypeField> extraFields) {
-    final TrimResult result = super.trimFields(tableAccessRel, fieldsUsed, extraFields);
+  public TrimResult trimFields(HiveTableScan tableAccessRel,
+                               ImmutableBitSet fieldsProjectUsed,
+                               ImmutableBitSet fieldsUsed,
+                               Set<RelDataTypeField> extraFields) {
+    final TrimResult result = super.trimFields(tableAccessRel, fieldsProjectUsed, fieldsUsed, extraFields);
     final ColumnAccessInfo columnAccessInfo = COLUMN_ACCESS_INFO.get();
     if (columnAccessInfo != null) {
       // Store information about column accessed by the table so it can be used
@@ -827,6 +834,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
    */
   public TrimResult trimFields(
           HiveTableFunctionScan tabFun,
+          ImmutableBitSet fieldsProjectUsed,
           ImmutableBitSet fieldsUsed,
           Set<RelDataTypeField> extraFields) {
     final RelDataType rowType = tabFun.getRowType();
@@ -835,14 +843,14 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
 
     for (RelNode input : tabFun.getInputs()) {
       final int inputFieldCount = input.getRowType().getFieldCount();
+      ImmutableBitSet projectInputFieldsUsed = ImmutableBitSet.range(inputFieldCount);
       ImmutableBitSet inputFieldsUsed = ImmutableBitSet.range(inputFieldCount);
 
       // Create input with trimmed columns.
       final Set<RelDataTypeField> inputExtraFields =
               Collections.emptySet();
-      TrimResult trimResult =
-              trimChildRestore(
-                      tabFun, input, inputFieldsUsed, inputExtraFields);
+      TrimResult trimResult = trimChildRestore(
+          tabFun, input, projectInputFieldsUsed, inputFieldsUsed, inputExtraFields);
       assert trimResult.right.isIdentity();
       newInputs.add(trimResult.left);
     }
