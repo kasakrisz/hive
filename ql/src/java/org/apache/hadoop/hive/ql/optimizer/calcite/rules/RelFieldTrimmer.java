@@ -155,10 +155,11 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     try {
       REL_BUILDER.set(relBuilder);
       final int fieldCount = root.getRowType().getFieldCount();
-      final ImmutableBitSet fieldsUsed = ImmutableBitSet.range(fieldCount);
+      final ImmutableBitSet fieldsProjectUsed = ImmutableBitSet.range(fieldCount);
+      final ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
       final Set<RelDataTypeField> extraFields = Collections.emptySet();
       final TrimResult trimResult =
-          dispatchTrimFields(root, fieldsUsed, fieldsUsed, extraFields);
+          dispatchTrimFields(root, fieldsProjectUsed, fieldsUsed, extraFields);
       if (!trimResult.right.isIdentity()) {
         throw new IllegalArgumentException();
       }
@@ -188,6 +189,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       final ImmutableBitSet fieldsProjectUsed,
       final ImmutableBitSet fieldsUsed,
       Set<RelDataTypeField> extraFields) {
+    final ImmutableBitSet.Builder projectFieldsUsedBuilder = fieldsProjectUsed.rebuild();
     final ImmutableBitSet.Builder fieldsUsedBuilder = fieldsUsed.rebuild();
 
     // Fields that define the collation cannot be discarded.
@@ -195,6 +197,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     final ImmutableList<RelCollation> collations = mq.collations(input);
     for (RelCollation collation : collations) {
       for (RelFieldCollation fieldCollation : collation.getFieldCollations()) {
+        projectFieldsUsedBuilder.set(fieldCollation.getFieldIndex());
         fieldsUsedBuilder.set(fieldCollation.getFieldIndex());
       }
     }
@@ -208,6 +211,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
               final RexCorrelVariable v =
                   (RexCorrelVariable) fieldAccess.getReferenceExpr();
               if (v.id.equals(correlation)) {
+                projectFieldsUsedBuilder.set(fieldAccess.getField().getIndex());
                 fieldsUsedBuilder.set(fieldAccess.getField().getIndex());
               }
               return fieldAccess;
@@ -215,8 +219,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           });
     }
 
-    ImmutableBitSet newFieldsUsed = fieldsUsedBuilder.build();
-    return dispatchTrimFields(input, newFieldsUsed, newFieldsUsed, extraFields);
+    return dispatchTrimFields(input, projectFieldsUsedBuilder.build(), fieldsUsedBuilder.build(), extraFields);
   }
 
   /**
@@ -625,10 +628,14 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
       // Compute required mapping.
       ImmutableBitSet.Builder inputFieldsProjectUsed = ImmutableBitSet.builder();
+      for (int bit : fieldsProjectUsedPlus) {
+        if (bit >= offset && bit < offset + inputFieldCount) {
+          inputFieldsProjectUsed.set(bit - offset);
+        }
+      }
       ImmutableBitSet.Builder inputFieldsUsed = ImmutableBitSet.builder();
       for (int bit : fieldsUsedPlus) {
         if (bit >= offset && bit < offset + inputFieldCount) {
-          inputFieldsProjectUsed.set(bit - offset);
           inputFieldsUsed.set(bit - offset);
         }
       }
@@ -1097,7 +1104,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
     // Projected columns and key columns in other than Project operators are not the same.
     if (!fieldsUsed.equals(fieldsProjectUsed)) {
-      fieldsUsed = fieldsUsed.except(fieldsProjectUsed);
+//      fieldsUsed = fieldsUsed.except(fieldsProjectUsed);
     }
 
     final RelNode newTableAccessRel =
