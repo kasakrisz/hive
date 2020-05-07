@@ -204,7 +204,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, ImmutableBitSet, Set)} for
    * {@link org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveMultiJoin}.
    */
   public TrimResult trimFields(
@@ -277,7 +277,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
 
     if (changeCount == 0
         && mapping.isIdentity()) {
-      return new TrimResult(join, Mappings.createIdentity(fieldCount));
+      return new TrimResult(join, Mappings.createIdentity(fieldCount), null);
     }
 
     // Build new join.
@@ -301,11 +301,11 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
         join.getJoinTypes(),
         newJoinFilters);
 
-    return new TrimResult(newJoin, mapping);
+    return new TrimResult(newJoin, mapping, null);
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, ImmutableBitSet, Set)} for
    * {@link org.apache.calcite.adapter.druid.DruidQuery}.
    */
   public TrimResult trimFields(DruidQuery dq, ImmutableBitSet fieldsProjectUsed,
@@ -822,11 +822,15 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
   }
 
   protected TrimResult result(RelNode r, final Mapping mapping) {
-    return new TrimResult(r, mapping);
+    return this.result(r, mapping, null);
+  }
+
+  protected TrimResult result(RelNode r, final Mapping mapping, List<RelNode> tableAccessRels) {
+    return new TrimResult(r, mapping, tableAccessRels);
   }
 
   /**
-   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, Set)} for {@link HiveTableFunctionScan}.
+   * Variant of {@link #trimFields(RelNode, ImmutableBitSet, ImmutableBitSet, Set)} for {@link HiveTableFunctionScan}.
    * Copied {@link org.apache.calcite.sql2rel.RelFieldTrimmer#trimFields(
    * org.apache.calcite.rel.logical.LogicalTableFunctionScan, ImmutableBitSet, Set)}
    * and replaced <code>tabFun</code> to {@link HiveTableFunctionScan}.
