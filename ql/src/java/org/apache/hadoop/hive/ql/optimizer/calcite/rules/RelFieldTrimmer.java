@@ -52,9 +52,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexPermuteInputsShuttle;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql2rel.CorrelationReferenceFinder;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.Bug;
@@ -162,7 +165,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       REL_BUILDER.set(relBuilder);
       final int fieldCount = root.getRowType().getFieldCount();
       final ImmutableBitSet fieldsProjectUsed = ImmutableBitSet.range(fieldCount);
-      final ImmutableBitSet fieldsUsed = ImmutableBitSet.range(fieldCount);
+      final ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
       final Set<RelDataTypeField> extraFields = Collections.emptySet();
       final TrimResult trimResult =
           dispatchTrimFields(root, fieldsProjectUsed, fieldsUsed, extraFields);
@@ -311,7 +314,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     return result(r, mapping, null);
   }
 
-  protected TrimResult result(RelNode r, final Mapping mapping, List<RelNode> tableAccessRels) {
+  protected TrimResult result(RelNode r, final Mapping mapping, List<Pair<RelNode, Mapping>> tableAccessRels) {
     final RelBuilder relBuilder = REL_BUILDER.get();
     final RexBuilder rexBuilder = relBuilder.getRexBuilder();
     for (final CorrelationId correlation : r.getVariablesSet()) {
@@ -404,7 +407,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     TrimResult trimResult =
         trimChild(project, input, projectInputFieldsUsed, inputFieldsUsed, inputExtraFields);
     RelNode newInput = trimResult.left;
-    final Mapping inputMapping = trimResult.right;
+    Mapping inputMapping = trimResult.right;
 
     // If the input is unchanged, and we need to project all columns,
     // there's nothing we can do.
@@ -414,20 +417,56 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     // Introduce joins
-    if (!trimResult.getTableAccessRelList().isEmpty()) {
+    if (trimResult.getTableAccessRelList() != null && !trimResult.getTableAccessRelList().isEmpty()) {
       final RelBuilder relBuilder = REL_BUILDER.get();
       final RexBuilder rexBuilder = REL_BUILDER.get().getRexBuilder();
-      for (RelNode tableAccessRel : trimResult.getTableAccessRelList()) {
+      for (Pair<RelNode, Mapping> tableAccessRel : trimResult.getTableAccessRelList()) {
         relBuilder.push(newInput);
-        relBuilder.push(tableAccessRel);
-        RexNode joinCondition = null;
+        relBuilder.push(tableAccessRel.left);
+        // TODO: composite keys
+        int rightKeyIndex = tableAccessRel.right.getSource(0);
+        RelDataTypeField rightKeyField = tableAccessRel.left.getRowType().getFieldList().get(rightKeyIndex);
+        RelDataTypeField leftKeyField = newInput.getRowType().getField(rightKeyField.getName(), false, false);
+
+        RexNode joinCondition = rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
+            rexBuilder.makeInputRef(leftKeyField.getValue(), leftKeyField.getIndex()),
+            rexBuilder.makeInputRef(rightKeyField.getValue(),
+                newInput.getRowType().getFieldCount() + rightKeyIndex));
+
+//        int newMappingCardinality = newInput.getRowType().getFieldCount() +
+//            tableAccessRel.left.getRowType().getFieldCount();
+//        Mapping newMapping = Mappings.create(
+//            MappingType.INVERSE_SURJECTION, newMappingCardinality, newMappingCardinality);
+
+//        int offset = 0;
+//        int newOffset = 0;
+//        for (IntPair pair : inputMapping) {
+//          newMapping.set(pair.source + offset, pair.target + newOffset);
+//        }
+//        offset += inputMapping.getSourceCount();
+//        newOffset += inputMapping.getTargetCount();
+//        for (int i = 0; i < tableAccessRel.left.getRowType().getFieldCount(); ++i) {
+//          newMapping.set(i + offset, i + newOffset);
+//        }
+//
+//        inputMapping = newMapping;
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
+      }
+
+      inputMapping = Mappings.create(
+            MappingType.INVERSE_SURJECTION, newInput.getRowType().getFieldCount(), fieldsProjectUsed.cardinality());
+      for (int i = 0; i < fieldsProjectUsed.cardinality(); ++i) {
+        RelDataTypeField relDataTypeField = rowType.getFieldList().get(i);
+        RelDataTypeField sourceRelDataTypeField =
+            newInput.getRowType().getField(relDataTypeField.getName(), false, false);
+
+        inputMapping.set(i, sourceRelDataTypeField.getIndex());
       }
     }
 
     // Some parts of the system can't handle rows with zero fields, so
     // pretend that one field is used.
-    if (fieldsUsed.cardinality() == 0) {
+    if (fieldsProjectUsed.cardinality() == 0) {
       return dummyProject(fieldCount, newInput);
     }
 
@@ -440,9 +479,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
         Mappings.create(
             MappingType.INVERSE_SURJECTION,
             fieldCount,
-            fieldsUsed.cardinality());
+            fieldsProjectUsed.cardinality());
     for (Ord<RexNode> ord : Ord.zip(project.getProjects())) {
-      if (fieldsUsed.get(ord.i)) {
+      if (fieldsProjectUsed.get(ord.i)) {
         mapping.set(ord.i, newProjects.size());
         RexNode newProjectExpr = ord.e.accept(shuttle);
         newProjects.add(newProjectExpr);
@@ -643,7 +682,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     int newFieldCount = newSystemFieldCount;
     final List<RelNode> newInputs = new ArrayList<>(2);
     final List<Mapping> inputMappings = new ArrayList<>();
-    final List<RelNode> newTableAccessRels = new ArrayList<>();
+    final List<Pair<RelNode, Mapping>> newTableAccessRels = new ArrayList<>();
     final List<Integer> inputExtraFieldCounts = new ArrayList<>();
     for (RelNode input : join.getInputs()) {
       final RelDataType inputRowType = input.getRowType();
@@ -684,7 +723,9 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
 
       final Mapping inputMapping = trimResult.right;
       inputMappings.add(inputMapping);
-      newTableAccessRels.addAll(trimResult.getTableAccessRelList());
+      if (trimResult.getTableAccessRelList() != null) {
+        newTableAccessRels.addAll(trimResult.getTableAccessRelList());
+      }
 
       // Move offset to point to start of next input.
       offset += inputFieldCount;
@@ -1126,13 +1167,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
       return trimFields(
           (RelNode) tableAccessRel, fieldsProjectUsed, fieldsUsed, extraFields);
     }
-    // Projected columns and key columns in other than Project operators are not the same.
-    RelNode projectTableAccessRel = null;
-    if (!fieldsUsed.equals(fieldsProjectUsed)) {
-      TableScan tableScan = (TableScan) tableAccessRel.copy(tableAccessRel.getTraitSet(), tableAccessRel.getInputs());
-      projectTableAccessRel = tableScan.project(fieldsUsed, new HashSet<>(0), REL_BUILDER.get());
-      fieldsUsed = fieldsUsed.except(fieldsProjectUsed);
-    }
 
     final RelNode newTableAccessRel =
         tableAccessRel.project(fieldsUsed, extraFields, REL_BUILDER.get());
@@ -1154,7 +1188,7 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
     }
 
     final Mapping mapping = createMapping(fieldsUsed, fieldCount);
-    return result(newTableAccessRel, mapping, singletonList(projectTableAccessRel));
+    return result(newTableAccessRel, mapping);
   }
 
   //~ Inner Classes ----------------------------------------------------------
@@ -1186,21 +1220,21 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
    * </ul>
    */
   protected static class TrimResult extends Pair<RelNode, Mapping> {
-    private final List<RelNode> tableAccessRelList;
+    private final List<Pair<RelNode, Mapping>> tableAccessRelList;
     /**
      * Creates a TrimResult.
      *
      * @param left  New relational expression
      * @param right Mapping of fields onto original fields
      */
-    public TrimResult(RelNode left, Mapping right, List<RelNode> tableAccessRelList) {
+    public TrimResult(RelNode left, Mapping right, List<Pair<RelNode, Mapping>> tableAccessRelList) {
       super(left, right);
       assert right.getTargetCount() == left.getRowType().getFieldCount()
           : "rowType: " + left.getRowType() + ", mapping: " + right;
       this.tableAccessRelList = tableAccessRelList;
     }
 
-    public List<RelNode> getTableAccessRelList() {
+    public List<Pair<RelNode, Mapping>> getTableAccessRelList() {
       return tableAccessRelList;
     }
   }

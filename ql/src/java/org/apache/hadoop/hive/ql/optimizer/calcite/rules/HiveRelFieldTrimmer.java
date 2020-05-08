@@ -17,9 +17,12 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
+import static java.util.Collections.singletonList;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -787,6 +790,17 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
     if (fetchStats) {
       fetchColStats(result.getKey(), tableAccessRel, fieldsUsed, extraFields);
     }
+
+    // Projected columns and key columns in other than Project operators are not the same.
+    if (!fieldsUsed.equals(fieldsProjectUsed)) {
+      ImmutableBitSet fieldUnion = fieldsProjectUsed.union(fieldsUsed);
+      HiveTableScan tableScan = tableAccessRel.copy(tableAccessRel.getRowType());
+      RelNode projectTableAccessRel = tableScan.project(fieldUnion, new HashSet<>(0), REL_BUILDER.get());
+      final Mapping keyMapping = createMapping(fieldsUsed, tableScan.getRowType().getFieldCount());
+      return result(result.left, result.right,
+          singletonList(new Pair<>(projectTableAccessRel, keyMapping)));
+    }
+
     return result;
   }
 
@@ -825,7 +839,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
     return this.result(r, mapping, null);
   }
 
-  protected TrimResult result(RelNode r, final Mapping mapping, List<RelNode> tableAccessRels) {
+  protected TrimResult result(RelNode r, final Mapping mapping, List<Pair<RelNode, Mapping>> tableAccessRels) {
     return new TrimResult(r, mapping, tableAccessRels);
   }
 
