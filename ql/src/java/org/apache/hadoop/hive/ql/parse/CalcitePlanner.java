@@ -201,6 +201,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveAggregatePullUpCons
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveAggregateReduceFunctionsRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveAggregateReduceRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveAggregateSplitRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveCardinalityPreservingJoinOptimization;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveDruidRules;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveExceptRewriteRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveExpandDistinctAggregatesRule;
@@ -1921,6 +1922,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
         calciteOptimizedPlan = calcitePreCboPlan;
         disableSemJoinReordering = false;
       }
+
+      RelNode relNode = new HiveCardinalityPreservingJoinOptimization().trim(
+          HiveRelFactories.HIVE_BUILDER.create(optCluster, null), calciteOptimizedPlan);
 
       // 5. Apply post-join order optimizations
       calciteOptimizedPlan = applyPostJoinOrderingTransform(calciteOptimizedPlan,
