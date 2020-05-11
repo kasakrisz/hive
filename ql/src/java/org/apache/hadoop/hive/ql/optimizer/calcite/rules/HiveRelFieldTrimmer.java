@@ -280,7 +280,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
 
     if (changeCount == 0
         && mapping.isIdentity()) {
-      return new TrimResult(join, Mappings.createIdentity(fieldCount), null);
+      return new TrimResult(join, Mappings.createIdentity(fieldCount), null, null);
     }
 
     // Build new join.
@@ -304,7 +304,7 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
         join.getJoinTypes(),
         newJoinFilters);
 
-    return new TrimResult(newJoin, mapping, null);
+    return new TrimResult(newJoin, mapping, null, null);
   }
 
   /**
@@ -791,14 +791,14 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
       fetchColStats(result.getKey(), tableAccessRel, fieldsUsed, extraFields);
     }
 
-    // Projected columns and key columns in other than Project operators are not the same.
     if (!fieldsUsed.equals(fieldsProjectUsed)) {
       ImmutableBitSet fieldUnion = fieldsProjectUsed.union(fieldsUsed);
       HiveTableScan tableScan = tableAccessRel.copy(tableAccessRel.getRowType());
       RelNode projectTableAccessRel = tableScan.project(fieldUnion, new HashSet<>(0), REL_BUILDER.get());
+      final Mapping projectMapping = createMapping(fieldUnion, tableScan.getRowType().getFieldCount());
       final Mapping keyMapping = createMapping(fieldsUsed, tableScan.getRowType().getFieldCount());
-      return result(result.left, result.right,
-          singletonList(new Pair<>(projectTableAccessRel, keyMapping)));
+      return result(result.left, result.right, projectMapping,
+          singletonList(new TableAccessRelEntry(projectTableAccessRel, keyMapping, projectMapping)));
     }
 
     return result;
@@ -836,11 +836,11 @@ public class HiveRelFieldTrimmer extends RelFieldTrimmer {
   }
 
   protected TrimResult result(RelNode r, final Mapping mapping) {
-    return this.result(r, mapping, null);
+    return this.result(r, mapping, null, null);
   }
 
-  protected TrimResult result(RelNode r, final Mapping mapping, List<Pair<RelNode, Mapping>> tableAccessRels) {
-    return new TrimResult(r, mapping, tableAccessRels);
+  protected TrimResult result(RelNode r, final Mapping mapping, final Mapping proejectMappig, List<TableAccessRelEntry> tableAccessRels) {
+    return new TrimResult(r, mapping, proejectMappig, tableAccessRels);
   }
 
   /**
