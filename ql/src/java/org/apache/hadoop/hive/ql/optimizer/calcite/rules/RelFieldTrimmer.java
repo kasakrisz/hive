@@ -425,13 +425,6 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
           MappingType.INVERSE_SURJECTION, trimResult.projectMapping.getSourceCount(),
           fieldCount + trimResult.projectMapping.getTargetCount());
 
-      for (int j = 0; j < trimResult.right.getSourceCount(); ++j) {
-        int keyMappingTargetOpt = trimResult.right.getTargetOpt(j);
-        if (keyMappingTargetOpt != -1) {
-          inputMapping.set(j, keyMappingTargetOpt);
-        }
-      }
-
       for (TableAccessRelEntry tableAccessRel : trimResult.getTableAccessRelList()) {
         relBuilder.push(newInput);
         relBuilder.push(tableAccessRel.getRelNode());
@@ -452,27 +445,23 @@ public class RelFieldTrimmer implements ReflectiveVisitor {
             fieldCount + trimResult.projectMapping.getTargetCount());
 
         for (int j = 0; j < trimResult.right.getSourceCount(); ++j) {
-          int keyMappingTargetOpt = inputMapping.getTargetOpt(j);
-          if (keyMappingTargetOpt != -1) {
-            newMapping.set(j, keyMappingTargetOpt);
+          int targetOpt = inputMapping.getTargetOpt(j);
+          if (targetOpt != -1) {
+            newMapping.set(j, targetOpt);
           }
         }
 
         for (int j = 0; j < tableAccessRel.projectMapping.getTargetCount(); ++j) {
-          if (newMapping.getTargetOpt(j + offset) != -1) {
-            continue;
-          }
-
-          int projectMappingTargetOpt = tableAccessRel.projectMapping.getTargetOpt(j);
-          if (projectMappingTargetOpt != -1) {
-            newMapping.set(j + offset, projectMappingTargetOpt + newOffset);
+          int targetOpt = tableAccessRel.projectMapping.getTargetOpt(j);
+          if (targetOpt != -1) {
+            newMapping.set(j + offset, targetOpt + newOffset);
           }
         }
 
         inputMapping = newMapping;
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
         ++i;
-        offset += trimResult.projectMapping.getTargetCount();
+        offset += tableAccessRel.projectMapping.getSourceCount();
         newOffset += tableAccessRel.projectMapping.getTargetCount();
       }
     }
