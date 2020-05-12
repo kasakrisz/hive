@@ -1923,7 +1923,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
         disableSemJoinReordering = false;
       }
 
-      RelNode relNode = new HiveCardinalityPreservingJoinOptimization().trim(
+      calciteOptimizedPlan = new HiveCardinalityPreservingJoinOptimization().trim(
           HiveRelFactories.HIVE_BUILDER.create(optCluster, null), calciteOptimizedPlan);
 
       // 5. Apply post-join order optimizations
