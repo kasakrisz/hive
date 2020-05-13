@@ -41,6 +41,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.calcite.util.mapping.IntPair;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
@@ -80,9 +81,11 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     }
 
     RelNode rootProjectInput = rootProject.getInput(0);
-    Map<RelOptHiveTable, List<Integer>> rootProjectFieldSourceMap = new HashMap<>();
+    Map<RelOptHiveTable, List<IntPair>> rootProjectFieldSourceMap = new HashMap<>();
+    ImmutableBitSet projectedFields = ImmutableBitSet.of();
     for (RexNode expr : rootProject.getProjects()) {
       RexSlot projectExpr = (RexSlot) expr;
+      projectedFields = projectedFields.set(projectExpr.getIndex());
       Set<RexNode> expressionLineage = RelMetadataQuery.instance().getExpressionLineage(rootProjectInput, projectExpr);
       if (expressionLineage.size() != 1) {
         // Bail out
@@ -97,8 +100,8 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       RexTableInputRef rexTableInputRef = (RexTableInputRef) rexNode;
       RelOptHiveTable relOptHiveTable = (RelOptHiveTable) rexTableInputRef.getTableRef().getTable();
 
-      List<Integer> fieldsOfTable = rootProjectFieldSourceMap.computeIfAbsent(relOptHiveTable, k -> new ArrayList<>());
-      fieldsOfTable.add(rexTableInputRef.getIndex());
+      List<IntPair> fieldsOfTable = rootProjectFieldSourceMap.computeIfAbsent(relOptHiveTable, k -> new ArrayList<>());
+      fieldsOfTable.add(new IntPair(projectExpr.getIndex(), rexTableInputRef.getIndex()));
     }
 
     ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
@@ -117,11 +120,11 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     for (TableAccessRelEntry tableAccessRelEntry : tableAccessRelList.get()) {
       RelOptHiveTable relOptHiveTable = (RelOptHiveTable) tableAccessRelEntry.tableScan.getTable();
       offsetMap.put(relOptHiveTable, newInput.getRowType().getFieldCount());
-      List<Integer> fields = rootProjectFieldSourceMap.get(relOptHiveTable);
+      List<IntPair> fieldMappings = rootProjectFieldSourceMap.get(relOptHiveTable);
 
       ImmutableBitSet fieldsProjected = ImmutableBitSet.of();
-      for (Integer field : fields) {
-        fieldsProjected = fieldsProjected.set(field);
+      for (IntPair fieldMapping : fieldMappings) {
+        fieldsProjected = fieldsProjected.set(fieldMapping.target);
       }
       ImmutableBitSet fieldsUnion = fieldsProjected.union(tableAccessRelEntry.keyFields);
 
@@ -148,32 +151,18 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
     final Mapping rootProjectMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
         newInput.getRowType().getFieldCount(), newInput.getRowType().getFieldCount());
-    for (RexNode expr : rootProject.getProjects()) {
-      RexSlot projectExpr = (RexSlot) expr;
-      Set<RexNode> expressionLineage = RelMetadataQuery.instance().getExpressionLineage(rootProjectInput, projectExpr);
-      // TODO: do these checks before trimmer
-      if (expressionLineage.size() != 1) {
-        // Bail out
-        return root;
-      }
-      RexNode rexNode = expressionLineage.iterator().next();
-      if (rexNode.getKind() != SqlKind.TABLE_INPUT_REF) {
-        // Bail out
-        return root;
-      }
+    for (Map.Entry<RelOptHiveTable, List<IntPair>> entry : rootProjectFieldSourceMap.entrySet()) {
+      RelOptHiveTable relOptHiveTable = entry.getKey();
+      for (IntPair fieldMapping : entry.getValue()) {
+        int targetFieldIdx;
+        if (offsetMap.containsKey(relOptHiveTable)) {
+          targetFieldIdx = offsetMap.get(relOptHiveTable) + fieldMapping.target;
+        } else {
+          targetFieldIdx = trimResult.right.getTarget(fieldMapping.source);
+        }
 
-      RexTableInputRef rexTableInputRef = (RexTableInputRef) rexNode;
-      int fieldIdx = rexTableInputRef.getIndex();
-      RelOptHiveTable relOptHiveTable = (RelOptHiveTable) rexTableInputRef.getTableRef().getTable();
-      int sourceFieldIdx = projectExpr.getIndex();
-      int targetFieldIdx;
-      if (offsetMap.containsKey(relOptHiveTable)) {
-        targetFieldIdx = offsetMap.get(relOptHiveTable) + fieldIdx;
-      } else {
-        targetFieldIdx = trimResult.right.getTarget(sourceFieldIdx);
+        rootProjectMapping.set(fieldMapping.source, targetFieldIdx);
       }
-
-      rootProjectMapping.set(sourceFieldIdx, targetFieldIdx);
     }
 
     // Build new project expressions.
