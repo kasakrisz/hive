@@ -65,6 +65,9 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     HiveProject rootProject;
     RelNode relNode = root;
     while (!(relNode instanceof HiveProject)) {
+      if (relNode.getInputs().size() != 1) {
+        return root;
+      }
       relNode = relNode.getInput(0);
     }
 
