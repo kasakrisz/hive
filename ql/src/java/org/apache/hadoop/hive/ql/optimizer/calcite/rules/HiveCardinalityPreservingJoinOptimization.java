@@ -65,11 +65,13 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     REL_BUILDER.set(relBuilder);
 
     HiveProject rootProject;
+    RelNode previousRelNode = null;
     RelNode relNode = root;
     while (!(relNode instanceof HiveProject)) {
       if (relNode.getInputs().size() != 1) {
         return root;
       }
+      previousRelNode = relNode;
       relNode = relNode.getInput(0);
     }
 
@@ -188,7 +190,13 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     relBuilder.push(newInput);
     relBuilder.project(newProjects, rootProject.getRowType().getFieldNames());
 
-    return relBuilder.build();
+    RelNode newRootProject = relBuilder.build();
+    if (previousRelNode == null) {
+      return newRootProject;
+    }
+
+    previousRelNode.replaceInput(0, newRootProject);
+    return root;
   }
 
   @Override
