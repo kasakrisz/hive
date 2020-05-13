@@ -1923,12 +1923,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
         disableSemJoinReordering = false;
       }
 
-      calciteOptimizedPlan = new HiveCardinalityPreservingJoinOptimization().trim(
-          HiveRelFactories.HIVE_BUILDER.create(optCluster, null), calciteOptimizedPlan);
-
       // 5. Apply post-join order optimizations
       calciteOptimizedPlan = applyPostJoinOrderingTransform(calciteOptimizedPlan,
-          mdProvider.getMetadataProvider(), executorProvider);
+          mdProvider.getMetadataProvider(), executorProvider, optCluster);
 
       if (LOG.isDebugEnabled() && !conf.getBoolVar(ConfVars.HIVE_IN_TEST)) {
         LOG.debug("CBO Planning details:\n");
@@ -2379,16 +2376,28 @@ public class CalcitePlanner extends SemanticAnalyzer {
      *          executor
      * @return
      */
-    private RelNode applyPostJoinOrderingTransform(RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider) {
+    private RelNode applyPostJoinOrderingTransform(
+        RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider, RelOptCluster relOptCluster) {
       PerfLogger perfLogger = SessionState.getPerfLogger();
 
-      final HepProgramBuilder program = new HepProgramBuilder();
+      HepProgramBuilder program = new HepProgramBuilder();
 
       // 1. Run other optimizations that do not need stats
       generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
           ProjectRemoveRule.INSTANCE, HiveUnionMergeRule.INSTANCE,
           HiveAggregateProjectMergeRule.INSTANCE, HiveProjectMergeRule.INSTANCE_NO_FORCE,
           HiveJoinCommuteRule.INSTANCE);
+
+      // Trigger program
+      perfLogger.PerfLogBegin(this.getClass().getName(), PerfLogger.OPTIMIZER);
+      basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
+      perfLogger.PerfLogEnd(this.getClass().getName(), PerfLogger.OPTIMIZER,
+          "Calcite: Postjoin ordering transformation that not require stats");
+
+      basePlan = new HiveCardinalityPreservingJoinOptimization().trim(
+          HiveRelFactories.HIVE_BUILDER.create(relOptCluster, null), basePlan);
+
+      program = new HepProgramBuilder();
 
       // 2. Run aggregate-join transpose (cost based)
       //    If it failed because of missing stats, we continue with
