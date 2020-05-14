@@ -77,12 +77,10 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       rootProject = (HiveProject) relNode;
 
       RelNode rootProjectInput = rootProject.getInput(0);
-      ImmutableBitSet projectedFields = ImmutableBitSet.of();
-      ImmutableBitSet keyFieldsUsed = ImmutableBitSet.of();
+      ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
       projectSourceTables = ThreadLocal.withInitial(HashMap::new);
       for (RexNode expr : rootProject.getProjects()) {
         RexSlot projectExpr = (RexSlot) expr;
-        projectedFields = projectedFields.set(projectExpr.getIndex());
         Set<RexNode> expressionLineage = RelMetadataQuery.instance().getExpressionLineage(rootProjectInput, projectExpr);
         if (expressionLineage.size() != 1) {
           // Bail out
@@ -98,6 +96,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         RelOptHiveTable relOptHiveTable = (RelOptHiveTable) rexTableInputRef.getTableRef().getTable();
         List<ImmutableBitSet> nonNullableKeys = relOptHiveTable.getNonNullableKeys();
         if (nonNullableKeys.isEmpty()) {
+          fieldsUsed = fieldsUsed.set(projectExpr.getIndex());
           continue;
         }
 
@@ -110,21 +109,21 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
           if (keyFields.get(indexInSourceTable)) {
             List<IntPair> keyMapping = sourceTable.keyMappings.computeIfAbsent(keyFields, kf -> new ArrayList<>());
             keyMapping.add(fieldMapping);
-            keyFieldsUsed = keyFieldsUsed.set(fieldMapping.source);
+            fieldsUsed = fieldsUsed.set(fieldMapping.source);
             break;
           }
         }
       }
 
       // remove tables if not all the fields are projected from any of its keys
-      for (Map.Entry<RelOptHiveTable, SourceTable> entry : projectSourceTables.get().entrySet()) {
-        if (entry.getValue().getKeyMapping() == null) {
-          projectSourceTables.get().remove(entry.getKey());
-        }
+      // TODO: add projected fields from those tables to fieldsUsed
+      projectSourceTables.get().values().removeIf(sourceTable -> sourceTable.getKeyMapping() == null);
+      if (projectSourceTables.get().isEmpty()) {
+        return root;
       }
 
       Set<RelDataTypeField> extraFields = Collections.emptySet();
-      final TrimResult trimResult = dispatchTrimFields(rootProjectInput, keyFieldsUsed, extraFields);
+      final TrimResult trimResult = dispatchTrimFields(rootProjectInput, fieldsUsed, extraFields);
 
       projectSourceTables.get().values().removeIf(Objects::isNull);
       if (projectSourceTables.get().isEmpty()) {
@@ -199,18 +198,21 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
       final Mapping rootProjectMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
           newInput.getRowType().getFieldCount(), newInput.getRowType().getFieldCount());
+      for (RelDataTypeField field : trimResult.left.getRowType().getFieldList()) {
+        if (fieldsUsed.get(field.getIndex())) {
+          rootProjectMapping.set(field.getIndex(), trimResult.right.getTarget(field.getIndex()));
+        }
+      }
+
       for (Map.Entry<RelOptHiveTable, SourceTable> entry : projectSourceTables.get().entrySet()) {
         RelOptHiveTable relOptHiveTable = entry.getKey();
+        List<IntPair> keyFields = entry.getValue().getKeyMapping();
         for (IntPair fieldMapping : entry.getValue().projectedFieldsMapping) {
-          int targetFieldIdx;
-          if (offsetMap.containsKey(relOptHiveTable)) {
-            Pair<Integer, Mapping> offsetEntry = offsetMap.get(relOptHiveTable);
-            targetFieldIdx = offsetEntry.left + offsetEntry.right.getTarget(fieldMapping.target);
-          } else {
-            targetFieldIdx = trimResult.right.getTarget(fieldMapping.source);
+          Pair<Integer, Mapping> offsetEntry = offsetMap.get(relOptHiveTable);
+          int targetFieldIdx = offsetEntry.left + offsetEntry.right.getTarget(fieldMapping.target);
+          if (keyFields.stream().noneMatch(intPair -> intPair.source == fieldMapping.source)) {
+            rootProjectMapping.set(fieldMapping.source, targetFieldIdx);
           }
-
-          rootProjectMapping.set(fieldMapping.source, targetFieldIdx);
         }
       }
 
@@ -235,7 +237,9 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     }
     finally {
       REL_BUILDER.remove();
-      projectSourceTables.remove();
+      if (projectSourceTables != null) {
+        projectSourceTables.remove();
+      }
     }
   }
 
