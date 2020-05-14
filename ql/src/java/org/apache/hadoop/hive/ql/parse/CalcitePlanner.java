@@ -2384,9 +2384,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
 
       // 1. Run other optimizations that do not need stats
       generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-          ProjectRemoveRule.INSTANCE, HiveUnionMergeRule.INSTANCE,
-          HiveAggregateProjectMergeRule.INSTANCE, HiveProjectMergeRule.INSTANCE_NO_FORCE,
-          HiveJoinCommuteRule.INSTANCE);
+          HiveProjectMergeRule.INSTANCE_NO_FORCE);
 
       // Trigger program
       perfLogger.PerfLogBegin(this.getClass().getName(), PerfLogger.OPTIMIZER);
@@ -2398,6 +2396,10 @@ public class CalcitePlanner extends SemanticAnalyzer {
           HiveRelFactories.HIVE_BUILDER.create(relOptCluster, null), basePlan);
 
       program = new HepProgramBuilder();
+      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+          ProjectRemoveRule.INSTANCE, HiveUnionMergeRule.INSTANCE,
+          HiveAggregateProjectMergeRule.INSTANCE,
+          HiveJoinCommuteRule.INSTANCE);
 
       // 2. Run aggregate-join transpose (cost based)
       //    If it failed because of missing stats, we continue with
