@@ -2392,8 +2392,10 @@ public class CalcitePlanner extends SemanticAnalyzer {
       perfLogger.PerfLogEnd(this.getClass().getName(), PerfLogger.OPTIMIZER,
           "Calcite: Postjoin ordering transformation that not require stats");
 
-      basePlan = new HiveCardinalityPreservingJoinOptimization().trim(
-          HiveRelFactories.HIVE_BUILDER.create(relOptCluster, null), basePlan);
+      if (conf.getBoolVar(ConfVars.HIVE_CARDINALITY_PRESERVING_JOIN_OPTIMIZATION)) {
+        basePlan = new HiveCardinalityPreservingJoinOptimization().trim(
+            HiveRelFactories.HIVE_BUILDER.create(relOptCluster, null), basePlan);
+      }
 
       program = new HepProgramBuilder();
       generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
