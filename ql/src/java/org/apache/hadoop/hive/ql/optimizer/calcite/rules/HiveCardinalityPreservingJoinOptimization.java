@@ -221,6 +221,10 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     RelMetadataQuery relMetadataQuery = RelMetadataQuery.instance();
     Map<RelOptHiveTable, ProjectedFields> rexTableInputRefList = new HashMap<>();
     for (RexNode expr : projectExpressions) {
+      if (expr.getKind() != SqlKind.INPUT_REF) {
+        return null;
+      }
+
       RexSlot projectExpr = (RexSlot) expr;
       Set<RexNode> expressionLineage = relMetadataQuery.getExpressionLineage(projectInput, projectExpr);
       if (expressionLineage.size() != 1) {
