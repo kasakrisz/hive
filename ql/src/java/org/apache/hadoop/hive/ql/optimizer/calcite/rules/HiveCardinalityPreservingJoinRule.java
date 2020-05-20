@@ -66,15 +66,10 @@ public class HiveCardinalityPreservingJoinRule extends RelOptRule {
       LOG.debug("Plan before:\n" + RelOptUtil.toString(node));
     }
     RelNode optimized = new HiveCardinalityPreservingJoinOptimization().trim(call.builder(), node);
-    if (optimized != null) {
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("Plan after:\n" + RelOptUtil.toString(optimized));
-      }
-      call.transformTo(optimized);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Plan after:\n" + RelOptUtil.toString(optimized));
     }
-    else {
-      LOG.debug("Plan not changed.");
-    }
+    call.transformTo(optimized);
 
     triggered = true;
   }
