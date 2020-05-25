@@ -29,6 +29,9 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Rule to trigger {@link HiveCardinalityPreservingJoinOptimization} on top of the plan.
+ */
 public class HiveCardinalityPreservingJoinRule extends RelOptRule {
   private static final Logger LOG = LoggerFactory.getLogger(HiveCardinalityPreservingJoinRule.class);
 
@@ -74,7 +77,7 @@ public class HiveCardinalityPreservingJoinRule extends RelOptRule {
     triggered = true;
   }
 
-  private static class HiveHepExtractRelNodeRule extends RelOptRule {
+  private static final class HiveHepExtractRelNodeRule extends RelOptRule {
 
     private static final HiveHepExtractRelNodeRule INSTANCE =
         new HiveHepExtractRelNodeRule();
