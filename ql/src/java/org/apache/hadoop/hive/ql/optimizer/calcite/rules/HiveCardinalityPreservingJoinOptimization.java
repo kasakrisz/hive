@@ -76,6 +76,15 @@ import org.slf4j.LoggerFactory;
  * Goal of this optimization: rewrite the plan to include only primary key or non null unique key columns of
  * affected tables and join the them back to the result set of the main query to fetch the rest of the wide columns.
  * This reduces the data size of the affected tables that is broadcast/shuffled throughout the DAG processing.
+ *
+ *   HiveProject(customer_id=[$0], c_first_name=[$2], c_last_name=[$3])
+ *     HiveJoin(condition=[=($0, $1)], joinType=[inner], algorithm=[none], cost=[not available])
+ *       (original plan)
+ *       HiveJoin(...)
+ *         ...
+ *       (joined back customer table)
+ *       HiveProject(c_customer_id=[$1], c_first_name=[$8], c_last_name=[$9])
+ *         HiveTableScan(table=[[default, customer]], table:alias=[customer])
  */
 public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimmer {
   private static final Logger LOG = LoggerFactory.getLogger(HiveCardinalityPreservingJoinOptimization.class);
