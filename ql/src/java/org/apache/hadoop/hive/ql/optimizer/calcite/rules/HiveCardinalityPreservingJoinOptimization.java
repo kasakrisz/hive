@@ -41,7 +41,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.Pair;
 import org.apache.calcite.util.mapping.Mapping;
 import org.apache.calcite.util.mapping.MappingType;
 import org.apache.calcite.util.mapping.Mappings;
@@ -146,12 +145,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       RelNode newInput = trimResult.left;
       List<RexNode> newProjects = new ArrayList<>(rootFieldList.size());
       List<String> newColumnNames = new ArrayList<>(rootFieldList.size());
-      for (int newProjectIndex = 0; newProjectIndex < fieldsUsed.cardinality(); ++newProjectIndex) {
-        RelDataTypeField relDataTypeField = newInput.getRowType().getFieldList().get(newProjectIndex);
-        newProjects.add(rexBuilder.makeInputRef(
-            relDataTypeField.getType(), newProjectIndex));
-        newColumnNames.add(relDataTypeField.getName());
-      }
+      projectsFromOriginalPlan(rexBuilder, fieldsUsed.cardinality(), newInput, newProjects, newColumnNames);
 
       for (Map.Entry<RelOptHiveTable, SourceTable> sourceTableEntry : sourceTableMap.entrySet()) {
         RelOptHiveTable relOptHiveTable = sourceTableEntry.getKey();
@@ -165,27 +159,23 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
         Mapping keyMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
             tableScan.getRowType().getFieldCount(), sourceTable.keys.cardinality());
-        int projectSourceIndex = 0;
+        int projectIndex = 0;
         int offset = newProjects.size();
         for (int source : sourceTable.projectedFields.fieldsInSourceTable) {
           if (sourceTable.keys.get(source)) {
-            keyMapping.set(source, projectSourceIndex);
+            keyMapping.set(source, projectIndex);
           } else {
-            RelDataTypeField relDataTypeField =
-                projectTableAccessRel.getRowType().getFieldList().get(projectSourceIndex);
-            newProjects.add(relBuilder.getRexBuilder().makeInputRef(
-                relDataTypeField.getType(),
-                offset + projectSourceIndex));
-            newColumnNames.add(relDataTypeField.getName());
+            addProject(projectTableAccessRel, projectIndex, rexBuilder,
+                offset + projectIndex, newProjects, newColumnNames);
           }
-          ++projectSourceIndex;
+          ++projectIndex;
         }
 
         relBuilder.push(newInput);
         relBuilder.push(projectTableAccessRel);
 
         RexNode joinCondition = joinCondition(
-            newInput, sourceTable, projectTableAccessRel, keyMapping, relBuilder.getRexBuilder());
+            newInput, sourceTable, projectTableAccessRel, keyMapping, rexBuilder);
 
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
       }
@@ -237,6 +227,23 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     }
     LOG.debug("Unable determine expression lineage " + rexNode);
     return null;
+  }
+
+  private void projectsFromOriginalPlan(RexBuilder rexBuilder, int count, RelNode newInput,
+                                        List<RexNode> newProjects, List<String> newColumnNames) {
+    for (int newProjectIndex = 0; newProjectIndex < count; ++newProjectIndex) {
+      addProject(newInput, newProjectIndex, rexBuilder, newProjectIndex, newProjects, newColumnNames);
+    }
+  }
+
+  private void addProject(RelNode relNode, int projectSourceIndex, RexBuilder rexBuilder, int targetIndex,
+                          List<RexNode> newProjects, List<String> newColumnNames) {
+    RelDataTypeField relDataTypeField =
+        relNode.getRowType().getFieldList().get(projectSourceIndex);
+    newProjects.add(rexBuilder.makeInputRef(
+        relDataTypeField.getType(),
+        targetIndex));
+    newColumnNames.add(relDataTypeField.getName());
   }
 
   private RexNode joinCondition(
