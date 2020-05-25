@@ -137,27 +137,18 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         return root;
       }
 
-      // Create joins
       RelNode newInput = trimResult.left;
-      Map<RelOptHiveTable, Pair<Integer, Mapping>> offsetMap = new HashMap<>();
-
       List<RexNode> newProjects = new ArrayList<>(rootFieldList.size());
       List<String> newColumnNames = new ArrayList<>(rootFieldList.size());
-      int newProjectIndex = 0;
-      for (; newProjectIndex < fieldsUsed.cardinality(); ++newProjectIndex) {
+      for (int newProjectIndex = 0; newProjectIndex < fieldsUsed.cardinality(); ++newProjectIndex) {
         RelDataTypeField relDataTypeField = newInput.getRowType().getFieldList().get(newProjectIndex);
         newProjects.add(rexBuilder.makeInputRef(
             relDataTypeField.getType(), newProjectIndex));
         newColumnNames.add(relDataTypeField.getName());
       }
 
-      for (Map.Entry<RelOptHiveTable, SourceTable> sourceTableEntry : PROJECT_SOURCE_TABLES.get().entrySet()) {
-        RelOptHiveTable relOptHiveTable = sourceTableEntry.getKey();
-        SourceTable sourceTable = sourceTableEntry.getValue();
-
-        offsetMap.put(relOptHiveTable,
-            new Pair<>(newInput.getRowType().getFieldCount(), sourceTable.projectedFields.createMapping()));
-
+      // Create joins
+      for (SourceTable sourceTable : PROJECT_SOURCE_TABLES.get().values()) {
         HiveTableScan originalTableScan = sourceTable.hiveTableScan;
         HiveTableScan tableScan = originalTableScan.copy(originalTableScan.getRowType());
         RelNode projectTableAccessRel = tableScan.project(
@@ -219,7 +210,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
       RelOptHiveTable relOptHiveTable = (RelOptHiveTable) rexTableInputRef.getTableRef().getTable();
       ProjectedFields projectedFields = rexTableInputRefList.computeIfAbsent(
-          relOptHiveTable, k -> new ProjectedFields(relOptHiveTable));
+          relOptHiveTable, k -> new ProjectedFields());
       projectedFields.fieldsInRootProject = projectedFields.fieldsInRootProject.set(expr.getIndex());
       projectedFields.fieldsInSourceTable = projectedFields.fieldsInSourceTable.set(rexTableInputRef.getIndex());
       projectedFields.mapping.add(new ProjectMapping(expr.getIndex(), rexTableInputRef.getIndex()));
@@ -275,14 +266,9 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   }
 
   private static final class ProjectedFields {
-    private final RelOptHiveTable relOptHiveTable;
     private ImmutableBitSet fieldsInRootProject = ImmutableBitSet.of();
     private ImmutableBitSet fieldsInSourceTable = ImmutableBitSet.of();
     private final List<ProjectMapping> mapping = new ArrayList<>();
-
-    private ProjectedFields(RelOptHiveTable relOptHiveTable) {
-      this.relOptHiveTable = relOptHiveTable;
-    }
 
     public ImmutableBitSet getSource(ImmutableBitSet fields) {
       ImmutableBitSet targetFields = ImmutableBitSet.of();
@@ -292,19 +278,6 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         }
       }
       return targetFields;
-    }
-
-    public Mapping createMapping() {
-      final Mapping rightProjectMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
-          relOptHiveTable.getRowType().getFieldCount(), fieldsInSourceTable.cardinality());
-      int idx = 0;
-      for (Integer bit : fieldsInSourceTable) {
-        if (fieldsInSourceTable.get(bit)) {
-          rightProjectMapping.set(bit, idx);
-        }
-        ++idx;
-      }
-      return rightProjectMapping;
     }
   }
 
