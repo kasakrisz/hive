@@ -50,7 +50,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of
+ * Implementation of Cardinality preserving join optimization.
+ * This optimization targets queries with one or more tables joined multiple times on their keys
+ * and several columns are projected from those tables.
+ *
+ * Example:
+ * with sq as (
+ * select c_customer_id customer_id
+ *       ,c_first_name customer_first_name
+ *       ,c_last_name customer_last_name
+ *   from customer
+ * )
+ * select c1.customer_id
+ *       ,c1.customer_first_name
+ *       ,c1.customer_last_name
+ *  from sq c1
+ *      ,sq c2
+ *       ...
+ *      ,sq cn
+ * where c1.customer_id = c2.customer_id
+ *   and ...
+ *
+ * In this case all column data in the cte will be shuffled.
+ *
+ * Goal of this optimization: rewrite the plan to include only primary key or non null unique key columns of
+ * affected tables and join the them back to the result set of the main query to fetch the rest of the wide columns.
+ * This reduces the data size of the affected tables that is broadcast/shuffled throughout the DAG processing.
  */
 public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimmer {
   private static final Logger LOG = LoggerFactory.getLogger(HiveCardinalityPreservingJoinOptimization.class);
