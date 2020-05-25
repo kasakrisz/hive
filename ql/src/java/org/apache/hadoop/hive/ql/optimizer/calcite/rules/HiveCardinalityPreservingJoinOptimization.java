@@ -80,8 +80,9 @@ import org.slf4j.LoggerFactory;
  *   HiveProject(customer_id=[$0], c_first_name=[$2], c_last_name=[$3])
  *     HiveJoin(condition=[=($0, $1)], joinType=[inner], algorithm=[none], cost=[not available])
  *       (original plan)
- *       HiveJoin(...)
- *         ...
+ *       HiveProject(customer_id=[$2])
+ *         HiveJoin(...)
+ *           ...
  *       (joined back customer table)
  *       HiveProject(c_customer_id=[$1], c_first_name=[$8], c_last_name=[$9])
  *         HiveTableScan(table=[[default, customer]], table:alias=[customer])
