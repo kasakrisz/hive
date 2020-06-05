@@ -98,10 +98,16 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   @Override
   public RelNode trim(RelBuilder relBuilder, RelNode root) {
     try {
+      if (root.getInputs().size() != 1) {
+        LOG.debug("Only plans where root has one input are supported. Root: " + root);
+        return root;
+      }
+
       REL_BUILDER.set(relBuilder);
 
       RexBuilder rexBuilder = relBuilder.getRexBuilder();
       RelNode rootInput = root.getInput(0);
+      // Build the list of projected fields from root's input RowType
       List<RexInputRef> rootFieldList = new ArrayList<>(rootInput.getRowType().getFieldCount());
       for (int i = 0; i < rootInput.getRowType().getFieldList().size(); ++i) {
         RelDataTypeField relDataTypeField = rootInput.getRowType().getFieldList().get(i);
@@ -112,12 +118,13 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       Map<RelOptHiveTable, SourceTable> sourceTableMap = new HashMap<>();
 
       Map<RelOptHiveTable, ProjectedFields> lineageMap = getExpressionLineageOf(rootFieldList, rootInput);
-
       if (lineageMap == null) {
-        LOG.debug("Some project lineage can not be determined");
+        LOG.debug("Some projected field lineage can not be determined");
         return root;
       }
 
+      // 1. Collect candidate tables for join back
+      // 2. Collect all used fields from original plan
       for (Map.Entry<RelOptHiveTable, ProjectedFields> entry : lineageMap.entrySet()) {
         RelOptHiveTable table = entry.getKey();
         ProjectedFields projectedFields = entry.getValue();
@@ -139,21 +146,26 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         return root;
       }
 
+      // 3. Trim out non-key fields of joined back tables
       Set<RelDataTypeField> extraFields = Collections.emptySet();
       TrimResult trimResult = dispatchTrimFields(rootInput, fieldsUsed, extraFields);
 
+      // 4. Collect fields for new Project on the top of Join backs
       RelNode newInput = trimResult.left;
       List<RexNode> newProjects = new ArrayList<>(rootFieldList.size());
       List<String> newColumnNames = new ArrayList<>(rootFieldList.size());
       projectsFromOriginalPlan(rexBuilder, fieldsUsed.cardinality(), newInput, newProjects, newColumnNames);
 
+      // 5. Join back tables on the top of original plan
       for (Map.Entry<RelOptHiveTable, SourceTable> sourceTableEntry : sourceTableMap.entrySet()) {
         RelOptHiveTable relOptHiveTable = sourceTableEntry.getKey();
         SourceTable sourceTable = sourceTableEntry.getValue();
 
+        // 5.1 Create new TableScan of tables to join back
         RelOptCluster cluster = relBuilder.getCluster();
         HiveTableScan tableScan = new HiveTableScan(cluster, cluster.traitSetOf(HiveRelNode.CONVENTION),
             relOptHiveTable, relOptHiveTable.getHiveTableMD().getTableName(), null, false, false);
+        // 5.2 Project only required fields from this table
         RelNode projectTableAccessRel = tableScan.project(
             sourceTable.projectedFields.fieldsInSourceTable, new HashSet<>(0), REL_BUILDER.get());
 
@@ -163,14 +175,17 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         int offset = newProjects.size();
         for (int source : sourceTable.projectedFields.fieldsInSourceTable) {
           if (sourceTable.keys.get(source)) {
+            // 5.3 Map key field to it's index in the Project on the TableScan
             keyMapping.set(source, projectIndex);
           } else {
-            addProject(projectTableAccessRel, projectIndex, rexBuilder,
+            // 5.4 if this is not a key field then we need it in the new Project on the top of Join backs
+            addToProject(projectTableAccessRel, projectIndex, rexBuilder,
                 offset + projectIndex, newProjects, newColumnNames);
           }
           ++projectIndex;
         }
 
+        // 5.5 Create Join
         relBuilder.push(newInput);
         relBuilder.push(projectTableAccessRel);
 
@@ -180,6 +195,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
       }
 
+      // 6 Create Project on top of all Join backs
       relBuilder.push(newInput);
       relBuilder.project(newProjects, newColumnNames);
 
@@ -232,12 +248,12 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   private void projectsFromOriginalPlan(RexBuilder rexBuilder, int count, RelNode newInput,
                                         List<RexNode> newProjects, List<String> newColumnNames) {
     for (int newProjectIndex = 0; newProjectIndex < count; ++newProjectIndex) {
-      addProject(newInput, newProjectIndex, rexBuilder, newProjectIndex, newProjects, newColumnNames);
+      addToProject(newInput, newProjectIndex, rexBuilder, newProjectIndex, newProjects, newColumnNames);
     }
   }
 
-  private void addProject(RelNode relNode, int projectSourceIndex, RexBuilder rexBuilder, int targetIndex,
-                          List<RexNode> newProjects, List<String> newColumnNames) {
+  private void addToProject(RelNode relNode, int projectSourceIndex, RexBuilder rexBuilder, int targetIndex,
+                            List<RexNode> newProjects, List<String> newColumnNames) {
     RelDataTypeField relDataTypeField =
         relNode.getRowType().getFieldList().get(projectSourceIndex);
     newProjects.add(rexBuilder.makeInputRef(
