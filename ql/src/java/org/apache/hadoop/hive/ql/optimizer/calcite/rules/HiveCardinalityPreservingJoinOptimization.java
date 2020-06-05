@@ -263,8 +263,8 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   }
 
   private RexNode joinCondition(
-      RelNode newInput,
-      SourceTable sourceTable, RelNode sourceProject, Mapping sourceKeyMapping,
+      RelNode leftInput,
+      SourceTable sourceTable, RelNode rightInput, Mapping rightInputKeyMapping,
       RexBuilder rexBuilder) {
 
     List<RexNode> equalsConditions = new ArrayList<>(sourceTable.keys.size());
@@ -274,14 +274,14 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       }
 
       int leftKeyIndex = projectMapping.indexInRootProject;
-      RelDataTypeField leftKeyField = newInput.getRowType().getFieldList().get(leftKeyIndex);
-      int rightKeyIndex = sourceKeyMapping.getTarget(projectMapping.indexInSourceTable);
-      RelDataTypeField rightKeyField = sourceProject.getRowType().getFieldList().get(rightKeyIndex);
+      RelDataTypeField leftKeyField = leftInput.getRowType().getFieldList().get(leftKeyIndex);
+      int rightKeyIndex = rightInputKeyMapping.getTarget(projectMapping.indexInSourceTable);
+      RelDataTypeField rightKeyField = rightInput.getRowType().getFieldList().get(rightKeyIndex);
 
       equalsConditions.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS,
           rexBuilder.makeInputRef(leftKeyField.getValue(), leftKeyField.getIndex()),
           rexBuilder.makeInputRef(rightKeyField.getValue(),
-              newInput.getRowType().getFieldCount() + rightKeyIndex)));
+              leftInput.getRowType().getFieldCount() + rightKeyIndex)));
     }
     return RexUtil.composeConjunction(rexBuilder, equalsConditions);
   }
