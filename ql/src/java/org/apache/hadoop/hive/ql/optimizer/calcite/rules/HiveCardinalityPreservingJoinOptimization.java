@@ -52,7 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implementation of Cardinality preserving join optimization.
+ * Optimization to reduce the amount of broadcasted/shuffled data throughout the DAG processing.
  * This optimization targets queries with one or more tables joined multiple times on their keys
  * and several columns are projected from those tables.
  *
