@@ -33,7 +33,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
-import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
@@ -50,6 +49,8 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveRelNode;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import sun.tools.jconsole.Tab;
 
 /**
  * Optimization to reduce the amount of broadcasted/shuffled data throughout the DAG processing.
@@ -124,22 +125,22 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       // 1. Collect candidate tables for join back
       // 2. Collect all used fields from original plan
       ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
-      List<SourceTable> sourceTableList = new ArrayList<>();
+      List<TableToJoinBack> tableToJoinBackList = new ArrayList<>();
       for (ProjectedFields projectedFields : lineages) {
         Optional<ImmutableBitSet> projectedKeys = projectedFields.relOptHiveTable.getNonNullableKeys().stream()
             .filter(projectedFields.fieldsInSourceTable::contains)
             .findFirst();
 
         if (projectedKeys.isPresent()) {
-          SourceTable sourceTable = new SourceTable(projectedKeys.get(), projectedFields);
-          sourceTableList.add(sourceTable);
+          TableToJoinBack tableToJoinBack = new TableToJoinBack(projectedKeys.get(), projectedFields);
+          tableToJoinBackList.add(tableToJoinBack);
           fieldsUsed = fieldsUsed.union(projectedFields.getSource(projectedKeys.get()));
         } else {
           fieldsUsed = fieldsUsed.union(projectedFields.fieldsInRootProject);
         }
       }
 
-      if (sourceTableList.isEmpty()) {
+      if (tableToJoinBackList.isEmpty()) {
         LOG.debug("None of the tables has keys projected, unable to join back");
         return root;
       }
@@ -155,24 +156,24 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       projectsFromOriginalPlan(rexBuilder, fieldsUsed.cardinality(), newInput, newProjects, newColumnNames);
 
       // 5. Join back tables to the top of original plan
-      for (SourceTable sourceTable : sourceTableList) {
-        LOG.debug("Joining back table " + sourceTable.projectedFields.relOptHiveTable.getName());
+      for (TableToJoinBack tableToJoinBack : tableToJoinBackList) {
+        LOG.debug("Joining back table " + tableToJoinBack.projectedFields.relOptHiveTable.getName());
 
         // 5.1 Create new TableScan of tables to join back
-        RelOptHiveTable relOptTable = sourceTable.projectedFields.relOptHiveTable;
+        RelOptHiveTable relOptTable = tableToJoinBack.projectedFields.relOptHiveTable;
         RelOptCluster cluster = relBuilder.getCluster();
         HiveTableScan tableScan = new HiveTableScan(cluster, cluster.traitSetOf(HiveRelNode.CONVENTION),
             relOptTable, relOptTable.getHiveTableMD().getTableName(), null, false, false);
         // 5.2 Project only required fields from this table
         RelNode projectTableAccessRel = tableScan.project(
-            sourceTable.projectedFields.fieldsInSourceTable, new HashSet<>(0), REL_BUILDER.get());
+            tableToJoinBack.projectedFields.fieldsInSourceTable, new HashSet<>(0), REL_BUILDER.get());
 
         Mapping keyMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
-            tableScan.getRowType().getFieldCount(), sourceTable.keys.cardinality());
+            tableScan.getRowType().getFieldCount(), tableToJoinBack.keys.cardinality());
         int projectIndex = 0;
         int offset = newInput.getRowType().getFieldCount();
-        for (int source : sourceTable.projectedFields.fieldsInSourceTable) {
-          if (sourceTable.keys.get(source)) {
+        for (int source : tableToJoinBack.projectedFields.fieldsInSourceTable) {
+          if (tableToJoinBack.keys.get(source)) {
             // 5.3 Map key field to it's index in the Project on the TableScan
             keyMapping.set(source, projectIndex);
           } else {
@@ -188,7 +189,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         relBuilder.push(projectTableAccessRel);
 
         RexNode joinCondition = joinCondition(
-            newInput, sourceTable, projectTableAccessRel, keyMapping, rexBuilder);
+            newInput, tableToJoinBack, projectTableAccessRel, keyMapping, rexBuilder);
 
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
       }
@@ -257,12 +258,12 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
   private RexNode joinCondition(
       RelNode leftInput,
-      SourceTable sourceTable, RelNode rightInput, Mapping rightInputKeyMapping,
+      TableToJoinBack tableToJoinBack, RelNode rightInput, Mapping rightInputKeyMapping,
       RexBuilder rexBuilder) {
 
-    List<RexNode> equalsConditions = new ArrayList<>(sourceTable.keys.size());
-    for (ProjectMapping projectMapping : sourceTable.projectedFields.mapping) {
-      if (!sourceTable.keys.get(projectMapping.indexInSourceTable)) {
+    List<RexNode> equalsConditions = new ArrayList<>(tableToJoinBack.keys.size());
+    for (ProjectMapping projectMapping : tableToJoinBack.projectedFields.mapping) {
+      if (!tableToJoinBack.keys.get(projectMapping.indexInSourceTable)) {
         continue;
       }
 
@@ -339,11 +340,11 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     }
   }
 
-  private static final class SourceTable {
+  private static final class TableToJoinBack {
     private final ProjectedFields projectedFields;
     private final ImmutableBitSet keys;
 
-    private SourceTable(ImmutableBitSet keys, ProjectedFields projectedFields) {
+    private TableToJoinBack(ImmutableBitSet keys, ProjectedFields projectedFields) {
       this.projectedFields = projectedFields;
       this.keys = keys;
     }
