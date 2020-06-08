@@ -2391,8 +2391,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
       final HepProgramBuilder program = new HepProgramBuilder();
 
       if (conf.getBoolVar(ConfVars.HIVE_CARDINALITY_PRESERVING_JOIN_OPTIMIZATION)) {
-        generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-            HiveProjectMergeRule.INSTANCE_NO_FORCE,
+        generatePartialProgram(program, false, HepMatchOrder.TOP_DOWN,
             new HiveCardinalityPreservingJoinRule());
       }
 
