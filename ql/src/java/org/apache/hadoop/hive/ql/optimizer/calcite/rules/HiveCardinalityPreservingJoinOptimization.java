@@ -37,7 +37,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
-import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.rex.RexVisitor;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
@@ -214,8 +215,10 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         return null;
       }
 
-      RexTableInputRef rexTableInputRef = rexTableInputRef(expressionLineage.iterator().next());
+      RexNode rexNode = expressionLineage.iterator().next();
+      RexTableInputRef rexTableInputRef = rexTableInputRef(rexNode);
       if (rexTableInputRef == null) {
+            LOG.debug("Unable determine expression lineage " + rexNode);
         return null;
       }
 
@@ -230,11 +233,14 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   }
 
   public RexTableInputRef rexTableInputRef(RexNode rexNode) {
-    if (rexNode.getKind() == SqlKind.TABLE_INPUT_REF) {
-      return (RexTableInputRef) rexNode;
-    }
-    LOG.debug("Unable determine expression lineage " + rexNode);
-    return null;
+    RexVisitor<RexTableInputRef> visitor = new RexVisitorImpl<RexTableInputRef>(false) {
+      @Override
+      public RexTableInputRef visitTableInputRef(RexTableInputRef ref) {
+        return ref;
+      }
+    };
+
+    return rexNode.accept(visitor);
   }
 
   private void projectsFromOriginalPlan(RexBuilder rexBuilder, int count, RelNode newInput,
