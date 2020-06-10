@@ -17,6 +17,8 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
+import static java.util.Arrays.asList;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,6 +37,7 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexShuttle;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
@@ -151,9 +154,10 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       // 4. Collect fields for new Project on the top of Join backs
       RelNode newInput = trimResult.left;
       Mapping newInputMapping = trimResult.right;
-      List<RexNode> newProjects = new ArrayList<>(rootFieldList.size());
-      List<String> newColumnNames = new ArrayList<>(rootFieldList.size());
-      projectsFromOriginalPlan(rexBuilder, fieldsUsed.cardinality(), newInput, newProjects, newColumnNames);
+      RexNode[] newProjects = new RexNode[rootFieldList.size()];
+      String[] newColumnNames = new String[rootFieldList.size()];
+      projectsFromOriginalPlan(rexBuilder, fieldsUsed.cardinality(), newInput, newInputMapping,
+          newProjects, newColumnNames);
 
       // 5. Join back tables to the top of original plan
       for (TableToJoinBack tableToJoinBack : tableToJoinBackList) {
@@ -179,7 +183,9 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
           } else {
             // 5.4 if this is not a key field then we need it in the new Project on the top of Join backs
             addToProject(projectTableAccessRel, projectIndex, rexBuilder,
-                offset + projectIndex, newProjects, newColumnNames);
+                offset + projectIndex,
+                tableToJoinBack.projectedFields.mapping.stream().filter(projectMapping -> projectMapping.indexInSourceTable == source).findFirst().get().indexInRootProject,
+                newProjects, newColumnNames);
           }
           ++projectIndex;
         }
@@ -194,9 +200,12 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
       }
 
+      RexShuttle shuttle = new RexShuttle();
+      shuttle.mutate(rootFieldList);
+
       // 6 Create Project on top of all Join backs
       relBuilder.push(newInput);
-      relBuilder.project(newProjects, newColumnNames);
+      relBuilder.project(asList(newProjects), asList(newColumnNames));
 
       root.replaceInput(0, relBuilder.build());
       return root;
@@ -244,21 +253,23 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
     return rexNode.accept(visitor);
   }
 
-  private void projectsFromOriginalPlan(RexBuilder rexBuilder, int count, RelNode newInput,
-                                        List<RexNode> newProjects, List<String> newColumnNames) {
+  private void projectsFromOriginalPlan(RexBuilder rexBuilder, int count, RelNode newInput, Mapping newInputMapping,
+                                        RexNode[] newProjects, String[] newColumnNames) {
     for (int newProjectIndex = 0; newProjectIndex < count; ++newProjectIndex) {
-      addToProject(newInput, newProjectIndex, rexBuilder, newProjectIndex, newProjects, newColumnNames);
+      addToProject(newInput, newProjectIndex, rexBuilder, newProjectIndex, newInputMapping.getSource(newProjectIndex),
+          newProjects, newColumnNames);
     }
   }
 
-  private void addToProject(RelNode relNode, int projectSourceIndex, RexBuilder rexBuilder, int targetIndex,
-                            List<RexNode> newProjects, List<String> newColumnNames) {
+  private void addToProject(RelNode relNode, int projectSourceIndex, RexBuilder rexBuilder,
+                             int targetIndex, int index,
+                             RexNode[] newProjects, String[] newColumnNames) {
     RelDataTypeField relDataTypeField =
         relNode.getRowType().getFieldList().get(projectSourceIndex);
-    newProjects.add(rexBuilder.makeInputRef(
+    newProjects[index] = rexBuilder.makeInputRef(
         relDataTypeField.getType(),
-        targetIndex));
-    newColumnNames.add(relDataTypeField.getName());
+        targetIndex);
+    newColumnNames[index] = relDataTypeField.getName();
   }
 
   private RexNode joinCondition(
