@@ -150,6 +150,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
       // 4. Collect fields for new Project on the top of Join backs
       RelNode newInput = trimResult.left;
+      Mapping newInputMapping = trimResult.right;
       List<RexNode> newProjects = new ArrayList<>(rootFieldList.size());
       List<String> newColumnNames = new ArrayList<>(rootFieldList.size());
       projectsFromOriginalPlan(rexBuilder, fieldsUsed.cardinality(), newInput, newProjects, newColumnNames);
@@ -188,7 +189,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         relBuilder.push(projectTableAccessRel);
 
         RexNode joinCondition = joinCondition(
-            newInput, tableToJoinBack, projectTableAccessRel, keyMapping, rexBuilder);
+            newInput, newInputMapping, tableToJoinBack, projectTableAccessRel, keyMapping, rexBuilder);
 
         newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
       }
@@ -218,7 +219,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       RexNode rexNode = expressionLineage.iterator().next();
       RexTableInputRef rexTableInputRef = rexTableInputRef(rexNode);
       if (rexTableInputRef == null) {
-            LOG.debug("Unable determine expression lineage " + rexNode);
+        LOG.debug("Unable determine expression lineage " + rexNode);
         return null;
       }
 
@@ -261,7 +262,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   }
 
   private RexNode joinCondition(
-      RelNode leftInput,
+      RelNode leftInput, Mapping leftInputMapping,
       TableToJoinBack tableToJoinBack, RelNode rightInput, Mapping rightInputKeyMapping,
       RexBuilder rexBuilder) {
 
@@ -271,7 +272,7 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
         continue;
       }
 
-      int leftKeyIndex = projectMapping.indexInRootProject;
+      int leftKeyIndex = leftInputMapping.getTarget(projectMapping.indexInRootProject);
       RelDataTypeField leftKeyField = leftInput.getRowType().getFieldList().get(leftKeyIndex);
       int rightKeyIndex = rightInputKeyMapping.getTarget(projectMapping.indexInSourceTable);
       RelDataTypeField rightKeyField = rightInput.getRowType().getFieldList().get(rightKeyIndex);
