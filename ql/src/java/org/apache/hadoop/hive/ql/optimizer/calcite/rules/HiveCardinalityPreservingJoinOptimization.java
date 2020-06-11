@@ -210,8 +210,8 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       }
 
       List<RexNode> rexNodeList = new ArrayList<>();
-      for (TableToJoinBack tableToJoinBack : tableToJoinBackList) {
-        for (ProjectMapping projectMapping : tableToJoinBack.projectedFields.mapping) {
+      for (ProjectedFields projectedFields : lineages) {
+        for (ProjectMapping projectMapping : projectedFields.mapping) {
           rexNodeList.add(projectMapping.rexNode);
         }
       }
@@ -220,15 +220,15 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       RexShuttle shuttle = new RexShuttle() {
         @Override
         public RexNode visitTableInputRef(RexTableInputRef ref) {
-          for (TableToJoinBack tableToJoinBack : tableToJoinBackList) {
-            for (ProjectMapping projectMapping : tableToJoinBack.projectedFields.mapping) {
+          for (ProjectedFields projectedFields : lineages) {
+            for (ProjectMapping projectMapping : projectedFields.mapping) {
               if (ref == projectMapping.tableInputRef) {
                 int source = topMapping.getSource(projectMapping.indexInRootProject);
                 return rexBuilder.makeInputRef(newInput2.getRowType().getFieldList().get(source).getType(), source);
               }
             }
           }
-          throw new RuntimeException("Unknown RexTableInputRef " + ref);
+          return ref;
         }
       };
       shuttle.mutate(rexNodeList);

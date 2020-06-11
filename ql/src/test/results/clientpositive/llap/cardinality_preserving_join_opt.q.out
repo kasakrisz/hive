@@ -141,18 +141,18 @@ POSTHOOK: Input: default@customer
 POSTHOOK: Input: default@store_sales
 #### A masked pattern was here ####
 CBO PLAN:
-HiveProject(c_num=[$6], ss_quantity=[$9], c_customer_sk=[$2], c_customer_id=[$3], ss_customer_sk=[$0], ss_customer_id=[$1])
-  HiveJoin(condition=[AND(=($0, $7), =($1, $8))], joinType=[inner], algorithm=[none], cost=[not available])
-    HiveJoin(condition=[AND(=($2, $4), =($3, $5))], joinType=[inner], algorithm=[none], cost=[not available])
+HiveProject(c_num=[$9], ss_quantity=[$6], c_customer_sk=[$2], c_customer_id=[$3], ss_customer_sk=[$0], ss_customer_id=[$1])
+  HiveJoin(condition=[AND(=($2, $7), =($3, $8))], joinType=[inner], algorithm=[none], cost=[not available])
+    HiveJoin(condition=[AND(=($0, $4), =($1, $5))], joinType=[inner], algorithm=[none], cost=[not available])
       HiveJoin(condition=[AND(=($0, $2), =($1, $3))], joinType=[inner], algorithm=[none], cost=[not available])
         HiveProject(ss_customer_sk=[$0], ss_customer_id=[$1])
           HiveTableScan(table=[[default, store_sales]], table:alias=[ss])
         HiveProject(c_customer_sk=[$0], c_customer_id=[$1])
           HiveTableScan(table=[[default, customer]], table:alias=[c])
-      HiveProject(c_customer_sk=[$0], c_customer_id=[$1], c_num=[$5])
-        HiveTableScan(table=[[default, customer]], table:alias=[customer])
-    HiveProject(ss_customer_sk=[$0], ss_customer_id=[$1], ss_quantity=[$2])
-      HiveTableScan(table=[[default, store_sales]], table:alias=[store_sales])
+      HiveProject(ss_customer_sk=[$0], ss_customer_id=[$1], ss_quantity=[$2])
+        HiveTableScan(table=[[default, store_sales]], table:alias=[store_sales])
+    HiveProject(c_customer_sk=[$0], c_customer_id=[$1], c_num=[$5])
+      HiveTableScan(table=[[default, customer]], table:alias=[customer])
 
 PREHOOK: query: select c_num, ss_quantity, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
 from store_sales ss
