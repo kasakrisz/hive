@@ -38,6 +38,19 @@ from store_sales ss
 join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
 ;
 
+-- Test non-key cast
+explain cbo
+select c_first_name, CAST(c_num AS float), c_customer_sk, ss_customer_sk
+from store_sales ss
+join customer c on ss.ss_customer_sk = c.c_customer_sk
+;
+
+select c_first_name, CAST(c_num AS bigint), c_customer_sk, ss_customer_sk
+from store_sales ss
+join customer c on ss.ss_customer_sk = c.c_customer_sk
+;
+
+
 
 -- Test joining back both tables
 alter table store_sales add constraint pk_c primary key (ss_customer_sk, ss_customer_id) disable novalidate rely;
