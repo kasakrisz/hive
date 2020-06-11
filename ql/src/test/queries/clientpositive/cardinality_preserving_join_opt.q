@@ -1,6 +1,6 @@
 create table if not exists customer
 (
-    c_customer_sk             int,
+    c_customer_sk             bigint,
     c_customer_id             int,
     c_first_name              string,
     c_last_name               string,
@@ -40,9 +40,9 @@ join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_cu
 
 -- Test non-key cast
 explain cbo
-select c_first_name, CAST(c_num AS float), c_customer_sk, ss_customer_sk
+select c_first_name, CAST(c_num AS float), c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
 from store_sales ss
-join customer c on ss.ss_customer_sk = c.c_customer_sk
+join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
 ;
 
 select c_first_name, CAST(c_num AS bigint), c_customer_sk, ss_customer_sk
