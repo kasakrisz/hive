@@ -182,13 +182,14 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
             tableScan.getRowType().getFieldCount(), tableToJoinBack.keys.cardinality());
         int projectIndex = 0;
         int offset = newInput.getRowType().getFieldCount();
-        for (int source : tableToJoinBack.projectedFields.fieldsInSourceTable) {
-          if (tableToJoinBack.keys.get(source)) {
+//        for (int source : tableToJoinBack.projectedFields.fieldsInSourceTable) {
+        for (ProjectMapping mapping : tableToJoinBack.projectedFields.mapping) {
+          if (tableToJoinBack.keys.get(mapping.indexInSourceTable)) {
             // 5.3 Map key field to it's index in the Project on the TableScan
-            keyMapping.set(source, projectIndex);
+            keyMapping.set(mapping.indexInSourceTable, projectIndex);
           } else {
             // 5.4 if this is not a key field then we need it in the new Project on the top of Join backs
-            int indexInRootProject = tableToJoinBack.projectedFields.mapping.stream().filter(projectMapping -> projectMapping.indexInSourceTable == source).findFirst().get().indexInRootProject;
+            int indexInRootProject = tableToJoinBack.projectedFields.mapping.stream().filter(projectMapping -> projectMapping.indexInSourceTable == mapping.indexInSourceTable).findFirst().get().indexInRootProject;
             addToProject(projectTableAccessRel, projectIndex, rexBuilder,
                 offset + projectIndex,
                 indexInRootProject,
@@ -257,35 +258,34 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
       }
 
       RexNode rexNode = expressionLineage.iterator().next();
-      RexTableInputRef rexTableInputRef = rexTableInputRef(rexNode);
-      if (rexTableInputRef == null) {
-        LOG.debug("Unable to determine RexTableInputRef of " + rexNode);
-        return null;
+      for (RexTableInputRef rexTableInputRef : rexTableInputRef(rexNode)) {
+        RelOptHiveTable relOptHiveTable = (RelOptHiveTable) rexTableInputRef.getTableRef().getTable();
+        ProjectedFieldsBuilder projectedFieldsBuilder = fieldMappingBuilders.computeIfAbsent(
+            relOptHiveTable, k -> {
+              affectedTables.add(relOptHiveTable);
+              return new ProjectedFieldsBuilder(relOptHiveTable);
+            });
+        projectedFieldsBuilder.add(expr.getIndex(), rexTableInputRef.getIndex(),
+            new ProjectMapping(rexTableInputRef, rexNode, expr.getIndex(), rexTableInputRef.getIndex()));
       }
-
-      RelOptHiveTable relOptHiveTable = (RelOptHiveTable) rexTableInputRef.getTableRef().getTable();
-      ProjectedFieldsBuilder projectedFieldsBuilder = fieldMappingBuilders.computeIfAbsent(
-          relOptHiveTable, k -> {
-            affectedTables.add(relOptHiveTable);
-            return new ProjectedFieldsBuilder(relOptHiveTable);
-          });
-      projectedFieldsBuilder.add(expr.getIndex(), rexTableInputRef.getIndex(),
-          new ProjectMapping(rexTableInputRef, rexNode, expr.getIndex(), rexTableInputRef.getIndex()));
     }
 
     return affectedTables.stream()
         .map(relOptHiveTable -> fieldMappingBuilders.get(relOptHiveTable).build()).collect(Collectors.toList());
   }
 
-  public RexTableInputRef rexTableInputRef(RexNode rexNode) {
+  public List<RexTableInputRef> rexTableInputRef(RexNode rexNode) {
+    List<RexTableInputRef> rexTableInputRefList = new ArrayList<>();
     RexVisitor<RexTableInputRef> visitor = new RexVisitorImpl<RexTableInputRef>(true) {
       @Override
       public RexTableInputRef visitTableInputRef(RexTableInputRef ref) {
+        rexTableInputRefList.add(ref);
         return ref;
       }
     };
 
-    return rexNode.accept(visitor);
+    rexNode.accept(visitor);
+    return rexTableInputRefList;
   }
 
   private void projectsFromOriginalPlan(RexBuilder rexBuilder, int count, RelNode newInput, Mapping newInputMapping,
@@ -299,6 +299,9 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
   private void addToProject(RelNode relNode, int projectSourceIndex, RexBuilder rexBuilder,
                              int targetIndex, int index,
                              RexNode[] newProjects, String[] newColumnNames) {
+    if (relNode.getRowType().getFieldCount() <= projectSourceIndex)
+      return;
+
     RelDataTypeField relDataTypeField =
         relNode.getRowType().getFieldList().get(projectSourceIndex);
     newProjects[index] = rexBuilder.makeInputRef(

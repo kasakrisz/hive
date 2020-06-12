@@ -19,33 +19,33 @@ create table store_sales
 alter table customer add constraint pk_c primary key (c_customer_sk, c_customer_id) disable novalidate rely;
 
 
-insert into customer(c_customer_sk, c_customer_id, c_first_name, c_last_name, c_birth_country, c_num)
-values (1, 11, 'John', 'Doe', 'Unknown', 100);
-
-insert into store_sales(ss_customer_sk, ss_customer_id, ss_quantity, ss_list_price)
-values (1, 11, 132, 10.5);
+--insert into customer(c_customer_sk, c_customer_id, c_first_name, c_last_name, c_birth_country, c_num)
+--values (1, 11, 'John', 'Doe', 'Unknown', 100);
+--
+--insert into store_sales(ss_customer_sk, ss_customer_id, ss_quantity, ss_list_price)
+--values (1, 11, 132, 10.5);
 
 
 -- Test Order of projected columns not match the order defined in the create table statements
-explain cbo
-select c_num, ss_quantity, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
-from store_sales ss
-join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
-;
-
-select c_num, ss_quantity, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
-from store_sales ss
-join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
-;
+--explain cbo
+--select c_num, ss_quantity, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
+--from store_sales ss
+--join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
+--;
+--
+--select c_num, ss_quantity, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
+--from store_sales ss
+--join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
+--;
 
 -- Test non-key cast
 explain cbo
-select c_first_name, CAST(c_num AS float), c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
+select c_num * c_num, ss_quantity * ss_list_price, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
 from store_sales ss
 join customer c on ss.ss_customer_sk = c.c_customer_sk and ss_customer_id = c_customer_id
 ;
 
-select c_first_name, CAST(c_num AS bigint), c_customer_sk, ss_customer_sk
+select c_num * ss_quantity, c_customer_sk, c_customer_id, ss_customer_sk, ss_customer_id
 from store_sales ss
 join customer c on ss.ss_customer_sk = c.c_customer_sk
 ;
