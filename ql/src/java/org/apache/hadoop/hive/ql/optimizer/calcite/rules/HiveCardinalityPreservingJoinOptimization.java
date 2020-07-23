@@ -101,127 +101,156 @@ public class HiveCardinalityPreservingJoinOptimization extends HiveRelFieldTrimm
 
   @Override
   public RelNode trim(RelBuilder relBuilder, RelNode root) {
-    try {
-      if (root.getInputs().size() != 1) {
-        LOG.debug("Only plans where root has one input are supported. Root: " + root);
-        return root;
-      }
 
+    try {
       REL_BUILDER.set(relBuilder);
 
-      RexBuilder rexBuilder = relBuilder.getRexBuilder();
-      RelNode rootInput = root.getInput(0);
-      if (rootInput instanceof Aggregate) {
-        LOG.debug("Root input is Aggregate: not supported.");
-        return root;
-      }
-
-      // Build the list of projected fields from root's input RowType
-      List<RexInputRef> rootFieldList = new ArrayList<>(rootInput.getRowType().getFieldCount());
-      for (int i = 0; i < rootInput.getRowType().getFieldList().size(); ++i) {
-        RelDataTypeField relDataTypeField = rootInput.getRowType().getFieldList().get(i);
-        rootFieldList.add(rexBuilder.makeInputRef(relDataTypeField.getType(), i));
-      }
-
-      List<ProjectedFields> lineages = getExpressionLineageOf(rootFieldList, rootInput);
-      if (lineages == null) {
-        LOG.debug("Some projected field lineage can not be determined");
-        return root;
-      }
-
-      // 1. Collect candidate tables for join back
-      // 2. Collect all used fields from original plan
-      ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
-      List<TableToJoinBack> tableToJoinBackList = new ArrayList<>();
-      for (ProjectedFields projectedFields : lineages) {
-        Optional<ImmutableBitSet> projectedKeys = projectedFields.relOptHiveTable.getNonNullableKeys().stream()
-            .filter(projectedFields.fieldsInSourceTable::contains)
-            .findFirst();
-
-        if (projectedKeys.isPresent()) {
-          TableToJoinBack tableToJoinBack = new TableToJoinBack(projectedKeys.get(), projectedFields);
-          tableToJoinBackList.add(tableToJoinBack);
-          fieldsUsed = fieldsUsed.union(projectedFields.getSource(projectedKeys.get()));
-        } else {
-          fieldsUsed = fieldsUsed.union(projectedFields.fieldsInRootProject);
-        }
-      }
-
-      if (tableToJoinBackList.isEmpty()) {
-        LOG.debug("None of the tables has keys projected, unable to join back");
-        return root;
-      }
-
-      // 3. Trim out non-key fields of joined back tables
-      Set<RelDataTypeField> extraFields = Collections.emptySet();
-      TrimResult trimResult = dispatchTrimFields(rootInput, fieldsUsed, extraFields);
-      RelNode newInput = trimResult.left;
-      if (newInput.getRowType().equals(rootInput.getRowType())) {
-        LOG.debug("Nothing was trimmed out.");
-        return root;
-      }
-
-      // 4. Collect fields for new Project on the top of Join backs
-      Mapping newInputMapping = trimResult.right;
-      RexNode[] newProjects = new RexNode[rootFieldList.size()];
-      String[] newColumnNames = new String[rootFieldList.size()];
-      projectsFromOriginalPlan(rexBuilder, newInput.getRowType().getFieldCount(), newInput, newInputMapping,
-          newProjects, newColumnNames);
-
-      // 5. Join back tables to the top of original plan
-      for (TableToJoinBack tableToJoinBack : tableToJoinBackList) {
-        LOG.debug("Joining back table " + tableToJoinBack.projectedFields.relOptHiveTable.getName());
-
-        // 5.1 Create new TableScan of tables to join back
-        RelOptHiveTable relOptTable = tableToJoinBack.projectedFields.relOptHiveTable;
-        RelOptCluster cluster = relBuilder.getCluster();
-        HiveTableScan tableScan = new HiveTableScan(cluster, cluster.traitSetOf(HiveRelNode.CONVENTION),
-            relOptTable, relOptTable.getHiveTableMD().getTableName(), null, false, false);
-        // 5.2 Project only required fields from this table
-        RelNode projectTableAccessRel = tableScan.project(
-            tableToJoinBack.projectedFields.fieldsInSourceTable, new HashSet<>(0), REL_BUILDER.get());
-
-        Mapping keyMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
-            tableScan.getRowType().getFieldCount(), tableToJoinBack.keys.cardinality());
-        int projectIndex = 0;
-        int offset = newInput.getRowType().getFieldCount();
-
-        for (int source : tableToJoinBack.projectedFields.fieldsInSourceTable) {
-          if (tableToJoinBack.keys.get(source)) {
-            // 5.3 Map key field to it's index in the Project on the TableScan
-            keyMapping.set(source, projectIndex);
-          } else {
-            // 5.4 if this is not a key field then we need it in the new Project on the top of Join backs
-            ProjectMapping currentProjectMapping =
-                tableToJoinBack.projectedFields.mapping.stream()
-                    .filter(projectMapping -> projectMapping.indexInSourceTable == source)
-                    .findFirst().get();
-            addToProject(projectTableAccessRel, projectIndex, rexBuilder,
-                offset + projectIndex,
-                currentProjectMapping.indexInRootProject,
-                newProjects, newColumnNames);
-          }
-          ++projectIndex;
+      if (root.getInputs().size() == 1) {
+        return trim2(relBuilder, root);
+      } else if (root.getInputs().size() > 1) {
+        RexBuilder rexBuilder = relBuilder.getRexBuilder();
+        List<RexInputRef> rootFieldList = new ArrayList<>(root.getRowType().getFieldCount());
+        List<String> columnNames = new ArrayList<>(root.getRowType().getFieldCount());
+        for (int i = 0; i < root.getRowType().getFieldList().size(); ++i) {
+          RelDataTypeField relDataTypeField = root.getRowType().getFieldList().get(i);
+          rootFieldList.add(rexBuilder.makeInputRef(relDataTypeField.getType(), i));
+          columnNames.add(relDataTypeField.getName());
         }
 
-        // 5.5 Create Join
-        relBuilder.push(newInput);
-        relBuilder.push(projectTableAccessRel);
+        relBuilder.push(root);
+        relBuilder.project(rootFieldList, columnNames, true);
 
-        RexNode joinCondition = joinCondition(
-            newInput, newInputMapping, tableToJoinBack, projectTableAccessRel, keyMapping, rexBuilder);
+        RelNode project = relBuilder.build();
+        RelNode optimized = trim2(relBuilder, project);
+        if (optimized == project) {
+          return tmp;
+        }
 
-        newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
+        return optimized.getInput(0);
+      } else {
+        return tmp;
       }
-
-      // 6 Create Project on top of all Join backs
-      relBuilder.push(newInput);
-      relBuilder.project(asList(newProjects), asList(newColumnNames));
-
-      return root.copy(root.getTraitSet(), singletonList(relBuilder.build()));
     } finally {
       REL_BUILDER.remove();
     }
+  }
+
+  public RelNode trim2(RelBuilder relBuilder, RelNode root) {
+    if (root.getInputs().size() != 1) {
+      LOG.debug("Only plans where root has one input are supported. Root: " + root);
+      return root;
+    }
+
+    RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    RelNode rootInput = root.getInput(0);
+    if (rootInput instanceof Aggregate) {
+      LOG.debug("Root input is Aggregate: not supported.");
+      return root;
+    }
+
+    // Build the list of projected fields from root's input RowType
+    List<RexInputRef> rootFieldList = new ArrayList<>(rootInput.getRowType().getFieldCount());
+    for (int i = 0; i < rootInput.getRowType().getFieldList().size(); ++i) {
+      RelDataTypeField relDataTypeField = rootInput.getRowType().getFieldList().get(i);
+      rootFieldList.add(rexBuilder.makeInputRef(relDataTypeField.getType(), i));
+    }
+
+    List<ProjectedFields> lineages = getExpressionLineageOf(rootFieldList, rootInput);
+    if (lineages == null) {
+      LOG.debug("Some projected field lineage can not be determined");
+      return root;
+    }
+
+    // 1. Collect candidate tables for join back
+    // 2. Collect all used fields from original plan
+    ImmutableBitSet fieldsUsed = ImmutableBitSet.of();
+    List<TableToJoinBack> tableToJoinBackList = new ArrayList<>();
+    for (ProjectedFields projectedFields : lineages) {
+      Optional<ImmutableBitSet> projectedKeys = projectedFields.relOptHiveTable.getNonNullableKeys().stream()
+          .filter(projectedFields.fieldsInSourceTable::contains)
+          .findFirst();
+
+      if (projectedKeys.isPresent()) {
+        TableToJoinBack tableToJoinBack = new TableToJoinBack(projectedKeys.get(), projectedFields);
+        tableToJoinBackList.add(tableToJoinBack);
+        fieldsUsed = fieldsUsed.union(projectedFields.getSource(projectedKeys.get()));
+      } else {
+        fieldsUsed = fieldsUsed.union(projectedFields.fieldsInRootProject);
+      }
+    }
+
+    if (tableToJoinBackList.isEmpty()) {
+      LOG.debug("None of the tables has keys projected, unable to join back");
+      return root;
+    }
+
+    // 3. Trim out non-key fields of joined back tables
+    Set<RelDataTypeField> extraFields = Collections.emptySet();
+    TrimResult trimResult = dispatchTrimFields(rootInput, fieldsUsed, extraFields);
+    RelNode newInput = trimResult.left;
+    if (newInput.getRowType().equals(rootInput.getRowType())) {
+      LOG.debug("Nothing was trimmed out.");
+      return root;
+    }
+
+    // 4. Collect fields for new Project on the top of Join backs
+    Mapping newInputMapping = trimResult.right;
+    RexNode[] newProjects = new RexNode[rootFieldList.size()];
+    String[] newColumnNames = new String[rootFieldList.size()];
+    projectsFromOriginalPlan(rexBuilder, newInput.getRowType().getFieldCount(), newInput, newInputMapping,
+        newProjects, newColumnNames);
+
+    // 5. Join back tables to the top of original plan
+    for (TableToJoinBack tableToJoinBack : tableToJoinBackList) {
+      LOG.debug("Joining back table " + tableToJoinBack.projectedFields.relOptHiveTable.getName());
+
+      // 5.1 Create new TableScan of tables to join back
+      RelOptHiveTable relOptTable = tableToJoinBack.projectedFields.relOptHiveTable;
+      RelOptCluster cluster = relBuilder.getCluster();
+      HiveTableScan tableScan = new HiveTableScan(cluster, cluster.traitSetOf(HiveRelNode.CONVENTION),
+          relOptTable, relOptTable.getHiveTableMD().getTableName(), null, false, false);
+      // 5.2 Project only required fields from this table
+      RelNode projectTableAccessRel = tableScan.project(
+          tableToJoinBack.projectedFields.fieldsInSourceTable, new HashSet<>(0), REL_BUILDER.get());
+
+      Mapping keyMapping = Mappings.create(MappingType.INVERSE_SURJECTION,
+          tableScan.getRowType().getFieldCount(), tableToJoinBack.keys.cardinality());
+      int projectIndex = 0;
+      int offset = newInput.getRowType().getFieldCount();
+
+      for (int source : tableToJoinBack.projectedFields.fieldsInSourceTable) {
+        if (tableToJoinBack.keys.get(source)) {
+          // 5.3 Map key field to it's index in the Project on the TableScan
+          keyMapping.set(source, projectIndex);
+        } else {
+          // 5.4 if this is not a key field then we need it in the new Project on the top of Join backs
+          ProjectMapping currentProjectMapping =
+              tableToJoinBack.projectedFields.mapping.stream()
+                  .filter(projectMapping -> projectMapping.indexInSourceTable == source)
+                  .findFirst().get();
+          addToProject(projectTableAccessRel, projectIndex, rexBuilder,
+              offset + projectIndex,
+              currentProjectMapping.indexInRootProject,
+              newProjects, newColumnNames);
+        }
+        ++projectIndex;
+      }
+
+      // 5.5 Create Join
+      relBuilder.push(newInput);
+      relBuilder.push(projectTableAccessRel);
+
+      RexNode joinCondition = joinCondition(
+          newInput, newInputMapping, tableToJoinBack, projectTableAccessRel, keyMapping, rexBuilder);
+
+      newInput = relBuilder.join(JoinRelType.INNER, joinCondition).build();
+    }
+
+    // 6 Create Project on top of all Join backs
+    relBuilder.push(newInput);
+    relBuilder.project(asList(newProjects), asList(newColumnNames));
+
+    return root.copy(root.getTraitSet(), singletonList(relBuilder.build()));
   }
 
   private List<ProjectedFields> getExpressionLineageOf(
