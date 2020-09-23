@@ -62,6 +62,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.SubqueryConf;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveAggregate;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveFilter;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortLimit;
 
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_CONVERT_ANTI_JOIN;
 
@@ -372,7 +373,17 @@ public class HiveSubQueryRemoveRule extends RelOptRule {
     //   on e.deptno = dt.deptno
     //
 
-    builder.push(e.rel);
+    if (e.rel instanceof HiveSortLimit) {
+      HiveSortLimit hiveSortLimit = (HiveSortLimit)e.rel;
+      if (hiveSortLimit.getCollation().getFieldCollations().isEmpty()) {
+          builder.push(hiveSortLimit.getInput());
+      } else {
+        HiveSortLimit newHiveSortLimit = HiveSortLimit.create(hiveSortLimit.getInput(), hiveSortLimit.collation, null, null);
+        builder.push(newHiveSortLimit);
+      }
+    } else {
+      builder.push(e.rel);
+    }
     final List<RexNode> fields = new ArrayList<>();
     if (e.getKind() == SqlKind.IN) {
       fields.addAll(builder.fields());
