@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.ppd;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
+import org.apache.kafka.common.protocol.types.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -207,7 +209,8 @@ public class SyntheticJoinPredicate extends Transform {
 
             if (sCtx.isExtended()) {
               // Backtrack
-              List<ExprNodeDesc> newExprs = createDerivatives(target.getParentOperators().get(0), targetKeys.get(i), sourceKey);
+              List<ExprNodeDesc> newExprs = createDerivatives(
+                      target.getParentOperators().get(0), targetKeys.get(i), sourceKey);
               if (!newExprs.isEmpty()) {
                 if (LOG.isDebugEnabled()) {
                   for (ExprNodeDesc expr : newExprs) {
@@ -365,10 +368,27 @@ public class SyntheticJoinPredicate extends Transform {
     private List<ExprNodeDesc> createDerivatives(final Operator<?> currentOp,
         final ExprNodeDesc currentNode, final ExprNodeDesc sourceKey) throws SemanticException {
       List<ExprNodeDesc> resultExprs = new ArrayList<>();
-      return createDerivatives(resultExprs, currentOp, currentNode, sourceKey) ? resultExprs : new ArrayList<>();
+      DerivativesRetVal derivativesRetVal = createDerivatives(resultExprs, currentOp, currentNode, sourceKey);
+      return derivativesRetVal.result ? resultExprs : new ArrayList<>();
     }
 
-    private boolean createDerivatives(final List<ExprNodeDesc> resultExprs, final Operator<?> op,
+    private static class DerivativesRetVal {
+      static DerivativesRetVal EMPTY_SUCCESS = new DerivativesRetVal(true, null);
+      static DerivativesRetVal FAILURE = new DerivativesRetVal(false, null);
+      static DerivativesRetVal success(CommonJoinOperator parentJoin) {
+        return new DerivativesRetVal(true, parentJoin);
+      }
+
+      boolean result;
+      CommonJoinOperator<JoinDesc> parentJoin;
+
+      public DerivativesRetVal(boolean result, CommonJoinOperator<JoinDesc> parentJoin) {
+        this.result = result;
+        this.parentJoin = parentJoin;
+      }
+    }
+
+    private DerivativesRetVal createDerivatives(final List<ExprNodeDesc> resultExprs, final Operator<?> op,
         final ExprNodeDesc currentNode, final ExprNodeDesc sourceKey) throws SemanticException {
       // 1. Obtain join operator upstream
       Operator<?> currentOp = op;
@@ -391,9 +411,11 @@ public class SyntheticJoinPredicate extends Transform {
       }
       if (currentOp == null) {
         // We did not find any join, we are done
-        return true;
+        return DerivativesRetVal.EMPTY_SUCCESS;
       }
       CommonJoinOperator<JoinDesc> joinOp = (CommonJoinOperator) currentOp;
+//      storeJoinKeyEquality(equalities, joinOp, 0);
+//      storeJoinKeyEquality(equalities, joinOp, 1);
 
       // 2. Backtrack expression to join output
       ExprNodeDesc expr = currentNode;
@@ -408,14 +430,14 @@ public class SyntheticJoinPredicate extends Transform {
         } else {
           // TODO: We can extend to other expression types
           // We are done
-          return true;
+          return DerivativesRetVal.EMPTY_SUCCESS;
         }
       }
       final ExprNodeDesc joinExprNode = ExprNodeDescUtils.backtrack(expr, op, joinOp);
       if (joinExprNode == null || !(joinExprNode instanceof ExprNodeColumnDesc)) {
         // TODO: We can extend to other expression types
         // We are done
-        return true;
+        return DerivativesRetVal.success(joinOp);
       }
       final String columnRefJoinInput = ((ExprNodeColumnDesc)joinExprNode).getColumn();
 
@@ -430,7 +452,7 @@ public class SyntheticJoinPredicate extends Transform {
       if (columnOutputName == null) {
         // Maybe the join is pruning columns, though it should not.
         // In any case, we are done
-        return true;
+        return DerivativesRetVal.success(joinOp);
       }
       final int srcPos = joinOp.getConf().getReversedExprs().get(columnOutputName);
       final int[][] targets = getTargets(joinOp);
@@ -441,7 +463,7 @@ public class SyntheticJoinPredicate extends Transform {
       final ExprNodeDesc rsOpInputExprNode = rsOp.getColumnExprMap().get(columnRefJoinInput);
       if (rsOpInputExprNode == null) {
         // Unexpected, we just bail out and we do not infer additional predicates
-        return false;
+        return DerivativesRetVal.FAILURE;
       }
       int posInRSOpKeys = -1;
       for (int i = 0; i < rsOp.getConf().getKeyCols().size(); i++) {
@@ -465,26 +487,136 @@ public class SyntheticJoinPredicate extends Transform {
           // We pass the tests, we add it to the args for the AND expression
           addParentReduceSink(resultExprs, otherRsOp, posInRSOpKeys, sourceKey);
           // We propagate to operator below
-          boolean success = createDerivatives(
+          DerivativesRetVal derivativesRetVal = createDerivatives(
               resultExprs, otherRsOpInput, otherRsOp.getConf().getKeyCols().get(posInRSOpKeys), sourceKey);
-          if (!success) {
+          if (!derivativesRetVal.result) {
             // Something went wrong, bail out
-            return false;
+            return DerivativesRetVal.FAILURE;
           }
         }
       }
 
       // 6. Whether it was part of the key or of the value, if we reach here, we can at least
       // continue propagating to operators below
-      boolean success = createDerivatives(
+      DerivativesRetVal derivativesRetVal = createDerivatives(
           resultExprs, rsOpInput, rsOpInputExprNode, sourceKey);
-      if (!success) {
+      if (!derivativesRetVal.result) {
         // Something went wrong, bail out
-        return false;
+        return DerivativesRetVal.FAILURE;
+      }
+      if (derivativesRetVal.parentJoin == null) {
+        return DerivativesRetVal.success(joinOp);
       }
 
+      ExprNodeDesc tmp = rsOpInputExprNode;
+      if (tmp instanceof ExprNodeColumnDesc) {
+        tmp = rsOpInput.getColumnExprMap().get(((ExprNodeColumnDesc) tmp).getColumn());
+      }
+
+      ExprNodeDesc tmpJoinExpr = ExprNodeDescUtils.backtrack(tmp, rsOpInput, derivativesRetVal.parentJoin);
+      if (tmpJoinExpr == null) {
+        return DerivativesRetVal.success(joinOp);
+      }
+
+      for (int i = 0; i < joinOp.getConf().getJoinKeys().length; ++i) {
+        ExprNodeDesc tmpKeyExpr = ExprNodeDescUtils.backtrack(joinOp.getConf().getJoinKeys()[i][0], rsOpInput, derivativesRetVal.parentJoin);
+        if (tmpKeyExpr == null) {
+          continue;
+        }
+        ExprNodeDesc otherSide = null;
+        for (int j = 0; j < derivativesRetVal.parentJoin.getConf().getJoinKeys().length; ++j) {
+          if (!derivativesRetVal.parentJoin.getConf().getJoinKeys()[j][0].equals(tmpKeyExpr)) {
+            otherSide = derivativesRetVal.parentJoin.getConf().getJoinKeys()[j][0];
+            break;
+          }
+        }
+
+        if (otherSide == null) {
+          continue;
+        }
+
+        String parentColumnOutputName = null;
+        for (Map.Entry<String, ExprNodeDesc> e : derivativesRetVal.parentJoin.getColumnExprMap().entrySet()) {
+          if (e.getValue() == tmpJoinExpr) {
+            parentColumnOutputName = e.getKey();
+            break;
+          }
+        }
+
+        if (parentColumnOutputName.equals(otherSide.getName())) {
+          int k = 0;
+        }
+
+      }
+
+
+
       // 7. We are done, success
-      return true;
+      return DerivativesRetVal.success(joinOp);
+    }
+
+    private void storeJoinKeyEquality(
+            Map<ExprNodeDesc, Set<ExprNodeDesc>> equalities, CommonJoinOperator<JoinDesc> joinOp, int side) {
+      Set<ExprNodeDesc> set = equalities.computeIfAbsent(
+              joinOp.getConf().getJoinKeys()[side][0], exprNodeColumnDesc -> new HashSet<>());
+      set.add(joinOp.getConf().getJoinKeys()[1 - side][0]);
+    }
+
+    private ExprNodeDesc getLineage(final ExprNodeDesc exprToLookUp, final Operator<?> op) throws SemanticException {
+      Operator<?> currentOp = op;
+      while (!(currentOp instanceof CommonJoinOperator) && !(currentOp instanceof TableScanOperator)) {
+        if (currentOp.getParentOperators() == null || currentOp.getParentOperators().size() != 1) {
+          // Cannot backtrack
+          currentOp = null;
+          break;
+        }
+        if (!(currentOp instanceof FilterOperator) &&
+                !(currentOp instanceof SelectOperator) &&
+                !(currentOp instanceof ReduceSinkOperator) &&
+                !(currentOp instanceof GroupByOperator)) {
+          // Operator not supported
+          currentOp = null;
+          break;
+        }
+        // Move the pointer
+        currentOp = currentOp.getParentOperators().get(0);
+      }
+      if (currentOp == null) {
+        // We did not find any join, we are done
+        return null;
+      }
+
+      // 2. Backtrack expression to join output
+      ExprNodeDesc expr = exprToLookUp;
+      if (currentOp != op) {
+        if (expr instanceof ExprNodeColumnDesc) {
+          // Expression refers to output of current operator, but backtrack methods works
+          // from the input columns, hence we need to make resolution for current operator
+          // here. If the operator was already the join, there is nothing to do
+          if (op.getColumnExprMap() != null) {
+            expr = op.getColumnExprMap().get(((ExprNodeColumnDesc) expr).getColumn());
+          }
+        } else {
+          // TODO: We can extend to other expression types
+          // We are done
+          return null;
+        }
+      }
+
+      ExprNodeDesc sourceExpr = ExprNodeDescUtils.backtrack(expr, op, currentOp);
+      if (currentOp instanceof TableScanOperator) {
+        return sourceExpr;
+      }
+
+      CommonJoinOperator<JoinDesc> joinOp = (CommonJoinOperator) currentOp;
+      for (Operator<?> child : joinOp.getParentOperators()) {
+        ExprNodeDesc tmp = getLineage(sourceExpr, child);
+        if (tmp != null) {
+          return tmp;
+        }
+      }
+
+      return null;
     }
 
     private void addParentReduceSink(final List<ExprNodeDesc> andArgs, final ReduceSinkOperator rsOp,
