@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.ql.ppd;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +31,6 @@ import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
-import org.apache.kafka.common.protocol.types.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -508,51 +506,72 @@ public class SyntheticJoinPredicate extends Transform {
         return DerivativesRetVal.success(joinOp);
       }
 
-      ExprNodeDesc tmp = rsOpInputExprNode;
-      if (tmp instanceof ExprNodeColumnDesc) {
-        tmp = rsOpInput.getColumnExprMap().get(((ExprNodeColumnDesc) tmp).getColumn());
-      }
-
-      ExprNodeDesc tmpJoinExpr = ExprNodeDescUtils.backtrack(tmp, rsOpInput, derivativesRetVal.parentJoin);
-      if (tmpJoinExpr == null) {
+      ExprNodeDesc tmpJoinExpr = ExprNodeDescUtils.backtrack(rsOpInputExprNode, rsOp, derivativesRetVal.parentJoin);
+      if (!(tmpJoinExpr instanceof ExprNodeColumnDesc)) {
         return DerivativesRetVal.success(joinOp);
       }
+      ExprNodeColumnDesc tmpJoinColumnExpr = (ExprNodeColumnDesc) tmpJoinExpr;
 
       for (int i = 0; i < joinOp.getConf().getJoinKeys().length; ++i) {
-        ExprNodeDesc tmpKeyExpr = ExprNodeDescUtils.backtrack(joinOp.getConf().getJoinKeys()[i][0], rsOpInput, derivativesRetVal.parentJoin);
-        if (tmpKeyExpr == null) {
+        if (joinOp.getParentOperators().get(i) != rsOp) {
           continue;
         }
-        ExprNodeDesc otherSide = null;
+        
+        ExprNodeDesc joinKeyExpr = ExprNodeDescUtils.backtrack(joinOp.getConf().getJoinKeys()[i][0],
+                joinOp.getParentOperators().get(i), derivativesRetVal.parentJoin);
+        if (!(joinKeyExpr instanceof ExprNodeColumnDesc)) {
+          continue;
+        }
+        ExprNodeColumnDesc joinKeyColumnExpr = (ExprNodeColumnDesc) joinKeyExpr;
+
+        int otherSideIndex = -1;
         for (int j = 0; j < derivativesRetVal.parentJoin.getConf().getJoinKeys().length; ++j) {
-          if (!derivativesRetVal.parentJoin.getConf().getJoinKeys()[j][0].equals(tmpKeyExpr)) {
-            otherSide = derivativesRetVal.parentJoin.getConf().getJoinKeys()[j][0];
+          String parentJoinKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, j);
+          if (joinKeyColumnExpr.getColumn().equals(parentJoinKeySourceName)) {
+            otherSideIndex = 1 - j;
             break;
           }
         }
 
-        if (otherSide == null) {
+        if (otherSideIndex == -1) {
           continue;
         }
 
-        String parentColumnOutputName = null;
-        for (Map.Entry<String, ExprNodeDesc> e : derivativesRetVal.parentJoin.getColumnExprMap().entrySet()) {
-          if (e.getValue() == tmpJoinExpr) {
-            parentColumnOutputName = e.getKey();
-            break;
+        String otherParentKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, otherSideIndex);
+        if (tmpJoinColumnExpr.getColumn().equals(otherParentKeySourceName)) {
+          DerivativesRetVal derivativesRetVal2 = createDerivatives(
+                  resultExprs, joinOp.getParentOperators().get(1 - i), joinOp.getConf().getJoinKeys()[1 - i][0], sourceKey);
+          if (!derivativesRetVal2.result) {
+            // Something went wrong, bail out
+            return DerivativesRetVal.FAILURE;
           }
         }
-
-        if (parentColumnOutputName.equals(otherSide.getName())) {
-          int k = 0;
-        }
-
       }
 
 
 
       // 7. We are done, success
       return DerivativesRetVal.success(joinOp);
+    }
+
+    private String getKeySourceName(CommonJoinOperator<JoinDesc> joinOp, int keyIndex) {
+      ExprNodeDesc keyExpression = joinOp.getConf().getJoinKeys()[keyIndex][0];
+      if (!(keyExpression instanceof ExprNodeColumnDesc)) {
+        return null;
+      }
+
+      ExprNodeColumnDesc keyColumnExpression = (ExprNodeColumnDesc) keyExpression;
+      ReduceSinkOperator parentRS = (ReduceSinkOperator) joinOp.getParentOperators().get(keyIndex);
+      return getKey(parentRS.getColumnExprMap(), keyExpression);
+    }
+
+    private <K, V> K getKey(Map<K, V> map, V value) {
+      for (Map.Entry<K, V> e : map.entrySet()) {
+        if (e.getValue() == value) {
+          return e.getKey();
+        }
+      }
+      return null;
     }
 
     private void storeJoinKeyEquality(
