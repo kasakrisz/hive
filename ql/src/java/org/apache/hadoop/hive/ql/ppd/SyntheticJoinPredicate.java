@@ -412,8 +412,6 @@ public class SyntheticJoinPredicate extends Transform {
         return DerivativesRetVal.EMPTY_SUCCESS;
       }
       CommonJoinOperator<JoinDesc> joinOp = (CommonJoinOperator) currentOp;
-//      storeJoinKeyEquality(equalities, joinOp, 0);
-//      storeJoinKeyEquality(equalities, joinOp, 1);
 
       // 2. Backtrack expression to join output
       ExprNodeDesc expr = currentNode;
@@ -539,8 +537,22 @@ public class SyntheticJoinPredicate extends Transform {
 
         String otherParentKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, otherSideIndex);
         if (tmpJoinColumnExpr.getColumn().equals(otherParentKeySourceName)) {
+          // TODO: check join key equality between the two joins in parent children relationship
+          ReduceSinkOperator otherRrsOp = (ReduceSinkOperator) joinOp.getParentOperators().get(1 - i);
+          String otherColumnRefJoinInput = ((ExprNodeColumnDesc)joinOp.getConf().getJoinKeys()[1 - i][0]).getColumn();
+          ExprNodeDesc otherRsOpInputExprNode = otherRrsOp.getColumnExprMap().get(otherParentKeySourceName);
+          posInRSOpKeys = -1;
+          for (int k = 0; k < otherRrsOp.getConf().getKeyCols().size(); k++) {
+            if (otherRsOpInputExprNode.isSame(otherRrsOp.getConf().getKeyCols().get(k))) {
+              posInRSOpKeys = k;
+              break;
+            }
+          }
+
+          addParentReduceSink(resultExprs, otherRrsOp, posInRSOpKeys, sourceKey);
+
           DerivativesRetVal derivativesRetVal2 = createDerivatives(
-                  resultExprs, joinOp.getParentOperators().get(1 - i), joinOp.getConf().getJoinKeys()[1 - i][0], sourceKey);
+                  resultExprs, otherRrsOp, joinOp.getConf().getJoinKeys()[1 - i][0], sourceKey);
           if (!derivativesRetVal2.result) {
             // Something went wrong, bail out
             return DerivativesRetVal.FAILURE;
