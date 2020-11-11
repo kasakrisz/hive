@@ -538,8 +538,8 @@ public class SyntheticJoinPredicate extends Transform {
         String otherParentKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, otherSideIndex);
         if (tmpJoinColumnExpr.getColumn().equals(otherParentKeySourceName)) {
           // TODO: check join key equality between the two joins in parent children relationship
-          ReduceSinkOperator otherRrsOp = (ReduceSinkOperator) joinOp.getParentOperators().get(1 - i);
-          String otherColumnRefJoinInput = ((ExprNodeColumnDesc)joinOp.getConf().getJoinKeys()[1 - i][0]).getColumn();
+          ReduceSinkOperator otherRrsOp = (ReduceSinkOperator) joinOp.getParentOperators().get(i);
+          String otherColumnRefJoinInput = ((ExprNodeColumnDesc)joinOp.getConf().getJoinKeys()[i][0]).getColumn();
           ExprNodeDesc otherRsOpInputExprNode = otherRrsOp.getColumnExprMap().get(otherParentKeySourceName);
           posInRSOpKeys = -1;
           for (int k = 0; k < otherRrsOp.getConf().getKeyCols().size(); k++) {
