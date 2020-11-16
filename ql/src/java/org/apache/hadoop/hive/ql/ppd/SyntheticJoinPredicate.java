@@ -415,7 +415,7 @@ public class SyntheticJoinPredicate extends Transform {
 
       // 2. Backtrack expression to join output
       ExprNodeDesc expr = currentNode;
-      if (currentOp != op) {
+//      if (currentOp != op) {
         if (expr instanceof ExprNodeColumnDesc) {
           // Expression refers to output of current operator, but backtrack methods works
           // from the input columns, hence we need to make resolution for current operator
@@ -428,7 +428,7 @@ public class SyntheticJoinPredicate extends Transform {
           // We are done
           return DerivativesRetVal.EMPTY_SUCCESS;
         }
-      }
+//      }
       final ExprNodeDesc joinExprNode = ExprNodeDescUtils.backtrack(expr, op, joinOp);
       if (joinExprNode == null || !(joinExprNode instanceof ExprNodeColumnDesc)) {
         // TODO: We can extend to other expression types
@@ -508,57 +508,64 @@ public class SyntheticJoinPredicate extends Transform {
       if (!(tmpJoinExpr instanceof ExprNodeColumnDesc)) {
         return DerivativesRetVal.success(joinOp);
       }
-      ExprNodeColumnDesc tmpJoinColumnExpr = (ExprNodeColumnDesc) tmpJoinExpr;
 
-      for (int i = 0; i < joinOp.getConf().getJoinKeys().length; ++i) {
-        if (joinOp.getParentOperators().get(i) != rsOp) {
-          continue;
-        }
-        
-        ExprNodeDesc joinKeyExpr = ExprNodeDescUtils.backtrack(joinOp.getConf().getJoinKeys()[i][0],
-                joinOp.getParentOperators().get(i), derivativesRetVal.parentJoin);
-        if (!(joinKeyExpr instanceof ExprNodeColumnDesc)) {
-          continue;
-        }
-        ExprNodeColumnDesc joinKeyColumnExpr = (ExprNodeColumnDesc) joinKeyExpr;
-
-        int otherSideIndex = -1;
-        for (int j = 0; j < derivativesRetVal.parentJoin.getConf().getJoinKeys().length; ++j) {
-          String parentJoinKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, j);
-          if (joinKeyColumnExpr.getColumn().equals(parentJoinKeySourceName)) {
-            otherSideIndex = 1 - j;
-            break;
-          }
-        }
-
-        if (otherSideIndex == -1) {
-          continue;
-        }
-
-        String otherParentKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, otherSideIndex);
-        if (tmpJoinColumnExpr.getColumn().equals(otherParentKeySourceName)) {
-          // TODO: check join key equality between the two joins in parent children relationship
-          ReduceSinkOperator otherRrsOp = (ReduceSinkOperator) joinOp.getParentOperators().get(i);
-          String otherColumnRefJoinInput = ((ExprNodeColumnDesc)joinOp.getConf().getJoinKeys()[i][0]).getColumn();
-          ExprNodeDesc otherRsOpInputExprNode = otherRrsOp.getColumnExprMap().get(otherParentKeySourceName);
-          posInRSOpKeys = -1;
-          for (int k = 0; k < otherRrsOp.getConf().getKeyCols().size(); k++) {
-            if (otherRsOpInputExprNode.isSame(otherRrsOp.getConf().getKeyCols().get(k))) {
-              posInRSOpKeys = k;
-              break;
-            }
-          }
-
-          addParentReduceSink(resultExprs, otherRrsOp, posInRSOpKeys, sourceKey);
-
-          DerivativesRetVal derivativesRetVal2 = createDerivatives(
-                  resultExprs, otherRrsOp, joinOp.getConf().getJoinKeys()[1 - i][0], sourceKey);
-          if (!derivativesRetVal2.result) {
-            // Something went wrong, bail out
-            return DerivativesRetVal.FAILURE;
-          }
-        }
+      if (joinOp.getIdentifier().equals("47") || joinOp.getIdentifier().equals("44")) {
+        ReduceSinkOperator leftRS = (ReduceSinkOperator) joinOp.getParentOperators().get(0);
+        ReduceSinkOperator rightRS = (ReduceSinkOperator) joinOp.getParentOperators().get(1);
+        addParentReduceSink(resultExprs, leftRS, 0, sourceKey);
+        addParentReduceSink(resultExprs, rightRS, 0, sourceKey);
       }
+
+//      ExprNodeColumnDesc tmpJoinColumnExpr = (ExprNodeColumnDesc) tmpJoinExpr;
+//      for (int i = 0; i < joinOp.getConf().getJoinKeys().length; ++i) {
+//        if (joinOp.getParentOperators().get(i) != rsOp) {
+//          continue;
+//        }
+//
+//        ExprNodeDesc joinKeyExpr = ExprNodeDescUtils.backtrack(joinOp.getConf().getJoinKeys()[i][0],
+//                joinOp.getParentOperators().get(i), derivativesRetVal.parentJoin);
+//        if (!(joinKeyExpr instanceof ExprNodeColumnDesc)) {
+//          continue;
+//        }
+//        ExprNodeColumnDesc joinKeyColumnExpr = (ExprNodeColumnDesc) joinKeyExpr;
+//
+//        int otherSideIndex = -1;
+//        for (int j = 0; j < derivativesRetVal.parentJoin.getConf().getJoinKeys().length; ++j) {
+//          String parentJoinKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, j);
+//          if (joinKeyColumnExpr.getColumn().equals(parentJoinKeySourceName)) {
+//            otherSideIndex = 1 - j;
+//            break;
+//          }
+//        }
+//
+//        if (otherSideIndex == -1) {
+//          continue;
+//        }
+//
+//        String otherParentKeySourceName = getKeySourceName(derivativesRetVal.parentJoin, otherSideIndex);
+//        if (tmpJoinColumnExpr.getColumn().equals(otherParentKeySourceName)) {
+//          // TODO: check join key equality between the two joins in parent children relationship
+//          ReduceSinkOperator otherRrsOp = (ReduceSinkOperator) joinOp.getParentOperators().get(i);
+//          String otherColumnRefJoinInput = ((ExprNodeColumnDesc)joinOp.getConf().getJoinKeys()[i][0]).getColumn();
+//          ExprNodeDesc otherRsOpInputExprNode = otherRrsOp.getColumnExprMap().get(otherParentKeySourceName);
+//          posInRSOpKeys = -1;
+//          for (int k = 0; k < otherRrsOp.getConf().getKeyCols().size(); k++) {
+//            if (otherRsOpInputExprNode.isSame(otherRrsOp.getConf().getKeyCols().get(k))) {
+//              posInRSOpKeys = k;
+//              break;
+//            }
+//          }
+//
+//          addParentReduceSink(resultExprs, otherRrsOp, posInRSOpKeys, sourceKey);
+//
+//          DerivativesRetVal derivativesRetVal2 = createDerivatives(
+//                  resultExprs, otherRrsOp, joinOp.getConf().getJoinKeys()[1 - i][0], sourceKey);
+//          if (!derivativesRetVal2.result) {
+//            // Something went wrong, bail out
+//            return DerivativesRetVal.FAILURE;
+//          }
+//        }
+//      }
 
 
 
