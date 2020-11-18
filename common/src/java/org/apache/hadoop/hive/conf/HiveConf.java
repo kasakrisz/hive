@@ -4237,6 +4237,10 @@ public class HiveConf extends Configuration {
         "Which vectorized input format support features are enabled for vectorization.\n" +
         "That is, if a VectorizedInputFormat input format does support \"decimal_64\" for example\n" +
         "this variable must enable that to be used in vectorization"),
+    HIVE_DECIMAL_PAD_TRAILING_ZEROS(
+        "hive.decimal.pad.trailing.zeros",
+        true,
+        "Whether to pad decimal values with trailing zeros up to its scale or trim all trailing zeros."),
     HIVE_VECTORIZED_IF_EXPR_MODE("hive.vectorized.if.expr.mode", "better", new StringSet("adaptor", "good", "better"),
         "Specifies the extent to which SQL IF statements will be vectorized.\n" +
         "0. adaptor: only use the VectorUDFAdaptor to vectorize IF statements\n" +

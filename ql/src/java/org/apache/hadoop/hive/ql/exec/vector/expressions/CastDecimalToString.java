@@ -61,7 +61,8 @@ public class CastDecimalToString extends DecimalToStringUnaryUDF {
   @Override
   protected void func(BytesColumnVector outV, DecimalColumnVector inV, int i) {
     HiveDecimalWritable decWritable = inV.vector[i];
-    final int byteIndex = decWritable.toFormatBytes(inV.scale, scratchBuffer);
+    final int byteIndex = decWritable.toFormatBytes(decWritable.scale(), scratchBuffer);
+//    final int byteIndex = decWritable.toFormatBytes(inV.scale, scratchBuffer);
     assign(outV, i, scratchBuffer, byteIndex, HiveDecimal.SCRATCH_BUFFER_LEN_TO_BYTES - byteIndex);
   }
 }
