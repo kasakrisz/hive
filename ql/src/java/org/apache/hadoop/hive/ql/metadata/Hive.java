@@ -1881,24 +1881,24 @@ public class Hive {
         }
 
         // It passed the test, load
-        RelOptMaterialization materialization =
+        RelOptMaterialization relOptMaterialization =
             HiveMaterializedViewsRegistry.get().getRewritingMaterializedView(
                 materializedViewTable.getDbName(), materializedViewTable.getTableName());
-        if (materialization != null) {
-          Table cachedMaterializedViewTable = HiveMaterializedViewUtils.extractTable(materialization);
+        if (relOptMaterialization != null) {
+          Table cachedMaterializedViewTable = HiveMaterializedViewUtils.extractTable(relOptMaterialization);
           if (cachedMaterializedViewTable.equals(materializedViewTable)) {
             // It is in the cache and up to date
             if (outdated) {
               // We will rewrite it to include the filters on transaction list
               // so we can produce partial rewritings
-              materialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
-                  materialization, validTxnsList, new ValidTxnWriteIdList(
+              relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
+                  relOptMaterialization, validTxnsList, new ValidTxnWriteIdList(
                       creationMetadata.getValidTxnList()));
             }
             if (expandGroupingSets) {
-              result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(materialization));
+              result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(relOptMaterialization));
             } else {
-              result.add(materialization);
+              result.add(relOptMaterialization);
             }
             continue;
           }
@@ -1910,21 +1910,22 @@ public class Hive {
           LOG.debug("Materialized view " + materializedViewTable.getFullyQualifiedName() +
               " was not in the cache");
         }
-        materialization = HiveMaterializedViewsRegistry.get().createMaterialization(
-            conf, materializedViewTable);
-        if (materialization != null) {
+        org.apache.hadoop.hive.ql.metadata.Materialization materializationEntry =
+                HiveMaterializedViewsRegistry.get().createMaterialization(conf, materializedViewTable);
+        if (materializationEntry != null) {
+          relOptMaterialization = materializationEntry.getRelOptMaterialization();
           HiveMaterializedViewsRegistry.get().refreshMaterializedView(conf, null, materializedViewTable);
           if (outdated) {
             // We will rewrite it to include the filters on transaction list
             // so we can produce partial rewritings
-            materialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
-                materialization, validTxnsList, new ValidTxnWriteIdList(
+            relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
+                    materializationEntry.getRelOptMaterialization(), validTxnsList, new ValidTxnWriteIdList(
                     creationMetadata.getValidTxnList()));
           }
           if (expandGroupingSets) {
-            result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(materialization));
+            result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(relOptMaterialization));
           } else {
-            result.add(materialization);
+            result.add(relOptMaterialization);
           }
         }
       }
