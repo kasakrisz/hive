@@ -4147,15 +4147,7 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@part
 #### A masked pattern was here ####
 true
-<<<<<<< HEAD
-Warning: Shuffle Join MERGEJOIN[55][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 5' is a cross product
-=======
-<<<<<<< HEAD
-Warning: Shuffle Join MERGEJOIN[55][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 4' is a cross product
-=======
-Warning: Shuffle Join MERGEJOIN[56][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 4' is a cross product
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
->>>>>>> revert HIVE-23206
+Warning: Shuffle Join MERGEJOIN[56][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 5' is a cross product
 PREHOOK: query: explain select o.p_size, (select count(distinct p_type) from part p where p.p_partkey = o.p_partkey) tmp
     FROM part o right join (select * from part where p_size > (select avg(p_size) from part)) t on t.p_partkey = o.p_partkey
 PREHOOK: type: QUERY
@@ -4175,26 +4167,11 @@ STAGE PLANS:
     Tez
 #### A masked pattern was here ####
       Edges:
-<<<<<<< HEAD
         Reducer 2 <- Map 1 (SIMPLE_EDGE), Reducer 5 (SIMPLE_EDGE)
         Reducer 3 <- Reducer 2 (SIMPLE_EDGE), Reducer 4 (SIMPLE_EDGE)
         Reducer 4 <- Map 1 (SIMPLE_EDGE)
         Reducer 5 <- Map 1 (XPROD_EDGE), Reducer 6 (XPROD_EDGE)
         Reducer 6 <- Map 1 (CUSTOM_SIMPLE_EDGE)
-=======
-        Reducer 2 <- Map 1 (SIMPLE_EDGE), Reducer 4 (SIMPLE_EDGE)
-<<<<<<< HEAD
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE), Reducer 6 (SIMPLE_EDGE)
-        Reducer 4 <- Map 1 (XPROD_EDGE), Reducer 5 (XPROD_EDGE)
-        Reducer 5 <- Map 1 (CUSTOM_SIMPLE_EDGE)
-        Reducer 6 <- Map 1 (SIMPLE_EDGE)
-=======
-        Reducer 3 <- Reducer 2 (SIMPLE_EDGE), Reducer 8 (SIMPLE_EDGE)
-        Reducer 4 <- Map 1 (XPROD_EDGE), Reducer 6 (XPROD_EDGE)
-        Reducer 6 <- Map 5 (CUSTOM_SIMPLE_EDGE)
-        Reducer 8 <- Map 7 (SIMPLE_EDGE)
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
->>>>>>> revert HIVE-23206
 #### A masked pattern was here ####
       Vertices:
         Map 1 
@@ -4240,16 +4217,6 @@ STAGE PLANS:
                         sort order: 
                         Statistics: Num rows: 26 Data size: 312 Basic stats: COMPLETE Column stats: COMPLETE
                         value expressions: _col0 (type: int), _col1 (type: double)
-<<<<<<< HEAD
-=======
-            Execution mode: vectorized, llap
-            LLAP IO: no inputs
-        Map 5 
-            Map Operator Tree:
-                TableScan
-                  alias: part
-                  Statistics: Num rows: 26 Data size: 104 Basic stats: COMPLETE Column stats: COMPLETE
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
                   Select Operator
                     expressions: p_size (type: int)
                     outputColumnNames: p_size
@@ -4265,35 +4232,6 @@ STAGE PLANS:
                         sort order: 
                         Statistics: Num rows: 1 Data size: 16 Basic stats: COMPLETE Column stats: COMPLETE
                         value expressions: _col0 (type: bigint), _col1 (type: bigint)
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-            Execution mode: vectorized, llap
-            LLAP IO: no inputs
-        Map 7 
-            Map Operator Tree:
-                TableScan
-                  alias: p
-                  filterExpr: p_partkey is not null (type: boolean)
-                  Statistics: Num rows: 26 Data size: 2808 Basic stats: COMPLETE Column stats: COMPLETE
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
-                  Filter Operator
-                    predicate: p_partkey is not null (type: boolean)
-                    Statistics: Num rows: 26 Data size: 2808 Basic stats: COMPLETE Column stats: COMPLETE
-                    Group By Operator
-                      keys: p_partkey (type: int), p_type (type: string)
-                      minReductionHashAggr: 0.0
-                      mode: hash
-                      outputColumnNames: _col0, _col1
-                      Statistics: Num rows: 13 Data size: 1404 Basic stats: COMPLETE Column stats: COMPLETE
-                      Reduce Output Operator
-                        key expressions: _col0 (type: int), _col1 (type: string)
-                        null sort order: zz
-                        sort order: ++
-                        Map-reduce partition columns: _col0 (type: int)
-                        Statistics: Num rows: 13 Data size: 1404 Basic stats: COMPLETE Column stats: COMPLETE
->>>>>>> revert HIVE-23206
             Execution mode: vectorized, llap
             LLAP IO: all inputs
         Reducer 2 
@@ -4301,11 +4239,7 @@ STAGE PLANS:
             Reduce Operator Tree:
               Merge Join Operator
                 condition map:
-<<<<<<< HEAD
-                     Left Outer Join 0 to 1
-=======
                      Right Outer Join 0 to 1
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
                 keys:
                   0 _col0 (type: int)
                   1 _col0 (type: int)
@@ -4317,11 +4251,7 @@ STAGE PLANS:
                   sort order: +
                   Map-reduce partition columns: _col0 (type: int)
                   Statistics: Num rows: 16 Data size: 72 Basic stats: COMPLETE Column stats: COMPLETE
-<<<<<<< HEAD
-                  value expressions: _col4 (type: int)
-=======
                   value expressions: _col1 (type: int)
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
         Reducer 3 
             Execution mode: llap
             Reduce Operator Tree:
@@ -4381,18 +4311,6 @@ STAGE PLANS:
                 outputColumnNames: _col0, _col1, _col2
                 residual filter predicates: {(_col1 > _col2)}
                 Statistics: Num rows: 8 Data size: 160 Basic stats: COMPLETE Column stats: COMPLETE
-<<<<<<< HEAD
-                Reduce Output Operator
-                  key expressions: _col0 (type: int)
-                  null sort order: z
-                  sort order: +
-                  Map-reduce partition columns: _col0 (type: int)
-                  Statistics: Num rows: 8 Data size: 160 Basic stats: COMPLETE Column stats: COMPLETE
-<<<<<<< HEAD
-        Reducer 6 
-=======
-        Reducer 5 
-=======
                 Select Operator
                   expressions: _col0 (type: int)
                   outputColumnNames: _col0
@@ -4404,8 +4322,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: int)
                     Statistics: Num rows: 8 Data size: 32 Basic stats: COMPLETE Column stats: COMPLETE
         Reducer 6 
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
->>>>>>> revert HIVE-23206
             Execution mode: vectorized, llap
             Reduce Operator Tree:
               Group By Operator
@@ -4425,38 +4341,6 @@ STAGE PLANS:
                       sort order: 
                       Statistics: Num rows: 1 Data size: 8 Basic stats: COMPLETE Column stats: COMPLETE
                       value expressions: _col0 (type: double)
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-        Reducer 6 
-=======
-        Reducer 8 
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
-            Execution mode: vectorized, llap
-            Reduce Operator Tree:
-              Group By Operator
-                keys: KEY._col0 (type: int), KEY._col1 (type: string)
-                mode: mergepartial
-                outputColumnNames: _col0, _col1
-                Statistics: Num rows: 13 Data size: 1404 Basic stats: COMPLETE Column stats: COMPLETE
-                Group By Operator
-                  aggregations: count(_col1)
-                  keys: _col0 (type: int)
-                  mode: complete
-                  outputColumnNames: _col0, _col1
-                  Statistics: Num rows: 6 Data size: 72 Basic stats: COMPLETE Column stats: COMPLETE
-                  Select Operator
-                    expressions: _col1 (type: bigint), true (type: boolean), _col0 (type: int)
-                    outputColumnNames: _col0, _col1, _col2
-                    Statistics: Num rows: 6 Data size: 96 Basic stats: COMPLETE Column stats: COMPLETE
-                    Reduce Output Operator
-                      key expressions: _col2 (type: int)
-                      null sort order: z
-                      sort order: +
-                      Map-reduce partition columns: _col2 (type: int)
-                      Statistics: Num rows: 6 Data size: 96 Basic stats: COMPLETE Column stats: COMPLETE
-                      value expressions: _col0 (type: bigint), _col1 (type: boolean)
->>>>>>> revert HIVE-23206
 
   Stage: Stage-0
     Fetch Operator
@@ -4464,15 +4348,7 @@ STAGE PLANS:
       Processor Tree:
         ListSink
 
-<<<<<<< HEAD
-Warning: Shuffle Join MERGEJOIN[55][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 5' is a cross product
-=======
-<<<<<<< HEAD
-Warning: Shuffle Join MERGEJOIN[55][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 4' is a cross product
-=======
-Warning: Shuffle Join MERGEJOIN[56][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 4' is a cross product
->>>>>>> parent of c75412f711... HIVE-23206: Project not defined correctly after reordering a join (Krisztian Kasa, reviewed by Vineet Garg)
->>>>>>> revert HIVE-23206
+Warning: Shuffle Join MERGEJOIN[56][tables = [$hdt$_1, $hdt$_2]] in Stage 'Reducer 5' is a cross product
 PREHOOK: query: select o.p_size, (select count(distinct p_type) from part p where p.p_partkey = o.p_partkey) tmp
     FROM part o right join (select * from part where p_size > (select avg(p_size) from part)) t on t.p_partkey = o.p_partkey
 PREHOOK: type: QUERY
