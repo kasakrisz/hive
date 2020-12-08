@@ -715,9 +715,14 @@ public final class OpProcFactory {
           for (ExprNodeDesc predicate : entry.getValue()) {
             if (target.getIdentifier().equals("41")) {
               for (String targetAlias : target.getInputAliases()) {
-                ExprNodeDesc backtrack = ExprNodeDescUtils.backtrack(predicate, join, source);
+                ExprNodeGenericFuncDesc function = (ExprNodeGenericFuncDesc) predicate.clone();
+                List<ExprNodeDesc> newChildren = new ArrayList<>();
+                newChildren.add(join.getColumnExprMap().get("_col1"));
+                newChildren.add(function.getChildren().get(1));
+                function.setChildren(newChildren);
+                ExprNodeDesc backtrack = ExprNodeDescUtils.backtrack(function, join, source);
                 ExprNodeDesc replaced = ExprNodeDescUtils.replace(backtrack, sourceKeys, targetKeys);
-                rsPreds.addFinalCandidate(targetAlias, backtrack);
+                rsPreds.addFinalCandidate(targetAlias, replaced);
               }
               continue;
             }
