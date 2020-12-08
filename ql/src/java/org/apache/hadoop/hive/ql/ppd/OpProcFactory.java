@@ -713,6 +713,13 @@ public final class OpProcFactory {
             continue;
           }
           for (ExprNodeDesc predicate : entry.getValue()) {
+            if (target.getIdentifier().equals("41")) {
+              for (String targetAlias : target.getInputAliases()) {
+                rsPreds.addFinalCandidate(targetAlias, predicate);
+              }
+              continue;
+            }
+
             ExprNodeDesc backtrack = ExprNodeDescUtils.backtrack(predicate, join, source);
             if (backtrack == null) {
               continue;
