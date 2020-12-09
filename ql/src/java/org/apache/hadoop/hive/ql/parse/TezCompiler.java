@@ -19,6 +19,8 @@ package org.apache.hadoop.hive.ql.parse;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -96,6 +98,7 @@ import org.apache.hadoop.hive.ql.optimizer.SetHashGroupByMinReduction;
 import org.apache.hadoop.hive.ql.optimizer.SetReducerParallelism;
 import org.apache.hadoop.hive.ql.optimizer.SharedWorkOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.SortedDynPartitionOptimizer;
+import org.apache.hadoop.hive.ql.optimizer.graph.OperatorGraph;
 import org.apache.hadoop.hive.ql.optimizer.topnkey.TopNKeyProcessor;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveFilter;
 import org.apache.hadoop.hive.ql.optimizer.correlation.ReduceSinkDeDuplication;
@@ -180,16 +183,35 @@ public class TezCompiler extends TaskCompiler {
     runTopNKeyOptimization(procCtx);
     perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.TEZ_COMPILER, "Run top n key optimization");
 
+    try {
+      new OperatorGraph(procCtx.parseContext).implode().toDot(new File("/tmp/bef_dpp.joins.dot"));
+    } catch (Exception e1) {
+      throw new RuntimeException(e1);
+    }
+
     perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.TEZ_COMPILER);
     // setup dynamic partition pruning where possible
     runDynamicPartitionPruning(procCtx, inputs, outputs);
     perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.TEZ_COMPILER, "Setup dynamic partition pruning");
+
+    try {
+      new OperatorGraph(procCtx.parseContext).implode().toDot(new File("/tmp/aft_dpp.joins.dot"));
+    } catch (Exception e1) {
+      throw new RuntimeException(e1);
+    }
+
 
     if(procCtx.conf.getBoolVar(ConfVars.TEZ_DYNAMIC_SEMIJOIN_REDUCTION_MULTICOLUMN)) {
       SemiJoinReductionMerge sjmerge = new SemiJoinReductionMerge();
       sjmerge.beginPerfLogging();
       sjmerge.transform(procCtx.parseContext);
       sjmerge.endPerfLogging("Merge single column semi-join reducers to composite");
+    }
+
+    try {
+      new OperatorGraph(procCtx.parseContext).implode().toDot(new File("/tmp/aft_sjred.joins.dot"));
+    } catch (Exception e1) {
+      throw new RuntimeException(e1);
     }
 
     // need to run this; to get consistent filterop conditions(for operator tree matching)
@@ -237,6 +259,12 @@ public class TezCompiler extends TaskCompiler {
     perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.TEZ_COMPILER, "Run reduce sink after join algorithm selection");
 
     semijoinRemovalBasedTransformations(procCtx, inputs, outputs);
+
+    try {
+      new OperatorGraph(procCtx.parseContext).implode().toDot(new File("/tmp/bef_swo.joins.dot"));
+    } catch (Exception e1) {
+      throw new RuntimeException(e1);
+    }
 
     perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.TEZ_COMPILER);
     if(procCtx.conf.getBoolVar(ConfVars.HIVE_SHARED_WORK_OPTIMIZATION)) {
