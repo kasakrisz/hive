@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.ql.ppd;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,9 +28,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 import javolution.util.FastBitSet;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.ql.exec.CommonJoinOperator;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
@@ -42,9 +45,15 @@ import org.apache.hadoop.hive.ql.exec.RowSchema;
 import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
+import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Node;
+import org.apache.hadoop.hive.ql.lib.RuleRegExp;
+import org.apache.hadoop.hive.ql.lib.SemanticDispatcher;
+import org.apache.hadoop.hive.ql.lib.SemanticGraphWalker;
 import org.apache.hadoop.hive.ql.lib.SemanticNodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
+import org.apache.hadoop.hive.ql.lib.SemanticRule;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -81,6 +90,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+
+import static java.util.Collections.singleton;
 
 
 /**
@@ -713,19 +724,19 @@ public final class OpProcFactory {
             continue;
           }
           for (ExprNodeDesc predicate : entry.getValue()) {
-            if (target.getIdentifier().equals("41")) {
-              for (String targetAlias : target.getInputAliases()) {
-                ExprNodeGenericFuncDesc function = (ExprNodeGenericFuncDesc) predicate.clone();
-                List<ExprNodeDesc> newChildren = new ArrayList<>();
-                newChildren.add(join.getColumnExprMap().get("_col1"));
-                newChildren.add(function.getChildren().get(1));
-                function.setChildren(newChildren);
-                ExprNodeDesc backtrack = ExprNodeDescUtils.backtrack(function, join, source);
-                ExprNodeDesc replaced = ExprNodeDescUtils.replace(backtrack, sourceKeys, targetKeys);
-                rsPreds.addFinalCandidate(targetAlias, replaced);
-              }
-              continue;
-            }
+//            if (target.getIdentifier().equals("41")) {
+//              for (String targetAlias : target.getInputAliases()) {
+//                ExprNodeGenericFuncDesc function = (ExprNodeGenericFuncDesc) predicate.clone();
+//                List<ExprNodeDesc> newChildren = new ArrayList<>();
+//                newChildren.add(join.getColumnExprMap().get("_col1"));
+//                newChildren.add(function.getChildren().get(1));
+//                function.setChildren(newChildren);
+//                ExprNodeDesc backtrack = ExprNodeDescUtils.backtrack(function, join, source);
+//                ExprNodeDesc replaced = ExprNodeDescUtils.replace(backtrack, sourceKeys, targetKeys);
+//                rsPreds.addFinalCandidate(targetAlias, replaced);
+//              }
+//              continue;
+//            }
 
             ExprNodeDesc backtrack = ExprNodeDescUtils.backtrack(predicate, join, source);
             if (backtrack == null) {
@@ -733,6 +744,16 @@ public final class OpProcFactory {
             }
             ExprNodeDesc replaced = ExprNodeDescUtils.replace(backtrack, sourceKeys, targetKeys);
             if (replaced == null) {
+
+              List<ExprNodeDesc> startNodes = new ArrayList();
+              extractExprNodes(predicate, startNodes);
+
+              Map<SemanticRule, SemanticNodeProcessor> opRules = new HashMap<>();
+              opRules.put(new RuleRegExp("R1", CommonJoinOperator.getOperatorName() + "%"), new JoinEq());
+              SemanticDispatcher dispatcher = new DefaultRuleDispatcher(new DefaultEq(), opRules, new EqContext(startNodes));
+              SemanticGraphWalker graphWalker = new DefaultGraphWalker(dispatcher);
+              graphWalker.startWalking(singleton(source), null);
+
               continue;
             }
             for (String targetAlias : target.getInputAliases()) {
@@ -740,6 +761,50 @@ public final class OpProcFactory {
             }
           }
         }
+      }
+    }
+
+    private void extractExprNodes(ExprNodeDesc exprNodeDesc, List<ExprNodeDesc> result) {
+      if (exprNodeDesc instanceof ExprNodeColumnDesc) {
+        result.add(exprNodeDesc);
+        return;
+      }
+
+      for (ExprNodeDesc child : exprNodeDesc.getChildren()) {
+        extractExprNodes(child, result);
+      }
+    }
+
+    public static class EqContext implements NodeProcessorCtx {
+      private final Map<ExprNodeDesc, ExprNodeDesc> equalityMap;
+
+      public EqContext(List<ExprNodeDesc> startExpressions) {
+        equalityMap = new HashMap<>();
+        for (ExprNodeDesc exprNodeDesc : startExpressions) {
+          equalityMap.put(exprNodeDesc, null);
+        }
+      }
+
+      public Map<ExprNodeDesc, ExprNodeDesc> getEqualityMap() {
+        return equalityMap;
+      }
+    }
+
+    public static class JoinEq implements SemanticNodeProcessor {
+
+      @Override
+      public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx, Object... nodeOutputs) throws SemanticException {
+        EqContext eqContext = (EqContext) procCtx;
+        return null;
+      }
+    }
+
+    public static class DefaultEq implements SemanticNodeProcessor {
+
+      @Override
+      public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx, Object... nodeOutputs) throws SemanticException {
+        EqContext eqContext = (EqContext) procCtx;
+        return null;
       }
     }
   }
