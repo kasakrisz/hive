@@ -18,6 +18,7 @@
 package org.apache.hadoop.hive.ql.metadata;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -80,8 +81,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.common.collect.ImmutableList;
 
 import static java.util.stream.Collectors.toList;
+import static org.apache.commons.collections.CollectionUtils.intersection;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.hadoop.hive.conf.Constants.MATERIALIZED_VIEW_REWRITING_SCOPE;
 import static org.apache.hadoop.hive.ql.metadata.Materialization.RewriteAlgorithm.ALL;
+import static org.apache.hadoop.hive.ql.metadata.Materialization.RewriteAlgorithm.CALCITE;
 import static org.apache.hadoop.hive.ql.metadata.Materialization.RewriteAlgorithm.TEXT;
 
 /**
@@ -234,9 +239,19 @@ public final class HiveMaterializedViewsRegistry {
 
     RelOptMaterialization relOptMaterialization = new RelOptMaterialization(viewScan, plan.getPlan(),
             null, viewScan.getTable().getQualifiedName());
-    return new Materialization(relOptMaterialization,
+
+
+    EnumSet<Materialization.RewriteAlgorithm> scope =
             isBlank(plan.getInvalidAutomaticRewritingMaterializationReason()) ?
-                    EnumSet.allOf(Materialization.RewriteAlgorithm.class) : EnumSet.of(TEXT));
+            EnumSet.allOf(Materialization.RewriteAlgorithm.class) : EnumSet.of(TEXT);
+
+    EnumSet<Materialization.RewriteAlgorithm> definedScope = HiveConf.valueOf(
+            Materialization.RewriteAlgorithm.class,
+            materializedViewTable.getProperty(MATERIALIZED_VIEW_REWRITING_SCOPE));
+    Collection intersection = intersection(definedScope, scope);
+    scope = intersection.isEmpty() ? EnumSet.noneOf(Materialization.RewriteAlgorithm.class) : EnumSet.copyOf(intersection);
+
+    return new Materialization(relOptMaterialization, scope);
   }
 
   /**
@@ -320,7 +335,7 @@ public final class HiveMaterializedViewsRegistry {
    */
   List<RelOptMaterialization> getRewritingMaterializedViews() {
     return materializedViewsCache.values().stream()
-            .filter(materialization -> materialization.getScope().contains(Materialization.RewriteAlgorithm.CALCITE))
+            .filter(materialization -> materialization.getScope().contains(CALCITE))
             .map(Materialization::getRelOptMaterialization)
             .collect(toList());
   }
@@ -344,7 +359,9 @@ public final class HiveMaterializedViewsRegistry {
 
   public List<RelOptMaterialization> getRewritingMaterializedViews(String querySql) {
     return materializedViewsCache.get(querySql)
-            .stream().map(Materialization::getRelOptMaterialization).collect(toList());
+            .stream()
+            .filter(materialization -> materialization.getScope().contains(TEXT))
+            .map(Materialization::getRelOptMaterialization).collect(toList());
   }
 
   private static RelNode createMaterializedViewScan(HiveConf conf, Table viewTable) {

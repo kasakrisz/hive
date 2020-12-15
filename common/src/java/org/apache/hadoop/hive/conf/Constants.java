@@ -72,6 +72,7 @@ public class Constants {
   public static final String HADOOP_CREDENTIAL_PROVIDER_PATH_CONFIG = "hadoop.security.credential.provider.path";
 
   public static final String MATERIALIZED_VIEW_REWRITING_TIME_WINDOW = "rewriting.time.window";
+  public static final String MATERIALIZED_VIEW_REWRITING_SCOPE = "rewriting.scope";
   public static final String MATERIALIZED_VIEW_SORT_COLUMNS = "materializedview.sort.columns";
   public static final String MATERIALIZED_VIEW_DISTRIBUTE_COLUMNS = "materializedview.distribute.columns";
 

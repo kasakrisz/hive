@@ -62,6 +62,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -76,6 +77,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Hive Configuration.
@@ -6805,5 +6807,26 @@ public class HiveConf extends Configuration {
       Map.Entry<String, String> e = iter.next();
       set(e.getKey(), e.getValue());
     }
+  }
+
+  public static <T extends Enum<T>> EnumSet<T> valueOf(Class<T> enumClazz, String values) {
+    String[] valueArray = values.split(",");
+    if (valueArray.length == 0) {
+      return EnumSet.noneOf(enumClazz);
+    }
+    if (valueArray.length == 1 && valueArray[0].trim().isEmpty()) {
+      return EnumSet.noneOf(enumClazz);
+    }
+
+    EnumSet<T> result = EnumSet.noneOf(enumClazz);
+    for (int i = 0; i < valueArray.length; ++i) {
+      String valueText = valueArray[i].trim();
+      if (valueText.isEmpty()) {
+        throw new IllegalArgumentException("Empty string cannot be converted to Enum constant " +
+                enumClazz.getCanonicalName());
+      }
+      result.add(T.valueOf(enumClazz, valueText.toUpperCase()));
+    }
+    return result;
   }
 }

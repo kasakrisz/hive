@@ -31,7 +31,16 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.hadoop.hive.conf.HiveConf.ResultFileFormat.LLAP;
+import static org.apache.hadoop.hive.conf.HiveConf.ResultFileFormat.RCFILE;
+import static org.apache.hadoop.hive.conf.HiveConf.ResultFileFormat.SEQUENCEFILE;
+import static org.apache.hadoop.hive.conf.HiveConf.ResultFileFormat.TEXTFILE;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 
 /**
@@ -245,4 +254,30 @@ public class TestHiveConf {
     f2.delete();
     fileBakHiveSite.delete();
   }
+
+  @Test
+  public void testFromCommaSeparatedStringReturnsEnumSetHavingEnumValues() {
+    EnumSet<HiveConf.ResultFileFormat> result =
+            HiveConf.valueOf(HiveConf.ResultFileFormat.class, "TextFile   , SEQUENCEFILE , llap,rcfile");
+    assertThat(result.size(), is(4));
+    assertThat(result, hasItem(TEXTFILE));
+    assertThat(result, hasItem(SEQUENCEFILE));
+    assertThat(result, hasItem(LLAP));
+    assertThat(result, hasItem(RCFILE));
+  }
+
+  @Test
+  public void testValueOfEmptyStringReturnsEmptyEnumSet() {
+    EnumSet<HiveConf.ResultFileFormat> result =
+            HiveConf.valueOf(HiveConf.ResultFileFormat.class, "");
+    assertThat(result.isEmpty(), is(true));
+  }
+
+  @Test
+  public void testValueOfSingleCommaStringReturnsEmptyEnumSet() {
+    EnumSet<HiveConf.ResultFileFormat> result =
+            HiveConf.valueOf(HiveConf.ResultFileFormat.class, ",");
+    assertThat(result.isEmpty(), is(true));
+  }
+
 }
