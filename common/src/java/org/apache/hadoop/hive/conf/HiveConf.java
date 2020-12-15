@@ -6810,10 +6810,15 @@ public class HiveConf extends Configuration {
   }
 
   public static <T extends Enum<T>> EnumSet<T> valueOf(Class<T> enumClazz, String values) {
+    if (values == null) {
+      return null;
+    }
+
     String[] valueArray = values.split(",");
     if (valueArray.length == 0) {
       return EnumSet.noneOf(enumClazz);
     }
+
     if (valueArray.length == 1 && valueArray[0].trim().isEmpty()) {
       return EnumSet.noneOf(enumClazz);
     }
@@ -6827,6 +6832,7 @@ public class HiveConf extends Configuration {
       }
       result.add(T.valueOf(enumClazz, valueText.toUpperCase()));
     }
+
     return result;
   }
 }

@@ -248,8 +248,10 @@ public final class HiveMaterializedViewsRegistry {
     EnumSet<Materialization.RewriteAlgorithm> definedScope = HiveConf.valueOf(
             Materialization.RewriteAlgorithm.class,
             materializedViewTable.getProperty(MATERIALIZED_VIEW_REWRITING_SCOPE));
-    Collection intersection = intersection(definedScope, scope);
-    scope = intersection.isEmpty() ? EnumSet.noneOf(Materialization.RewriteAlgorithm.class) : EnumSet.copyOf(intersection);
+    if (definedScope != null) {
+      Collection intersection = intersection(definedScope, scope);
+      scope = intersection.isEmpty() ? EnumSet.noneOf(Materialization.RewriteAlgorithm.class) : EnumSet.copyOf(intersection);
+    }
 
     return new Materialization(relOptMaterialization, scope);
   }
