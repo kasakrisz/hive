@@ -19,7 +19,6 @@ package org.apache.hadoop.hive.ql.ppd;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,7 +27,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.Stack;
-import java.util.stream.Collectors;
 
 import javolution.util.FastBitSet;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -745,14 +743,17 @@ public final class OpProcFactory {
             ExprNodeDesc replaced = ExprNodeDescUtils.replace(backtrack, sourceKeys, targetKeys);
             if (replaced == null) {
 
-              List<ExprNodeDesc> startNodes = new ArrayList();
-              extractExprNodes(predicate, startNodes);
+              List<ExprNodeColumnDesc> startNodes = new ArrayList<>();
+              extractColumnExprNodes(predicate, startNodes);
+//              EqContext eqContext = new EqContext(startNodes);
+              walk(source, startNodes);
 
-              Map<SemanticRule, SemanticNodeProcessor> opRules = new HashMap<>();
-              opRules.put(new RuleRegExp("R1", CommonJoinOperator.getOperatorName() + "%"), new JoinEq());
-              SemanticDispatcher dispatcher = new DefaultRuleDispatcher(new DefaultEq(), opRules, new EqContext(startNodes));
-              SemanticGraphWalker graphWalker = new DefaultGraphWalker(dispatcher);
-              graphWalker.startWalking(singleton(source), null);
+
+//              Map<SemanticRule, SemanticNodeProcessor> opRules = new HashMap<>();
+//              opRules.put(new RuleRegExp("R1", CommonJoinOperator.getOperatorName() + "%"), new JoinEq());
+//              SemanticDispatcher dispatcher = new DefaultRuleDispatcher(new DefaultEq(), opRules, new EqContext(startNodes));
+//              SemanticGraphWalker graphWalker = new DefaultGraphWalker(dispatcher);
+//              graphWalker.startWalking(singleton(source), null);
 
               continue;
             }
@@ -764,14 +765,88 @@ public final class OpProcFactory {
       }
     }
 
-    private void extractExprNodes(ExprNodeDesc exprNodeDesc, List<ExprNodeDesc> result) {
+    private void extractColumnExprNodes(ExprNodeDesc exprNodeDesc, List<ExprNodeColumnDesc> result) {
       if (exprNodeDesc instanceof ExprNodeColumnDesc) {
-        result.add(exprNodeDesc);
+        result.add((ExprNodeColumnDesc) exprNodeDesc);
         return;
       }
+      if (exprNodeDesc instanceof ExprNodeGenericFuncDesc) {
+        for (ExprNodeDesc child : exprNodeDesc.getChildren()) {
+          extractColumnExprNodes(child, result);
+        }
+      }
+    }
 
-      for (ExprNodeDesc child : exprNodeDesc.getChildren()) {
-        extractExprNodes(child, result);
+    private Map<ExprNodeDesc, ExprNodeDesc> walk(Operator<?> operator, List<ExprNodeColumnDesc> exprNodeDescList) {
+      Map<ExprNodeDesc, ExprNodeDesc> equalities;
+      if (operator instanceof CommonJoinOperator) {
+        equalities = processJoinEq((CommonJoinOperator<?>)operator, exprNodeDescList);
+      } else {
+        equalities = processDefaultEq(operator, exprNodeDescList);
+      }
+
+      for (Operator<?> parent : operator.getParentOperators()) {
+        walk(parent, exprNodeDescList);
+      }
+
+      return equalities;
+    }
+
+    private Map<ExprNodeDesc, ExprNodeDesc> processJoinEq(
+            CommonJoinOperator<?> join, List<ExprNodeColumnDesc> exprNodeDescList) {
+      Map<ExprNodeDesc, ExprNodeDesc> equalities = new HashMap<>();
+      for (int i = 0; i < 2; ++i) {
+        ExprNodeDesc keyExpr = join.getConf().getJoinKeys()[i][0];
+        ExprNodeDesc otherKeyExpr = join.getConf().getJoinKeys()[1 - i][0];
+        Operator parentRSOperator = join.getParentOperators().get(i);
+        for (ExprNodeColumnDesc exprNodeDesc : exprNodeDescList) {
+          ExprNodeDesc mappedColExpr = join.getColumnExprMap().get(exprNodeDesc.getColumn());
+          if (mappedColExpr != null &&
+                  keyExpr.isSame(parentRSOperator.getColumnExprMap().get(((ExprNodeColumnDesc) mappedColExpr).getColumn()))) {
+//            equalities.put(mappedKey, )
+            ExprNodeDesc exprNodeDesc1 = exprNodeDesc;
+            Operator<?> otherParentRSOperator = join.getParentOperators().get(1 - i);
+            for (Entry<String, ExprNodeDesc> joinMapEntry : join.getColumnExprMap().entrySet()) {
+              if (join.getConf().getReversedExprs().get(joinMapEntry.getKey()) != 1 - i) {
+                continue;
+              }
+
+              String otherColumnName = ((ExprNodeColumnDesc) joinMapEntry.getValue()).getColumn();
+              ExprNodeDesc mappedOtherKeyExpr = otherParentRSOperator.getColumnExprMap().get(otherColumnName);
+              if (mappedOtherKeyExpr != null && otherKeyExpr.isSame(mappedOtherKeyExpr)) {
+                // TODO: joinMapEntry.getValue() is not the same level as exprNodeDesc -> need to be mapped
+                equalities.put(exprNodeDesc, joinMapEntry.getValue());
+              }
+            }
+          }
+        }
+      }
+      return equalities;
+    }
+
+    private Map<ExprNodeDesc, ExprNodeDesc> processDefaultEq(
+            Operator<?> operator, List<ExprNodeColumnDesc> exprNodeDescList) {
+      Map<ExprNodeDesc, ExprNodeDesc> equalities = new HashMap<>();
+      Map<String, ExprNodeDesc> columnExprMap = operator.getColumnExprMap();
+      if (columnExprMap == null) {
+        if (operator.getParentOperators().size() == 1) {
+          return walk(operator.getParentOperators().get(0), exprNodeDescList);
+        } else {
+          return equalities;
+        }
+      }
+
+      List<ExprNodeColumnDesc> mapped = new ArrayList<>(exprNodeDescList.size());
+      for (ExprNodeColumnDesc exprNodeDesc : exprNodeDescList) {
+        ExprNodeDesc valueDesc = operator.getColumnExprMap().get(exprNodeDesc.getColumn());
+        if (valueDesc instanceof ExprNodeColumnDesc) {
+          mapped.add((ExprNodeColumnDesc) valueDesc);
+        }
+      }
+      if (operator.getParentOperators().size() == 1) {
+        return walk(operator.getParentOperators().get(0), mapped);
+      } else {
+        return equalities;
       }
     }
 
