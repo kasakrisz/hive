@@ -729,14 +729,24 @@ public final class OpProcFactory {
             }
             ExprNodeDesc replaced = ExprNodeDescUtils.replace(backtrack, sourceKeys, targetKeys);
             if (replaced == null) {
-
               List<ExprNodeColumnDesc> startNodes = new ArrayList<>();
               extractColumnExprNodes(predicate, startNodes);
               Map<ExprNodeDesc, String> equalities = walk(source, startNodes);
 
               Map<ExprNodeDesc, ExprNodeDesc> replaceMap = new HashMap<>(equalities.size());
               for (Entry<ExprNodeDesc, String> eqEntry : equalities.entrySet()) {
-                replaceMap.put(eqEntry.getKey(), source.getColumnExprMap().get(eqEntry.getValue()));
+                for (Entry<String, ExprNodeDesc> joinColMapEntry : join.getColumnExprMap().entrySet()) {
+                  if (join.getConf().getReversedExprs().get(joinColMapEntry.getKey()) != sourcePos) {
+                    continue;
+                  }
+                  if (!(joinColMapEntry.getValue() instanceof ExprNodeColumnDesc)) {
+                    continue;
+                  }
+                  if (((ExprNodeColumnDesc) joinColMapEntry.getValue()).getColumn().equals(eqEntry.getValue())) {
+                    replaceMap.put(eqEntry.getKey(), joinColMapEntry.getValue());
+                    break;
+                  }
+                }
               }
 
               ExprNodeDesc newPredicate = replaceColumnExprNodes(predicate, replaceMap);
@@ -774,7 +784,7 @@ public final class OpProcFactory {
         return replaceMap.getOrDefault(exprNodeDesc, exprNodeDesc);
       }
       if (exprNodeDesc instanceof ExprNodeGenericFuncDesc) {
-        ExprNodeGenericFuncDesc exprNodeGenericFuncDesc = (ExprNodeGenericFuncDesc) exprNodeDesc;
+        ExprNodeGenericFuncDesc exprNodeGenericFuncDesc = (ExprNodeGenericFuncDesc) exprNodeDesc.clone();
         List<ExprNodeDesc> replacedChildren = new ArrayList<>(exprNodeDesc.getChildren().size());
         for (ExprNodeDesc child : exprNodeDesc.getChildren()) {
           replacedChildren.add(replaceColumnExprNodes(child, replaceMap));
