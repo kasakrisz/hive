@@ -811,8 +811,6 @@ public final class OpProcFactory {
       if (exprNodeDescList.isEmpty()) {
         return Collections.emptyMap();
       }
-      // TODO: equijoin?
-
       Map<ExprNodeDesc, String> equalities = new HashMap<>();
       for (ExprNodeColumnDesc exprNodeDesc : exprNodeDescList) {
         ExprNodeDesc mappedColExpr = join.getColumnExprMap().get(exprNodeDesc.getColumn());
@@ -822,28 +820,28 @@ public final class OpProcFactory {
         String mappedColName = ((ExprNodeColumnDesc)mappedColExpr).getColumn();
         int sideIndex = join.getConf().getReversedExprs().get(exprNodeDesc.getColumn());
         Operator<?> parentRSOperator = join.getParentOperators().get(sideIndex);
-        ExprNodeDesc keyExpr = join.getConf().getJoinKeys()[sideIndex][0];
-        if (!keyExpr.isSame(parentRSOperator.getColumnExprMap().get(mappedColName))){
-          continue;
-        }
-
-        // TODO: composite keys
-        // exprNodeDesc is join key
-        // find the other key in the join expression
-        Operator<?> otherParentRSOperator = join.getParentOperators().get(1 - sideIndex);
-        for (Entry<String, ExprNodeDesc> joinMapEntry : join.getColumnExprMap().entrySet()) {
-          if (join.getConf().getReversedExprs().get(joinMapEntry.getKey()) != 1 - sideIndex) {
+        for (int i = 0; i < join.getConf().getJoinKeys()[sideIndex].length; ++i) {
+          ExprNodeDesc keyExpr = join.getConf().getJoinKeys()[sideIndex][i];
+          if (!keyExpr.isSame(parentRSOperator.getColumnExprMap().get(mappedColName))) {
             continue;
           }
 
-          String otherColumnName = ((ExprNodeColumnDesc) joinMapEntry.getValue()).getColumn();
-          ExprNodeDesc mappedOtherKeyExpr = otherParentRSOperator.getColumnExprMap().get(otherColumnName);
-          ExprNodeDesc otherKeyExpr = join.getConf().getJoinKeys()[1 - sideIndex][0];
-          if (mappedOtherKeyExpr != null && otherKeyExpr.isSame(mappedOtherKeyExpr)) {
-            equalities.put(exprNodeDesc, joinMapEntry.getKey());
+          // exprNodeDesc is join key
+          // find the other key in the join expression
+          Operator<?> otherParentRSOperator = join.getParentOperators().get(1 - sideIndex);
+          for (Entry<String, ExprNodeDesc> joinMapEntry : join.getColumnExprMap().entrySet()) {
+            if (join.getConf().getReversedExprs().get(joinMapEntry.getKey()) != 1 - sideIndex) {
+              continue;
+            }
+
+            String otherColumnName = ((ExprNodeColumnDesc) joinMapEntry.getValue()).getColumn();
+            ExprNodeDesc mappedOtherKeyExpr = otherParentRSOperator.getColumnExprMap().get(otherColumnName);
+            ExprNodeDesc otherKeyExpr = join.getConf().getJoinKeys()[1 - sideIndex][i];
+            if (mappedOtherKeyExpr != null && otherKeyExpr.isSame(mappedOtherKeyExpr)) {
+              equalities.put(exprNodeDesc, joinMapEntry.getKey());
+            }
           }
         }
-
       }
 
       for (Operator<?> parent : join.getParentOperators()) {
