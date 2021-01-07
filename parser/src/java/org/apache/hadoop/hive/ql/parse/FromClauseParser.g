@@ -106,6 +106,8 @@ atomjoinSource
 
 joinSource
     :
+    (subQuerySource) => (subQuerySource)
+    |
     atomjoinSource (joinToken^ joinSourcePart (KW_ON! expression {$joinToken.start.getType() != COMMA}? | KW_USING! columnParenthesesList {$joinToken.start.getType() != COMMA}?)?)*
     ;
 

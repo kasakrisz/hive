@@ -36,6 +36,16 @@ public class TestValuesClause {
     System.out.println(tree.dump());
   }
 
+  @Test
+  public void testParseFromValues() throws Exception {
+//    ASTNode tree = parseDriver.parse("SELECT * FROM (VALUES(1,2,3),(4,5,6)) as FOO(a,b,c)", null).getTree();
+    ASTNode tree = parseDriver.parse("SELECT * FROM (VALUES(1,2,3),(4,5,6)) as FOO", null).getTree();
+
+    System.out.println(tree.dump());
+  }
+
+
+
 //    nil
 //      TOK_QUERY
 //        TOK_INSERT
