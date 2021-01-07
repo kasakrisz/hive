@@ -2416,6 +2416,12 @@ queryStatementExpression
       }
     }
     ->  queryStatementExpressionBody
+    |
+    valuesClause
+       -> ^(TOK_QUERY ^(TOK_INSERT
+               ^(TOK_DESTINATION ^(TOK_DIR TOK_TMP_FILE))
+               ^(TOK_SELECT ^(TOK_SELEXPR ^(TOK_FUNCTION Identifier["inline"] valuesClause)))
+               ))
     ;
 
 queryStatementExpressionBody
