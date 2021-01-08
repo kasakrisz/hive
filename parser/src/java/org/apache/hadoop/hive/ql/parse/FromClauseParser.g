@@ -231,11 +231,19 @@ viewName
     -> ^(TOK_TABNAME $db? $view)
     ;
 
+
+//                 ^(TOK_INSERT
+//                   ^(TOK_DESTINATION ^(TOK_DIR TOK_TMP_FILE))
+//                   ^(TOK_SELECT ^(TOK_SELEXPR IntegralLiteral["0"]))))
+//               {adaptor.create(Identifier, $tabAlias.tree.getChild(0).getText())}))
+
 subQuerySource
 @init { gParent.pushMsg("subquery source", state); }
 @after { gParent.popMsg(state); }
     :
-    LPAREN queryStatementExpression RPAREN KW_AS? identifier -> ^(TOK_SUBQUERY queryStatementExpression identifier)
+//    LPAREN queryStatementExpression RPAREN KW_AS? identifier -> ^(TOK_SUBQUERY queryStatementExpression identifier)
+    LPAREN queryStatementExpression RPAREN KW_AS? tabAlias=tableAlias (LPAREN identifier (COMMA identifier)* RPAREN)?
+    -> ^(TOK_SUBQUERY queryStatementExpression {adaptor.create(Identifier, $tabAlias.tree.getChild(0).getText())})
     ;
 
 //---------------------- Rules for parsing PTF clauses -----------------------------

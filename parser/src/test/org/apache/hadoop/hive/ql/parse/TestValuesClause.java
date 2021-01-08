@@ -37,13 +37,93 @@ public class TestValuesClause {
   }
 
   @Test
-  public void testParseFromValues() throws Exception {
-//    ASTNode tree = parseDriver.parse("SELECT * FROM (VALUES(1,2,3),(4,5,6)) as FOO(a,b,c)", null).getTree();
+  public void testParseValuesInSubQuery() throws Exception {
     ASTNode tree = parseDriver.parse("SELECT * FROM (VALUES(1,2,3),(4,5,6)) as FOO", null).getTree();
 
     System.out.println(tree.dump());
   }
 
+  @Test
+  public void testParseValuesInSubQueryWithColumnAliases() throws Exception {
+    ASTNode tree = parseDriver.parse("SELECT * FROM (VALUES(1,2,3),(4,5,6)) as FOO(a, b, c)", null).getTree();
+
+    System.out.println(tree.dump());
+  }
+
+//  nil
+//   TOK_QUERY
+//      TOK_INSERT
+//         TOK_DESTINATION
+//            TOK_DIR
+//               TOK_TMP_FILE
+//         TOK_SELECT
+//            TOK_SELEXPR
+//               1
+//               a
+//            TOK_SELEXPR
+//               2
+//               b
+//   <EOF>
+//
+  @Test
+  public void testParseSelect() throws Exception {
+    ASTNode tree = parseDriver.parse("SELECT 1 a, 2 b", null).getTree();
+
+    System.out.println(tree.dump());
+  }
+
+  @Test
+  public void testParseTable() throws Exception {
+    ASTNode tree = parseDriver.parse("SELECT * FROM TABLE(VALUES(1,2),(2,3)) as VirtTable(a,b)", null).getTree();
+
+    System.out.println(tree.dump());
+  }
+
+//nil
+//   TOK_QUERY
+//      TOK_FROM
+//         TOK_SUBQUERY
+//            TOK_QUERY
+//               TOK_FROM
+//                  TOK_SUBQUERY
+//                     TOK_QUERY
+//                        TOK_INSERT
+//                           TOK_DESTINATION
+//                              TOK_DIR
+//                                 TOK_TMP_FILE
+//                           TOK_SELECT
+//                              TOK_SELEXPR
+//                                 0
+//                     VirtTable
+//               TOK_INSERT
+//                  TOK_DESTINATION
+//                     TOK_DIR
+//                        TOK_TMP_FILE
+//                  TOK_SELECT
+//                     TOK_SELEXPR
+//                        TOK_FUNCTION
+//                           inline
+//                           TOK_FUNCTION
+//                              array
+//                              TOK_FUNCTION
+//                                 struct
+//                                 1
+//                                 2
+//                              TOK_FUNCTION
+//                                 struct
+//                                 2
+//                                 3
+//                        a
+//                        b
+//            VirtTable
+//      TOK_INSERT
+//         TOK_DESTINATION
+//            TOK_DIR
+//               TOK_TMP_FILE
+//         TOK_SELECT
+//            TOK_SELEXPR
+//               TOK_ALLCOLREF
+//   <EOF>
 
 
 //    nil
@@ -60,12 +140,4 @@ public class TestValuesClause {
 //            TOK_SELEXPR
 //                 3
 //    <EOF>
-
-  @Test
-  public void testParseSelect() throws Exception {
-    ASTNode tree = parseDriver.parse(
-            "select 1,2,3", null).getTree();
-
-    System.out.println(tree.dump());
-  }
 }
