@@ -141,16 +141,6 @@ expressionsInParenthesis[boolean isStruct, boolean forceStruct]
     LPAREN! expressionsNotInParenthesis[isStruct, forceStruct] RPAREN!
     ;
 
-expressionsNotInParenthesis[boolean isStruct, boolean forceStruct]
-    :
-    first=expression more=expressionPart[$expression.tree, isStruct]?
-    -> {forceStruct && more==null}?
-       ^(TOK_FUNCTION Identifier["struct"] {$first.tree})
-    -> {more==null}?
-       {$first.tree}
-    -> {$more.tree}
-    ;
-
 expressionPart[CommonTree t, boolean isStruct]
     :
     (COMMA expression)+
@@ -845,6 +835,18 @@ principalIdentifier
 @after { gParent.popMsg(state); }
     : identifier
     | QuotedIdentifier
+    ;
+
+expressionsNotInParenthesis[boolean isStruct, boolean forceStruct]
+    :
+    first=expression colAlias=identifier? more=expressionPart[$expression.tree, isStruct]?
+    -> {forceStruct && more==null && colAlias!=null}?
+       ^(TOK_FUNCTION Identifier["named_struct"] {$first.tree} ^(TOK_TABLE_OR_COL {$colAlias.tree}))
+    -> {forceStruct && more==null && colAlias==null}?
+       ^(TOK_FUNCTION Identifier["struct"] {$first.tree})
+    -> {more==null}?
+       {$first.tree}
+    -> {$more.tree}
     ;
 
 // Here is what you have to do if you would like to add a new keyword.

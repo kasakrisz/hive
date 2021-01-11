@@ -31,10 +31,21 @@ public class TestValuesClause {
   @Test
   public void testParseValues() throws Exception {
     ASTNode tree = parseDriver.parse(
-            "VALUES(1,2,3),(4,5,6)", null).getTree();
+            "VALUES(1 alma)", null).getTree();
 
     ASTNode queryNode = (ASTNode) tree.getChild(0);
     Assert.assertEquals(EXPECTED_VALUES_CLAUSE_TREE, queryNode.dump());
+  }
+
+  @Test
+  public void testParseInsertStruct() throws Exception {
+    ASTNode tree = parseDriver.parse(
+            "insert overwrite table char_nested_struct\n" +
+                    "  select named_struct('a', key,\n" +
+                    "                      'b', value,\n" +
+                    "                      'c', cast(value as string))", null).getTree();
+
+    System.out.println(tree.dump());
   }
 
   @Test
