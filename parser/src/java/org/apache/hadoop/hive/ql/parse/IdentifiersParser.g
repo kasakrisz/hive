@@ -38,6 +38,33 @@ k=3;
 
   int parameterIdx = 0;
   public int getParameterIdx() { return ++parameterIdx;}
+
+  // counter to generate unique column aliases
+  private int colAliasCounter;
+  private String generateColumnAlias() {
+    String newAlias = "_col" + (++colAliasCounter);
+    colAliasList.add(newAlias);
+    return newAlias;
+  }
+
+  private final List<String> colAliasList = new ArrayList<String>();
+  private String addAlias(String alias) {
+    colAliasList.add(alias);
+    return alias;
+  }
+
+  private int aliasIndex = 0;
+  private String getNextAlias() {
+    return colAliasList.get(aliasIndex++);
+  }
+
+  private void resetAliasIndex() {
+    aliasIndex = 0;
+  }
+
+  private void initAliases() {
+    colAliasList.clear();
+  }
 }
 
 @rulecatch {
@@ -151,11 +178,64 @@ expressionsNotInParenthesis[boolean isStruct, boolean forceStruct]
     -> {$more.tree}
     ;
 
-expressionPart[CommonTree t, boolean isStruct]
+expressionPart[CommonTree firstExprTree, boolean isStruct]
     :
     (COMMA expression)+
-    -> {isStruct}? ^(TOK_FUNCTION Identifier["struct"] {$t} expression+)
-    -> {$t} expression+
+    -> {isStruct}? ^(TOK_FUNCTION Identifier["struct"] {$firstExprTree} expression+)
+    -> {$firstExprTree} expression+
+    ;
+
+expressionsWithAliasInParenthesis
+    :
+    LPAREN! expressionsWithAliasNotInParenthesis RPAREN!
+    ;
+
+expressionsWithAliasNotInParenthesis
+@before { initAliases(); }
+    :
+    first=expression colAlias=identifier? more=expressionWithAliasPart[$expression.tree, $colAlias.tree]?
+    -> {more==null}?
+       ^(TOK_FUNCTION Identifier["named_struct"] { adaptor.create(Identifier, addAlias($colAlias.tree.getText())) } {$first.tree})
+    -> {$more.tree}
+    ;
+
+expressionWithAliasPart[CommonTree firstExprTree, CommonTree firstAliasTree]
+    :
+    (COMMA expressionWithAlias)+
+    -> { firstAliasTree == null }? ^(TOK_FUNCTION Identifier["named_struct"] { adaptor.create(Identifier, generateColumnAlias()) } {$firstExprTree} expressionWithAlias+)
+    -> ^(TOK_FUNCTION Identifier["named_struct"] { adaptor.create(Identifier, addAlias($firstAliasTree.getText())) } {$firstExprTree} expressionWithAlias+)
+    ;
+
+expressionWithAlias
+    :
+    expression alias=identifier?
+    -> { alias != null }? { adaptor.create(Identifier, addAlias($alias.tree.getText())) } expression
+    -> { adaptor.create(Identifier, generateColumnAlias()) } expression
+    ;
+
+moreExpressionsWithAliasInParenthesis
+    :
+    LPAREN! moreExpressionsWithAliasNotInParenthesis RPAREN!
+    ;
+
+moreExpressionsWithAliasNotInParenthesis
+@after { resetAliasIndex(); }
+    :
+    first=expression more=moreExpressionWithAliasPart[$expression.tree]?
+    -> {more==null}?
+       ^(TOK_FUNCTION Identifier["named_struct"] { adaptor.create(Identifier, getNextAlias()) } { $first.tree })
+    -> {$more.tree}
+    ;
+
+moreExpressionWithAliasPart[CommonTree firstExprTree]
+    :
+    (COMMA moreExpressionWithAlias)+
+    -> ^(TOK_FUNCTION Identifier["named_struct"] { adaptor.create(Identifier, getNextAlias()) } { $firstExprTree } moreExpressionWithAlias+)
+    ;
+
+moreExpressionWithAlias
+    :
+    expression -> { adaptor.create(Identifier, getNextAlias()) } expression
     ;
 
 expressions

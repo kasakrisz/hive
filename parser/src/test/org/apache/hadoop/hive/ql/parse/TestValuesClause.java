@@ -20,6 +20,8 @@ package org.apache.hadoop.hive.ql.parse;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -103,4 +105,13 @@ public class TestValuesClause {
   public void testParseInsertFromValuesAsSubQuery() throws Exception {
     parseDriver.parse("insert into table FOO select a,b from (values(1,2),(3,4)) as BAR", null);
   }
+
+  @Test
+  public void testParseValuesWithColAlias() throws Exception {
+    ASTNode tree = parseDriver.parse(
+            "VALUES(1 a,2 b,3),(4,5,6),(11,12,13)", null).getTree();
+
+    System.out.println(tree.dump());
+  }
+
 }
