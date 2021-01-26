@@ -65,6 +65,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
   private final ValidWriteIdList validWriteIdList;
   private final int columns;
   private final ReaderKey prevKey = new ReaderKey();
+  private final ReaderKey lastDeleteKey = new ReaderKey();
   // this is the key less than the lowest key we need to process
   private final RecordIdentifier minKey;
   // this is the last key we need to process
@@ -1340,6 +1341,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       // The primary's nextRecord is the next value to return
       OrcStruct current = primary.nextRecord();
       recordIdentifier.set(primary.getKey());
+      ((ReaderKey) recordIdentifier).setDeleted(false);
 
       // Advance the primary reader to the next record
       primary.next(extraValue);
@@ -1401,8 +1403,13 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
         }
       } else {
         keysSame = false;
+        if (lastDeleteKey.compareRow(recordIdentifier) == 0) {
+          ((ReaderKey) recordIdentifier).setDeleted(true);
+        }
+        if (isDelete(current)) {
+          lastDeleteKey.set(recordIdentifier);
+        }
       }
-      ((ReaderKey) recordIdentifier).setDeleted(isDelete(current));
 
       // set the output record by fiddling with the pointers so that we can
       // avoid a copy.
