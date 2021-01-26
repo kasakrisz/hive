@@ -3149,11 +3149,10 @@ public class CalcitePlanner extends SemanticAnalyzer {
           Iterator<VirtualColumn> vcs = VirtualColumn.getRegistry(conf).iterator();
           while (vcs.hasNext()) {
             VirtualColumn vc = vcs.next();
-            colInfo = new ColumnInfo(vc.getName(), vc.getTypeInfo(), tableAlias, true,
-                vc.getIsHidden());
-            rr.put(tableAlias, vc.getName().toLowerCase(), colInfo);
-            cInfoLst.add(colInfo);
-            virtualCols.add(vc);
+            addVirtualColumn(vc, tableAlias, rr, cInfoLst, virtualCols);
+          }
+          if (ctx.getFetchDeletedRowsScans().contains(tabMetaData.getDbName() + "." + tabMetaData.getTableName())) {
+            addVirtualColumn(VirtualColumn.ROWISDELETED, tableAlias, rr, cInfoLst, virtualCols);
           }
         }
 
@@ -3302,6 +3301,16 @@ public class CalcitePlanner extends SemanticAnalyzer {
       }
 
       return tableRel;
+    }
+
+    private void addVirtualColumn(VirtualColumn vc, String tableAlias,
+                                  RowResolver rr, ArrayList<ColumnInfo> cInfoLst, List<VirtualColumn> virtualCols) {
+      ColumnInfo colInfo;
+      colInfo = new ColumnInfo(vc.getName(), vc.getTypeInfo(), tableAlias, true,
+          vc.getIsHidden());
+      rr.put(tableAlias, vc.getName().toLowerCase(), colInfo);
+      cInfoLst.add(colInfo);
+      virtualCols.add(vc);
     }
 
     private RelDataType inferNotNullableColumns(Table tabMetaData, RelDataType rowType)
