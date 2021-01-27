@@ -678,11 +678,7 @@ public class MapOperator extends AbstractMapOperator {
           }
 	  break;
         case ROWISDELETED:
-          if(ctx.getIoCxt().getRecordIdentifier() == null) {
-            vcValues[i] = null;
-          }
-          OrcRawRecordMerger.ReaderKey readerKey = (OrcRawRecordMerger.ReaderKey) ctx.getIoCxt().getRecordIdentifier();
-          vcValues[i] = new BooleanWritable(readerKey.isDeleted());
+          vcValues[i] = new BooleanWritable(ctx.getIoCxt().isDeletedRecord());
           break;
       }
     }
