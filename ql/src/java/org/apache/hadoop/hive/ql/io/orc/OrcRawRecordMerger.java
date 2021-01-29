@@ -1403,12 +1403,12 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
         }
       } else {
         keysSame = false;
-        if (lastDeleteKey.compareRow(recordIdentifier) == 0) {
-          ((ReaderKey) recordIdentifier).setDeleted(true);
-        }
-        if (isDelete(current)) {
-          lastDeleteKey.set(recordIdentifier);
-        }
+//        if (lastDeleteKey.compareRow(recordIdentifier) == 0) {
+//          ((ReaderKey) recordIdentifier).setDeleted(true);
+//        }
+//        if (isDelete(current)) {
+//          lastDeleteKey.set(recordIdentifier);
+//        }
       }
 
       // set the output record by fiddling with the pointers so that we can

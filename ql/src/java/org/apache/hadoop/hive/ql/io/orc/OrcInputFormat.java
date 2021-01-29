@@ -2108,12 +2108,12 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
                           OrcStruct orcStruct) throws IOException {
         boolean result;
         // filter out the deleted records
-        do {
+//        do {
           result = records.next(recordIdentifier, innerRecord);
-        } while (result &&
-            OrcRecordUpdater.getOperation(innerRecord) ==
-                OrcRecordUpdater.DELETE_OPERATION);
-        if (result) {
+          ((OrcRawRecordMerger.ReaderKey)recordIdentifier).setDeleted(
+                  OrcRecordUpdater.getOperation(innerRecord) == OrcRecordUpdater.DELETE_OPERATION);
+//        } while (result);
+        if (result && OrcRecordUpdater.getOperation(innerRecord) != OrcRecordUpdater.DELETE_OPERATION) {
           // swap the fields with the passed in orcStruct
           orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
         }
