@@ -82,7 +82,6 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
   public final static class ReaderKey extends RecordIdentifier{
     private long currentWriteId;
     private boolean isDeleteEvent = false;
-    private boolean isDeleted = false;
 
     ReaderKey() {
       this(-1, -1, -1, -1);
@@ -98,14 +97,6 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       super.set(other);
       currentWriteId = ((ReaderKey) other).currentWriteId;
       isDeleteEvent = ((ReaderKey) other).isDeleteEvent;
-    }
-
-    public boolean isDeleted() {
-      return isDeleted;
-    }
-
-    public void setDeleted(boolean deleted) {
-      isDeleted = deleted;
     }
 
     public void setValues(long originalWriteId,
@@ -179,6 +170,10 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       return "{originalWriteId: " + getWriteId() + ", " +
           bucketToString(getBucketProperty()) + ", row: " + getRowId() +
           ", currentWriteId " + currentWriteId + "}";
+    }
+
+    public boolean isDeleteEvent() {
+      return isDeleteEvent;
     }
   }
   interface ReaderPair {
@@ -1340,7 +1335,6 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       // The primary's nextRecord is the next value to return
       OrcStruct current = primary.nextRecord();
       recordIdentifier.set(primary.getKey());
-      ((ReaderKey) recordIdentifier).setDeleted(false);
 
       // Advance the primary reader to the next record
       primary.next(extraValue);

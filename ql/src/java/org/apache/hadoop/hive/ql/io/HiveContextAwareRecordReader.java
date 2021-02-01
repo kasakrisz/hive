@@ -126,7 +126,7 @@ public abstract class HiveContextAwareRecordReader<K extends WritableComparable,
           //supports AcidInputFormat which do not use the KEY pass ROW__ID info
           RecordIdentifier recordIdentifier = ((AcidInputFormat.AcidRecordReader) recordReader).getRecordIdentifier();
           ioCxtRef.setRecordIdentifier(recordIdentifier);
-          ioCxtRef.setDeletedRecord(((OrcRawRecordMerger.ReaderKey)recordIdentifier).isDeleted());
+          ioCxtRef.setDeletedRecord(((OrcRawRecordMerger.ReaderKey)recordIdentifier).isDeleteEvent());
         }
       }
       return retVal;
