@@ -2091,60 +2091,90 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
             + " isTransactionalTable: " + HiveConf.getBoolVar(conf, ConfVars.HIVE_TRANSACTIONAL_TABLE_SCAN));
       LOG.debug("Creating merger for {} and {}", split.getPath(), Arrays.toString(deltas));
     }
+    boolean fetchDeleteRows = HiveConf.getBoolVar(conf, ConfVars.HIVE_ACID_FETCH_DELETED_ROWS);
 
     Map<String, Integer> deltaToAttemptId = AcidUtils.getDeltaToAttemptIdMap(pathToDeltaMetaData, deltas, bucket);
-    final OrcRawRecordMerger records = new OrcRawRecordMerger(conf, false, reader, split.isOriginal(), bucket,
+    final OrcRawRecordMerger records = new OrcRawRecordMerger(conf, !fetchDeleteRows, reader, split.isOriginal(), bucket,
         validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId);
-    return new RowReader<OrcStruct>() {
-      OrcStruct innerRecord = records.createValue();
+    if (fetchDeleteRows) {
+      return new OrcRowReader2(records, readOptions);
+    }
+    return new OrcRowReader(records, readOptions);
+  }
 
-      @Override
-      public ObjectInspector getObjectInspector() {
-        return OrcStruct.createObjectInspector(0, OrcUtils.getOrcTypes(readOptions.getSchema()));
-      }
+  private static class OrcRowReader implements RowReader<OrcStruct> {
+    protected final OrcRawRecordMerger records;
+    protected final OrcStruct innerRecord;
+    private final Reader.Options readOptions;
 
-      @Override
-      public boolean next(RecordIdentifier recordIdentifier,
-                          OrcStruct orcStruct) throws IOException {
-        boolean result;
-        // filter out the deleted records
-//        do {
-          result = records.next(recordIdentifier, innerRecord);
-          ((OrcRawRecordMerger.ReaderKey)recordIdentifier).setDeleted(
-                  OrcRecordUpdater.getOperation(innerRecord) == OrcRecordUpdater.DELETE_OPERATION);
-//        } while (result);
-        if (result && OrcRecordUpdater.getOperation(innerRecord) != OrcRecordUpdater.DELETE_OPERATION) {
-          // swap the fields with the passed in orcStruct
-          orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
-        }
-        return result;
-      }
+    public OrcRowReader(OrcRawRecordMerger records, Reader.Options readOptions) {
+      this.records = records;
+      this.innerRecord = records.createValue();
+      this.readOptions = readOptions;
+    }
 
-      @Override
-      public RecordIdentifier createKey() {
-        return records.createKey();
-      }
+    @Override
+    public ObjectInspector getObjectInspector() {
+      return OrcStruct.createObjectInspector(0, OrcUtils.getOrcTypes(readOptions.getSchema()));
+    }
 
-      @Override
-      public OrcStruct createValue() {
-        return new OrcStruct(records.getColumns());
+    @Override
+    public boolean next(RecordIdentifier recordIdentifier,
+            OrcStruct orcStruct) throws IOException {
+      boolean result;
+      // filter out the deleted records
+      do {
+        result = records.next(recordIdentifier, innerRecord);
+      } while (result && OrcRecordUpdater.getOperation(innerRecord) == OrcRecordUpdater.DELETE_OPERATION);
+      if (result) {
+        // swap the fields with the passed in orcStruct
+        orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
       }
+      return result;
+    }
 
-      @Override
-      public long getPos() throws IOException {
-        return records.getPos();
-      }
+    @Override
+    public RecordIdentifier createKey() {
+      return records.createKey();
+    }
 
-      @Override
-      public void close() throws IOException {
-        records.close();
-      }
+    @Override
+    public OrcStruct createValue() {
+      return new OrcStruct(records.getColumns());
+    }
 
-      @Override
-      public float getProgress() throws IOException {
-        return records.getProgress();
+    @Override
+    public long getPos() throws IOException {
+      return records.getPos();
+    }
+
+    @Override
+    public void close() throws IOException {
+      records.close();
+    }
+
+    @Override
+    public float getProgress() throws IOException {
+      return records.getProgress();
+    }
+  }
+
+  private static class OrcRowReader2 extends OrcRowReader {
+    public OrcRowReader2(OrcRawRecordMerger records, Reader.Options readOptions) {
+      super(records, readOptions);
+    }
+
+    @Override
+    public boolean next(RecordIdentifier recordIdentifier, OrcStruct orcStruct) throws IOException {
+      boolean result = records.next(recordIdentifier, innerRecord);
+      ((OrcRawRecordMerger.ReaderKey)recordIdentifier).setDeleted(
+              OrcRecordUpdater.getOperation(innerRecord) == OrcRecordUpdater.DELETE_OPERATION);
+      if (result && OrcRecordUpdater.getOperation(innerRecord) != OrcRecordUpdater.DELETE_OPERATION) {
+        // swap the fields with the passed in orcStruct
+        orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
       }
-    };
+      return result;
+    }
   }
 
   static Reader.Options createOptionsForReader(Configuration conf) {
