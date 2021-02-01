@@ -2097,7 +2097,7 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
     final OrcRawRecordMerger records = new OrcRawRecordMerger(conf, !fetchDeleteRows, reader, split.isOriginal(), bucket,
         validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId);
     if (fetchDeleteRows) {
-      return new OrcRowReader2(records, readOptions);
+      return new OrcAllRowReader(records, readOptions);
     }
     return new OrcRowReader(records, readOptions);
   }
@@ -2159,8 +2159,8 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
     }
   }
 
-  private static class OrcRowReader2 extends OrcRowReader {
-    public OrcRowReader2(OrcRawRecordMerger records, Reader.Options readOptions) {
+  private static class OrcAllRowReader extends OrcRowReader {
+    public OrcAllRowReader(OrcRawRecordMerger records, Reader.Options readOptions) {
       super(records, readOptions);
     }
 
