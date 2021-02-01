@@ -11433,6 +11433,26 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       TableScanDesc tsDesc = new TableScanDesc(alias, vcList, tab);
       setupStats(tsDesc, qb.getParseInfo(), tab, alias, rwsch);
 
+      if (qb.getParseInfo().getHintList() != null) {
+        // TOK_HINTLIST
+        //   TOK_HINT
+        //     TOK_FETCH_DELETED_ROWS
+        for (ASTNode hintListNode : qb.getParseInfo().getHintList()) {
+          ASTNode hintNode = (ASTNode) hintListNode.getChild(0);
+          if (hintNode == null) {
+            continue;
+          }
+          ASTNode hintChild = (ASTNode) hintNode.getChild(0);
+          if (hintChild == null) {
+            continue;
+          }
+          if (hintChild.getType() == HintParser.TOK_FETCH_DELETED_ROWS) {
+            tsDesc.setFetchDeletedRows(true);
+            break;
+          }
+        }
+      }
+
       SplitSample sample = nameToSplitSample.get(alias_id);
       if (sample != null && sample.getRowCount() != null) {
         tsDesc.setRowLimit(sample.getRowCount());
