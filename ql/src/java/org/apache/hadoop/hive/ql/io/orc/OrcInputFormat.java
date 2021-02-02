@@ -2167,9 +2167,15 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
     @Override
     public boolean next(RecordIdentifier recordIdentifier, OrcStruct orcStruct) throws IOException {
       boolean result = records.next(recordIdentifier, innerRecord);
-      if (result && OrcRecordUpdater.getOperation(innerRecord) != OrcRecordUpdater.DELETE_OPERATION) {
-        // swap the fields with the passed in orcStruct
-        orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
+      if (result) {
+        if (OrcRecordUpdater.getOperation(innerRecord) != OrcRecordUpdater.DELETE_OPERATION) {
+          // swap the fields with the passed in orcStruct
+          orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
+        } else {
+          for (int i = 0; i < orcStruct.getNumFields(); ++i) {
+            orcStruct.setFieldValue(i, null);
+          }
+        }
       }
       return result;
     }
