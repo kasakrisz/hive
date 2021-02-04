@@ -2094,11 +2094,11 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
     boolean fetchDeleteRows = HiveConf.getBoolVar(conf, ConfVars.HIVE_ACID_FETCH_DELETED_ROWS);
 
     Map<String, Integer> deltaToAttemptId = AcidUtils.getDeltaToAttemptIdMap(pathToDeltaMetaData, deltas, bucket);
-    final OrcRawRecordMerger records = new OrcRawRecordMerger(conf, !fetchDeleteRows, reader, split.isOriginal(), bucket,
+    final OrcRawRecordMerger records = new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
         validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId);
-    if (fetchDeleteRows) {
-      return new OrcAllRowReader(records, readOptions);
-    }
+//    if (fetchDeleteRows) {
+//      return new OrcAllRowReader(records, readOptions);
+//    }
     return new OrcRowReader(records, readOptions);
   }
 

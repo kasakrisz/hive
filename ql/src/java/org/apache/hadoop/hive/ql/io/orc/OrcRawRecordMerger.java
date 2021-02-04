@@ -1393,6 +1393,9 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
         keysSame = (collapse && prevKey.compareRow(recordIdentifier) == 0) || (isSameRow);
         if (!keysSame) {
           prevKey.set(recordIdentifier);
+        } else {
+          ((ReaderKey) recordIdentifier).setValues(prevKey.currentWriteId, prevKey.getBucketProperty(), prevKey.getRowId(), prevKey.getCurrentWriteId(), true);
+          keysSame = false;
         }
       } else {
         keysSame = false;
