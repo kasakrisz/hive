@@ -2091,13 +2091,13 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
             + " isTransactionalTable: " + HiveConf.getBoolVar(conf, ConfVars.HIVE_TRANSACTIONAL_TABLE_SCAN));
       LOG.debug("Creating merger for {} and {}", split.getPath(), Arrays.toString(deltas));
     }
-    boolean fetchDeleteRows = HiveConf.getBoolVar(conf, ConfVars.HIVE_ACID_FETCH_DELETED_ROWS);
+    boolean fetchDeletedRows = HiveConf.getBoolVar(conf, ConfVars.HIVE_ACID_FETCH_DELETED_ROWS);
 
     Map<String, Integer> deltaToAttemptId = AcidUtils.getDeltaToAttemptIdMap(pathToDeltaMetaData, deltas, bucket);
     OrcRawRecordMerger records = new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
         validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId);
 
-    if (fetchDeleteRows) {
+    if (fetchDeletedRows) {
       records = new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
               validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId) {
         @Override
