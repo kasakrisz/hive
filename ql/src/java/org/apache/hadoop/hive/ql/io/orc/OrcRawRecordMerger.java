@@ -64,7 +64,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
   private final long length;
   private final ValidWriteIdList validWriteIdList;
   private final int columns;
-  private final ReaderKey prevKey = new ReaderKey();
+  protected final ReaderKey prevKey = new ReaderKey();
   // this is the key less than the lowest key we need to process
   private final RecordIdentifier minKey;
   // this is the last key we need to process
@@ -1391,11 +1391,10 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       if (collapse || isSameRow) {
         // Note: for collapse == false, this just sets keysSame.
         keysSame = (collapse && prevKey.compareRow(recordIdentifier) == 0) || (isSameRow);
-        if (!keysSame) {
-          prevKey.set(recordIdentifier);
+        if (keysSame) {
+          keysSame = collapse(recordIdentifier);
         } else {
-          ((ReaderKey) recordIdentifier).setValues(prevKey.currentWriteId, prevKey.getBucketProperty(), prevKey.getRowId(), prevKey.getCurrentWriteId(), true);
-          keysSame = false;
+          prevKey.set(recordIdentifier);
         }
       } else {
         keysSame = false;
@@ -1406,6 +1405,10 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       prev.linkFields(current);
     }
     return !keysSame;
+  }
+
+  protected boolean collapse(RecordIdentifier recordIdentifier) {
+    return true;
   }
 
   @Override

@@ -2094,11 +2094,19 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
     boolean fetchDeleteRows = HiveConf.getBoolVar(conf, ConfVars.HIVE_ACID_FETCH_DELETED_ROWS);
 
     Map<String, Integer> deltaToAttemptId = AcidUtils.getDeltaToAttemptIdMap(pathToDeltaMetaData, deltas, bucket);
-    final OrcRawRecordMerger records = new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
+    OrcRawRecordMerger records = new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
         validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId);
-//    if (fetchDeleteRows) {
-//      return new OrcAllRowReader(records, readOptions);
-//    }
+
+    if (fetchDeleteRows) {
+      records = new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
+              validWriteIdList, readOptions, deltas, mergerOptions, deltaToAttemptId) {
+        @Override
+        protected boolean collapse(RecordIdentifier recordIdentifier) {
+          ((ReaderKey) recordIdentifier).setValues(prevKey.getCurrentWriteId(), prevKey.getBucketProperty(), prevKey.getRowId(), prevKey.getCurrentWriteId(), true);
+          return false;
+        }
+      };
+    }
     return new OrcRowReader(records, readOptions);
   }
 
@@ -2156,28 +2164,6 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
     @Override
     public float getProgress() throws IOException {
       return records.getProgress();
-    }
-  }
-
-  private static class OrcAllRowReader extends OrcRowReader {
-    public OrcAllRowReader(OrcRawRecordMerger records, Reader.Options readOptions) {
-      super(records, readOptions);
-    }
-
-    @Override
-    public boolean next(RecordIdentifier recordIdentifier, OrcStruct orcStruct) throws IOException {
-      boolean result = records.next(recordIdentifier, innerRecord);
-      if (result) {
-        if (OrcRecordUpdater.getOperation(innerRecord) != OrcRecordUpdater.DELETE_OPERATION) {
-          // swap the fields with the passed in orcStruct
-          orcStruct.linkFields(OrcRecordUpdater.getRow(innerRecord));
-        } else {
-          for (int i = 0; i < orcStruct.getNumFields(); ++i) {
-            orcStruct.setFieldValue(i, null);
-          }
-        }
-      }
-      return result;
     }
   }
 
