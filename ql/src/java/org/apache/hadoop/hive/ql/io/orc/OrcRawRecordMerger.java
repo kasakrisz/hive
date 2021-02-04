@@ -104,7 +104,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
                           long rowId,
                           long currentWriteId,
                           boolean  isDelete) {
-      setValues(isDelete ? currentWriteId : originalWriteId, bucket, rowId);
+      setValues(originalWriteId, bucket, rowId);
       this.currentWriteId = currentWriteId;
       this.isDeleteEvent = isDelete;
     }
