@@ -145,17 +145,19 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 POSTHOOK: Input: default@t2
 #### A masked pattern was here ####
+true	{"writeid":2,"bucketid":536870912,"rowid":0}	false	{"writeid":1,"bucketid":536870912,"rowid":0}	1	foo	1	1.0
 false	{"writeid":1,"bucketid":536870912,"rowid":1}	false	{"writeid":1,"bucketid":536870912,"rowid":1}	2	bar	2	2.0
+true	{"writeid":4,"bucketid":536870912,"rowid":0}	false	{"writeid":2,"bucketid":536870912,"rowid":0}	3	one	3	3.3
 false	{"writeid":3,"bucketid":536870912,"rowid":1}	false	{"writeid":2,"bucketid":536870912,"rowid":1}	4	two	4	4.4
 false	{"writeid":3,"bucketid":536870912,"rowid":1}	false	{"writeid":2,"bucketid":536870912,"rowid":2}	4	two	4	4.5
 false	{"writeid":3,"bucketid":536870912,"rowid":2}	false	{"writeid":2,"bucketid":536870912,"rowid":1}	4	three	4	4.4
 false	{"writeid":3,"bucketid":536870912,"rowid":2}	false	{"writeid":2,"bucketid":536870912,"rowid":2}	4	three	4	4.5
 false	{"writeid":3,"bucketid":536870912,"rowid":3}	false	{"writeid":2,"bucketid":536870912,"rowid":3}	5	four	5	5.5
-PREHOOK: query: delete from t2 where a = 4
+PREHOOK: query: delete from t2 where a = 4 or a = 3
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t2
 PREHOOK: Output: default@t2
-POSTHOOK: query: delete from t2 where a = 4
+POSTHOOK: query: delete from t2 where a = 4 or a = 3
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t2
 POSTHOOK: Output: default@t2
@@ -171,7 +173,13 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 POSTHOOK: Input: default@t2
 #### A masked pattern was here ####
+true	{"writeid":2,"bucketid":536870912,"rowid":0}	false	{"writeid":1,"bucketid":536870912,"rowid":0}	1	foo	1	1.0
 false	{"writeid":1,"bucketid":536870912,"rowid":1}	false	{"writeid":1,"bucketid":536870912,"rowid":1}	2	bar	2	2.0
+true	{"writeid":4,"bucketid":536870912,"rowid":0}	true	{"writeid":3,"bucketid":536870912,"rowid":0}	3	one	3	3.3
+false	{"writeid":3,"bucketid":536870912,"rowid":1}	true	{"writeid":3,"bucketid":536870912,"rowid":1}	4	two	4	4.4
+false	{"writeid":3,"bucketid":536870912,"rowid":1}	true	{"writeid":3,"bucketid":536870912,"rowid":2}	4	two	4	4.5
+false	{"writeid":3,"bucketid":536870912,"rowid":2}	true	{"writeid":3,"bucketid":536870912,"rowid":1}	4	three	4	4.4
+false	{"writeid":3,"bucketid":536870912,"rowid":2}	true	{"writeid":3,"bucketid":536870912,"rowid":2}	4	three	4	4.5
 false	{"writeid":3,"bucketid":536870912,"rowid":3}	false	{"writeid":2,"bucketid":536870912,"rowid":3}	5	four	5	5.5
 PREHOOK: query: select /*+ FETCH_DELETED_ROWS*/ t1.ROW__IS__DELETED, t1.ROW__ID, t2.ROW__IS__DELETED, t2.ROW__ID, * from t1
 full outer join t2 on t1.a = t2.a
@@ -185,9 +193,11 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 POSTHOOK: Input: default@t2
 #### A masked pattern was here ####
-NULL	NULL	false	{"writeid":1,"bucketid":536870912,"rowid":0}	NULL	NULL	1	1.0
+true	{"writeid":2,"bucketid":536870912,"rowid":0}	false	{"writeid":1,"bucketid":536870912,"rowid":0}	1	foo	1	1.0
 false	{"writeid":1,"bucketid":536870912,"rowid":1}	false	{"writeid":1,"bucketid":536870912,"rowid":1}	2	bar	2	2.0
-NULL	NULL	false	{"writeid":2,"bucketid":536870912,"rowid":0}	NULL	NULL	3	3.3
-false	{"writeid":3,"bucketid":536870912,"rowid":1}	NULL	NULL	4	two	NULL	NULL
-false	{"writeid":3,"bucketid":536870912,"rowid":2}	NULL	NULL	4	three	NULL	NULL
+true	{"writeid":4,"bucketid":536870912,"rowid":0}	true	{"writeid":3,"bucketid":536870912,"rowid":0}	3	one	3	3.3
+false	{"writeid":3,"bucketid":536870912,"rowid":1}	true	{"writeid":3,"bucketid":536870912,"rowid":1}	4	two	4	4.4
+false	{"writeid":3,"bucketid":536870912,"rowid":1}	true	{"writeid":3,"bucketid":536870912,"rowid":2}	4	two	4	4.5
+false	{"writeid":3,"bucketid":536870912,"rowid":2}	true	{"writeid":3,"bucketid":536870912,"rowid":1}	4	three	4	4.4
+false	{"writeid":3,"bucketid":536870912,"rowid":2}	true	{"writeid":3,"bucketid":536870912,"rowid":2}	4	three	4	4.5
 false	{"writeid":3,"bucketid":536870912,"rowid":3}	false	{"writeid":2,"bucketid":536870912,"rowid":3}	5	four	5	5.5

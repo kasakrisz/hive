@@ -34,7 +34,7 @@ insert into t2(a,c) values (3, 3.3), (4, 4.4), (4, 4.5), (5, 5.5);
 select /*+ FETCH_DELETED_ROWS*/ t1.ROW__IS__DELETED, t1.ROW__ID, t2.ROW__IS__DELETED, t2.ROW__ID, * from t1
 join t2 on t1.a = t2.a;
 
-delete from t2 where a = 4;
+delete from t2 where a = 4 or a = 3;
 
 select /*+ FETCH_DELETED_ROWS*/ t1.ROW__IS__DELETED, t1.ROW__ID, t2.ROW__IS__DELETED, t2.ROW__ID, * from t1
 join t2 on t1.a = t2.a;
