@@ -185,7 +185,9 @@ public class QB {
   }
 
   public void setSubqAlias(String alias, QBExpr qbexpr) {
-    qbexpr.getQB().getParseInfo().setHintList(qbp.getHintList());
+    if (qbexpr.getQB() != null) {
+      qbexpr.getQB().getParseInfo().setHintList(qbp.getHintList());
+    }
     aliasToSubq.put(alias.toLowerCase(), qbexpr);
   }
 
