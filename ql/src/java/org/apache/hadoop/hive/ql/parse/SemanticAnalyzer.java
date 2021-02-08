@@ -15226,7 +15226,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     NONE,
     INSERT_OVERWRITE_REBUILD,
     AGGREGATE_REBUILD,
-    NO_AGGREGATE_REBUILD
+    NO_AGGREGATE_REBUILD,
+    JOIN_REBUILD
   }
 
   /**
