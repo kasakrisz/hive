@@ -59,7 +59,8 @@ public class HiveJoinIncrementalRewritingRule extends RelOptRule {
       RexNode leftRef = rexBuilder.makeInputRef(
               joinLeftInput.getRowType().getFieldList().get(leftPos).getType(), leftPos);
       RexNode rightRef = rexBuilder.makeInputRef(
-              joinRightInput.getRowType().getFieldList().get(leftPos).getType(), leftPos);
+              joinRightInput.getRowType().getFieldList().get(leftPos).getType(),
+              leftPos + joinLeftInput.getRowType().getFieldCount());
 
       projExprs.add(rightRef);
       joinConjs.add(rexBuilder.makeCall(SqlStdOperatorTable.EQUALS, ImmutableList.of(leftRef, rightRef)));
