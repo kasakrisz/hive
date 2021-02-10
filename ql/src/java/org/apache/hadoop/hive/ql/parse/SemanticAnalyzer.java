@@ -1969,8 +1969,22 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     String queryHintStr = ast.getText();
     LOG.debug("QUERY HINT: {} ", queryHintStr);
     try {
-      ASTNode hintNode = pd.parseHint(queryHintStr);
-      qbp.setHints(hintNode);
+      ASTNode hintListNode = pd.parseHint(queryHintStr);
+      qbp.setHints(hintListNode);
+      for (int i = 0; i < hintListNode.getChildCount(); ++i) {
+        ASTNode hintNode = (ASTNode) hintListNode.getChild(i);
+        if (hintNode.getChild(0).getType() != HintParser.TOK_FETCH_DELETED_ROWS) {
+          continue;
+        }
+        ASTNode hintArgs = (ASTNode) hintNode.getChild(1);
+        if (hintArgs != null) {
+          for (int j = 0; j < hintArgs.getChildCount(); ++j) {
+            ctx.fetchDeletedRows(Collections.singleton(
+                    SessionState.get().getCurrentDatabase() + "." + hintArgs.getChild(j).getText()));
+          }
+        }
+        break;
+      }
     } catch (ParseException e) {
       throw new SemanticException("failed to parse query hint: "+e.getMessage(), e);
     }
