@@ -124,6 +124,7 @@ public class VectorizedOrcAcidRowBatchReader
    * something further in the data pipeline wants {@link VirtualColumn#ROWID}
    */
   private final boolean rowIdProjected;
+  private final boolean fetchDeletedRowsProjected;
   /**
    * if false, we don't need any acid medadata columns from the file because we
    * know all data in the split is valid (wrt to visible writeIDs/delete events)
@@ -157,6 +158,7 @@ public class VectorizedOrcAcidRowBatchReader
    * Cachetag associated with the Split
    */
   private final CacheTag cacheTag;
+  private final boolean fetchDeletedRows;
 
   //OrcInputFormat c'tor
   VectorizedOrcAcidRowBatchReader(OrcSplit inputSplit, JobConf conf,
@@ -303,6 +305,8 @@ public class VectorizedOrcAcidRowBatchReader
           VectorizedRowBatch.DEFAULT_SIZE, null, null, null);
     }
     rowIdProjected = areRowIdsProjected(rbCtx);
+    fetchDeletedRowsProjected = Arrays.stream(rbCtx.getNeededVirtualColumns())
+            .anyMatch(virtualColumn -> virtualColumn == VirtualColumn.ROWISDELETED);
     rootPath = orcSplit.getRootDir();
 
     /**
@@ -344,6 +348,7 @@ public class VectorizedOrcAcidRowBatchReader
       }
     }
     includeAcidColumns = readerOptions.getIncludeAcidColumns();//default is true
+    this.fetchDeletedRows = HiveConf.getBoolVar(conf, ConfVars.HIVE_ACID_FETCH_DELETED_ROWS);
   }
 
   /**
@@ -935,7 +940,7 @@ public class VectorizedOrcAcidRowBatchReader
     this.deleteEventRegistry.findDeletedRecords(innerRecordIdColumnVector,
         vectorizedRowBatchBase.size, selectedBitSet);
 
-    if (selectedBitSet.cardinality() == vectorizedRowBatchBase.size) {
+    if (fetchDeletedRows || selectedBitSet.cardinality() == vectorizedRowBatchBase.size) {
       // None of the cases above matched and everything is selected. Hence, we will use the
       // same values for the selected and selectedInUse.
       value.size = vectorizedRowBatchBase.size;
@@ -1642,12 +1647,14 @@ public class VectorizedOrcAcidRowBatchReader
      */
     private final class CompressedOwid implements Comparable<CompressedOwid> {
       final long originalWriteId;
+      final long currentWriteId;
       final int bucketProperty;
       final int fromIndex; // inclusive
       int toIndex; // exclusive
 
-      CompressedOwid(long owid, int bucketProperty, int fromIndex, int toIndex) {
+      CompressedOwid(long owid, long cwid, int bucketProperty, int fromIndex, int toIndex) {
         this.originalWriteId = owid;
+        this.currentWriteId = cwid;
         this.bucketProperty = bucketProperty;
         this.fromIndex = fromIndex;
         this.toIndex = toIndex;
