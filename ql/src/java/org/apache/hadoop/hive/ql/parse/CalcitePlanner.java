@@ -3613,7 +3613,25 @@ public class CalcitePlanner extends SemanticAnalyzer {
       return htfsRel;
     }
 
-    private boolean genSubQueryRelNode(QB qb, ASTNode node, RelNode srcRel, boolean forHavingClause,
+    private class GenSubQueryRelNodeResult {
+      private final boolean subQuery;
+      private final Boolean convertResult;
+
+      private GenSubQueryRelNodeResult(boolean subQuery, Boolean convertResult) {
+        this.subQuery = subQuery;
+        this.convertResult = convertResult;
+      }
+
+      public boolean isSubQuery() {
+        return subQuery;
+      }
+
+      public Boolean getConvertResult() {
+        return convertResult;
+      }
+    }
+
+    private GenSubQueryRelNodeResult genSubQueryRelNode(QB qb, ASTNode node, RelNode srcRel, boolean forHavingClause,
                                        Map<ASTNode, RelNode> subQueryToRelNode) throws CalciteSubquerySemanticException {
 
       Set<ASTNode> corrScalarQueriesWithAgg = new HashSet<ASTNode>();
@@ -3629,8 +3647,11 @@ public class CalcitePlanner extends SemanticAnalyzer {
           case HiveParser.TOK_SUBQUERY_EXPR:
 
             //disallow subqueries which HIVE doesn't currently support
-            SubQueryUtils.subqueryRestrictionCheck(qb, next, srcRel, forHavingClause,
+            Boolean result = SubQueryUtils.subqueryRestrictionCheck(qb, next, srcRel, forHavingClause,
                 corrScalarQueriesWithAgg, ctx, this.relToHiveRR);
+            if (result != null) {
+              return new GenSubQueryRelNodeResult(false, result);
+            }
 
             String sbQueryAlias = "sq_" + qb.incrNumSubQueryPredicates();
             QB qbSQ = new QB(qb.getId(), sbQueryAlias, true);
@@ -3665,15 +3686,18 @@ public class CalcitePlanner extends SemanticAnalyzer {
         // since subqueries will later be rewritten into JOINs we want join reordering logic to trigger
         profilesCBO.add(ExtendedCBOProfile.JOIN_REORDERING);
       }
-      return isSubQuery;
+      return new GenSubQueryRelNodeResult(isSubQuery, null);
     }
 
     private RelNode genFilterRelNode(QB qb, ASTNode searchCond, RelNode srcRel,
         ImmutableMap<String, Integer> outerNameToPosMap, RowResolver outerRR, boolean forHavingClause)
         throws SemanticException {
       final Map<ASTNode, RelNode> subQueryToRelNode = new HashMap<>();
-      boolean isSubQuery = genSubQueryRelNode(qb, searchCond, srcRel, forHavingClause, subQueryToRelNode);
-      if(isSubQuery) {
+      GenSubQueryRelNodeResult result = genSubQueryRelNode(qb, searchCond, srcRel, forHavingClause, subQueryToRelNode);
+      if (result.getConvertResult() != null) {
+        RexNode filterExpression = cluster.getRexBuilder().makeLiteral(result.convertResult);
+        return genFilterRelNode(filterExpression, srcRel, outerNameToPosMap, outerRR);
+      } else if(result.isSubQuery()) {
         RexNode filterExpression = genRexNode(searchCond, relToHiveRR.get(srcRel),
                 outerRR, subQueryToRelNode, forHavingClause, cluster.getRexBuilder());
 
@@ -4844,9 +4868,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
         }
 
         Map<ASTNode, RelNode> subQueryToRelNode = new HashMap<>();
-        boolean isSubQuery = genSubQueryRelNode(qb, expr, srcRel, false,
-                subQueryToRelNode);
-        if(isSubQuery) {
+        GenSubQueryRelNodeResult result = genSubQueryRelNode(qb, expr, srcRel, false, subQueryToRelNode);
+        if(result.isSubQuery()) {
           RexNode subQueryExpr = genRexNode(expr, relToHiveRR.get(srcRel),
                   outerRR, subQueryToRelNode, true, cluster.getRexBuilder());
           columnList.add(subQueryExpr);

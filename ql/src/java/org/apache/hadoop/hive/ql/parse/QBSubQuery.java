@@ -520,6 +520,24 @@ public class QBSubQuery implements ISubQueryJoinInfo {
         originalSQASTOrigin.getUsageNode());
   }
 
+  static class SubQueryRestrictionsCheckResult {
+    private final boolean[] subQueryConfig;
+    private final Boolean convertResult;
+
+    private SubQueryRestrictionsCheckResult(boolean[] subQueryConfig, Boolean convertResult) {
+      this.subQueryConfig = subQueryConfig;
+      this.convertResult = convertResult;
+    }
+
+    public boolean[] getSubQueryConfig() {
+      return subQueryConfig;
+    }
+
+    public Boolean getConvertResult() {
+      return convertResult;
+    }
+  }
+
   /**
    * @param parentQueryRR
    * @param forHavingClause
@@ -527,9 +545,9 @@ public class QBSubQuery implements ISubQueryJoinInfo {
    * @return true if it is correlated scalar subquery with an aggregate
    * @throws SemanticException
    */
-  void subqueryRestrictionsCheck(RowResolver parentQueryRR,
+  SubQueryRestrictionsCheckResult subqueryRestrictionsCheck(RowResolver parentQueryRR,
                                  boolean forHavingClause,
-                                 String outerQueryAlias, boolean [] subqueryConfig)
+                                 String outerQueryAlias)
           throws SemanticException {
     ASTNode insertClause = getChildFromSubqueryAST("Insert", HiveParser.TOK_INSERT);
 
@@ -628,39 +646,31 @@ public class QBSubQuery implements ISubQueryJoinInfo {
       // * IN - always allowed, BUT returns true for cases with aggregate other than COUNT since later in subquery remove
       //        rule we need to know about this case.
       // * NOT IN - always allow, but always return true because later subq remove rule will generate diff plan for this case
-      if (hasAggreateExprs &&
-              noImplicityGby) {
-
-        if(operator.getType() == SubQueryType.EXISTS
-                || operator.getType() == SubQueryType.NOT_EXISTS) {
-          if(hasCorrelation) {
-            throw new CalciteSubquerySemanticException(
-                ASTErrorUtils.getMsg(
-                    ErrorMsg.INVALID_SUBQUERY_EXPRESSION.getMsg(),
-                    subQueryAST,
-                    "A predicate on EXISTS/NOT EXISTS SubQuery with implicit Aggregation(no Group By clause) " +
-                            "cannot be rewritten."));
-          }
-        }
-        else if(operator.getType() == SubQueryType.SCALAR) {
+    boolean[] subQueryConfig = {false, false};
+    if (hasAggreateExprs && noImplicityGby) {
+        if(operator.getType() == SubQueryType.EXISTS) {
+          return new SubQueryRestrictionsCheckResult(subQueryConfig, true);
+        } else if (operator.getType() == SubQueryType.NOT_EXISTS) {
+          return new SubQueryRestrictionsCheckResult(subQueryConfig, false);
+        } else if(operator.getType() == SubQueryType.SCALAR) {
             if(!hasWindowing) {
-              subqueryConfig[1] = true;
+              subQueryConfig[1] = true;
             }
             if(hasCorrelation) {
-              subqueryConfig[0] = true;
+              subQueryConfig[0] = true;
             }
-        }
-        else if(operator.getType() == SubQueryType.IN) {
+        } else if(operator.getType() == SubQueryType.IN) {
           if(hasCount && hasCorrelation) {
-            subqueryConfig[0] = true;
+            subQueryConfig[0] = true;
           }
-        }
-        else if (operator.getType() == SubQueryType.NOT_IN) {
+        } else if (operator.getType() == SubQueryType.NOT_IN) {
             if(hasCorrelation) {
-              subqueryConfig[0] = true;
+              subQueryConfig[0] = true;
             }
         }
       }
+
+      return new SubQueryRestrictionsCheckResult(subQueryConfig, null);
   }
 
   void validateAndRewriteAST(RowResolver outerQueryRR,

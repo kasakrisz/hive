@@ -106,7 +106,7 @@ public class SubQueryUtils {
     return node;
   }
 
-  static public void subqueryRestrictionCheck(QB qb, ASTNode subqueryExprNode, RelNode srcRel,
+  static public Boolean subqueryRestrictionCheck(QB qb, ASTNode subqueryExprNode, RelNode srcRel,
       boolean forHavingClause, Set<ASTNode> corrScalarQueries, Context ctx,
       LinkedHashMap<RelNode, RowResolver> relToHiveRR)
       throws SemanticException {
@@ -127,7 +127,7 @@ public class SubQueryUtils {
     if(subqueryExprNode.getChild(0).getChildCount() > 1
         && (subqueryExprNode.getChild(0).getChild(1).getType() == HiveParser.KW_SOME
         || subqueryExprNode.getChild(0).getChild(1).getType() == HiveParser.KW_ALL)) {
-      return;
+      return null;
     }
 
     // TOK_SUBQUERY_EXPR
@@ -157,14 +157,18 @@ public class SubQueryUtils {
 
     String havingInputAlias = null;
 
-    boolean [] subqueryConfig = {false, false};
-    subQuery.subqueryRestrictionsCheck(inputRR, forHavingClause,
-        havingInputAlias, subqueryConfig);
+    QBSubQuery.SubQueryRestrictionsCheckResult result =
+            subQuery.subqueryRestrictionsCheck(inputRR, forHavingClause, havingInputAlias);
 
-    if(subqueryConfig[0]) {
+    if (result.getConvertResult() != null) {
+      return result.getConvertResult();
+    }
+
+    if(result.getSubQueryConfig()[0]) {
       corrScalarQueries.add(subqueryExprNode);
     }
-    //}
+
+    return null;
   }
 
 
