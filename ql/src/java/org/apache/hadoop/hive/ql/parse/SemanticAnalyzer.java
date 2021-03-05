@@ -11452,6 +11452,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         // Virtual columns are only for native tables
         while (vcs.hasNext()) {
           VirtualColumn vc = vcs.next();
+          if (!ctx.getFetchDeletedRowsScans().contains(tab.getDbName() + "." + tab.getTableName()) &&
+                  vc == VirtualColumn.ROWISDELETED) {
+            continue;
+          }
           rwsch.put(alias, vc.getName().toLowerCase(), new ColumnInfo(vc.getName(),
                   vc.getTypeInfo(), alias, true, vc.getIsHidden()
           ));
