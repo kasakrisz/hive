@@ -90,9 +90,13 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableBooleanObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.apache.hadoop.io.BooleanWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -579,6 +583,11 @@ public class PTFTranslator {
     if (args != null) {
       for (PTFExpressionDef arg : args) {
         argOIs.add(arg.getOI());
+      }
+      if (def.ignoreNulls()) {
+        ObjectInspector oi = PrimitiveObjectInspectorFactory.getPrimitiveWritableConstantObjectInspector(
+                TypeInfoFactory.booleanTypeInfo, new BooleanWritable(true));
+        argOIs.add(oi);
       }
       funcArgOIs = new ObjectInspector[args.size()];
       funcArgOIs = argOIs.toArray(funcArgOIs);
