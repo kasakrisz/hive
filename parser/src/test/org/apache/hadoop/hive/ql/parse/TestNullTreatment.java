@@ -23,8 +23,8 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Test cases for parse WITHIN GROUP clause syntax.
- * function(expression) WITHIN GROUP (ORDER BY sort_expression)
+ * Test cases for parse Null treatment syntax in windowing clause.
+ * function(expression) [RESPECT|IGNORE] NULLS OVER ...
  */
 public class TestNullTreatment {
   ParseDriver parseDriver = new ParseDriver();
