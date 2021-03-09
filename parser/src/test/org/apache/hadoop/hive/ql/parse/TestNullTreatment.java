@@ -34,7 +34,7 @@ public class TestNullTreatment {
     ASTNode tree = parseDriver.parse(
             "select last_value(b) respect nulls over(partition by a) from t1", null).getTree();
 
-    Assert.assertEquals(EXPECTED_RESULT_BASE + "               TOK_RESPECT_NULLS\n",
+    Assert.assertEquals(EXPECTED_RESULT_BASE + "                  TOK_RESPECT_NULLS\n",
             ((ASTNode)tree.getChild(0)).dump());
   }
 
@@ -43,7 +43,7 @@ public class TestNullTreatment {
     ASTNode tree = parseDriver.parse(
             "select last_value(b) ignore nulls over(partition by a) from t1", null).getTree();
 
-    Assert.assertEquals(EXPECTED_RESULT_BASE + "               TOK_IGNORE_NULLS\n",
+    Assert.assertEquals(EXPECTED_RESULT_BASE + "                  TOK_IGNORE_NULLS\n",
             ((ASTNode)tree.getChild(0)).dump());
   }
 
