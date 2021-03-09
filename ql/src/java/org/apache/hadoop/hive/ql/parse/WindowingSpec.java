@@ -508,6 +508,10 @@ public class WindowingSpec {
     public void setIgnoreNulls(boolean ignoreNulls) {
       this.ignoreNulls = ignoreNulls;
     }
+
+    public boolean ignoreNulls() {
+      return ignoreNulls;
+    }
   };
 
   /*

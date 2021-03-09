@@ -1,3 +1,5 @@
+SET hive.vectorized.execution.enabled=false;
+
 create table t1(a int, b int);
 
 insert into t1(a, b) values

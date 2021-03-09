@@ -401,6 +401,7 @@ public class PTFTranslator {
         }
       }
       def.setWindowFrame(wdwFrame);
+      def.setIgnoreNulls(wdwSpec.ignoreNulls());
     }
 
     try {

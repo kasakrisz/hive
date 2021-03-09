@@ -33,6 +33,7 @@ public class WindowFunctionDef extends WindowExpressionDef {
   WindowFrameDef windowFrame;
   GenericUDAFEvaluator wFnEval;
   boolean pivotResult;
+  boolean ignoreNulls;
 
   @Explain(displayName = "name")
   public String getName() {
@@ -124,4 +125,11 @@ public class WindowFunctionDef extends WindowExpressionDef {
     this.pivotResult = pivotResult;
   }
 
+  public boolean ignoreNulls() {
+    return ignoreNulls;
+  }
+
+  public void setIgnoreNulls(boolean ignoreNulls) {
+    this.ignoreNulls = ignoreNulls;
+  }
 }
