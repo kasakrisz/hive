@@ -1,0 +1,47 @@
+PREHOOK: query: create table t1(a int, b int)
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@t1
+POSTHOOK: query: create table t1(a int, b int)
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@t1
+PREHOOK: query: insert into t1(a, b) values
+(1, 1), (2, 2), (3, 3), (null, null),
+(1, 5), (2, 6), (3, 2),
+(1, 5), (2, 6), (3, 2),
+(1, NULL), (2, NULL), (3, NULL)
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@t1
+POSTHOOK: query: insert into t1(a, b) values
+(1, 1), (2, 2), (3, 3), (null, null),
+(1, 5), (2, 6), (3, 2),
+(1, 5), (2, 6), (3, 2),
+(1, NULL), (2, NULL), (3, NULL)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Output: default@t1
+POSTHOOK: Lineage: t1.a SCRIPT []
+POSTHOOK: Lineage: t1.b SCRIPT []
+PREHOOK: query: select a, last_value(b, true) over(partition by a order by b) from t1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: select a, last_value(b, true) over(partition by a order by b) from t1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+NULL	NULL
+1	1
+1	5
+1	5
+1	5
+2	2
+2	6
+2	6
+2	6
+3	2
+3	2
+3	3
+3	3
