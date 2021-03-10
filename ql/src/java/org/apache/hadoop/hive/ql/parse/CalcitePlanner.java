@@ -2455,35 +2455,45 @@ public class CalcitePlanner extends SemanticAnalyzer {
       // A rewriting was produced, we will check whether it was part of an incremental rebuild
       // to try to replace INSERT OVERWRITE by INSERT or MERGE
       if (mvRebuildMode == MaterializationRebuildMode.INSERT_OVERWRITE_REBUILD) {
-        if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_MATERIALIZED_VIEW_REBUILD_INCREMENTAL)) {
+        // In case of rebuild this list contains only one element.
+        HiveRelOptMaterialization materialization = materializations.get(0);
+        if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_MATERIALIZED_VIEW_REBUILD_INCREMENTAL) &&
+                !materialization.isSourceTablesCompacted()) {
           // First we need to check if it is valid to convert to MERGE/INSERT INTO.
           // If we succeed, we modify the plan and afterwards the AST.
           // MV should be an acid table.
           MaterializedViewRewritingRelVisitor visitor = new MaterializedViewRewritingRelVisitor();
           visitor.go(basePlan);
           if (visitor.isRewritingAllowed()) {
-            // Trigger rewriting to remove UNION branch with MV
             program = new HepProgramBuilder();
-            if (visitor.isContainsAggregate()) {
-              generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-                  HiveAggregateIncrementalRewritingRule.INSTANCE);
-              mvRebuildMode = MaterializationRebuildMode.AGGREGATE_REBUILD;
-            } else if (!materializations.get(0).isSourceTablesCompacted()) {
-              if (!materializations.get(0).isSourceTablesUpdateDeleteModified()) {
-                generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-                        HiveNoAggregateIncrementalRewritingRule.INSTANCE);
-                mvRebuildMode = MaterializationRebuildMode.NO_AGGREGATE_REBUILD;
-              } else {
-                CalcitePlanner.this.ctx.fetchDeletedRows(tablesUsedQuery);
-                generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-                        HiveJoinIncrementalRewritingRule.INSTANCE);
-                mvRebuildMode = MaterializationRebuildMode.JOIN_REBUILD;
-                basePlan = new HiveDeletedRowPropagator(HiveRelFactories.HIVE_BUILDER.create(this.cluster, null))
-                        .propagate(basePlan);
-                return executeProgram(basePlan, program.build(), mdProvider, executorProvider);
+            if (materialization.isSourceTablesUpdateDeleteModified()) {
+              if (visitor.isContainsAggregate()) {
+                return calcitePreMVRewritingPlan;
               }
+
+              CalcitePlanner.this.ctx.fetchDeletedRows(tablesUsedQuery);
+              generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+                      HiveJoinIncrementalRewritingRule.INSTANCE);
+              mvRebuildMode = MaterializationRebuildMode.JOIN_REBUILD;
+              basePlan = new HiveDeletedRowPropagator(HiveRelFactories.HIVE_BUILDER.create(this.cluster, null))
+                      .propagate(basePlan);
+              return executeProgram(basePlan, program.build(), mdProvider, executorProvider);
+
+            } else {
+              // Trigger rewriting to remove UNION branch with MV
+              if (visitor.isContainsAggregate()) {
+                generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+                        HiveAggregateIncrementalRewritingRule.INSTANCE);
+                mvRebuildMode = MaterializationRebuildMode.AGGREGATE_REBUILD;
+              } else if (!materializations.get(0).isSourceTablesCompacted()) {
+                if (!materializations.get(0).isSourceTablesUpdateDeleteModified()) {
+                  generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+                          HiveNoAggregateIncrementalRewritingRule.INSTANCE);
+                  mvRebuildMode = MaterializationRebuildMode.NO_AGGREGATE_REBUILD;
+                }
+              }
+              basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
             }
-            basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
           }
         }
       } else if (useMaterializedViewsRegistry) {
