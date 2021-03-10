@@ -284,8 +284,8 @@ function
 null_treatment
 @init { gParent.pushMsg("null_treatment", state); }
 @after { gParent.popMsg(state); }
-    : KW_RESPECT KW_NULLS -> StringLiteral["false"]
-    | KW_IGNORE KW_NULLS -> StringLiteral["true"]
+    : KW_RESPECT KW_NULLS -> KW_FALSE
+    | KW_IGNORE KW_NULLS -> KW_TRUE
     ;
 
 functionName
