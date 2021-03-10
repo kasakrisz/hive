@@ -925,14 +925,16 @@ PREHOOK: query: ALTER MATERIALIZED VIEW cmv_mat_view_n1 REBUILD
 PREHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
 PREHOOK: Input: default@cmv_basetable_2_n0
 PREHOOK: Input: default@cmv_basetable_n1
+PREHOOK: Input: default@cmv_mat_view_n1
 PREHOOK: Output: default@cmv_mat_view_n1
 POSTHOOK: query: ALTER MATERIALIZED VIEW cmv_mat_view_n1 REBUILD
 POSTHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
 POSTHOOK: Input: default@cmv_basetable_2_n0
 POSTHOOK: Input: default@cmv_basetable_n1
+POSTHOOK: Input: default@cmv_mat_view_n1
 POSTHOOK: Output: default@cmv_mat_view_n1
-POSTHOOK: Lineage: cmv_mat_view_n1.a SIMPLE [(cmv_basetable_n1)cmv_basetable_n1.FieldSchema(name:a, type:int, comment:null), ]
-POSTHOOK: Lineage: cmv_mat_view_n1.c SIMPLE [(cmv_basetable_2_n0)cmv_basetable_2_n0.FieldSchema(name:c, type:decimal(10,2), comment:null), ]
+POSTHOOK: Lineage: cmv_mat_view_n1.a EXPRESSION [(cmv_basetable_n1)cmv_basetable_n1.FieldSchema(name:a, type:int, comment:null), (cmv_mat_view_n1)default.cmv_mat_view_n1.FieldSchema(name:a, type:int, comment:null), ]
+POSTHOOK: Lineage: cmv_mat_view_n1.c EXPRESSION [(cmv_basetable_2_n0)cmv_basetable_2_n0.FieldSchema(name:c, type:decimal(10,2), comment:null), (cmv_mat_view_n1)default.cmv_mat_view_n1.FieldSchema(name:c, type:decimal(10,2), comment:null), ]
 PREHOOK: query: EXPLAIN
 SELECT cmv_basetable_n1.a
 FROM cmv_basetable_n1 join cmv_basetable_2_n0 ON (cmv_basetable_n1.a = cmv_basetable_2_n0.a)
@@ -989,6 +991,8 @@ POSTHOOK: Input: default@cmv_basetable_2_n0
 POSTHOOK: Input: default@cmv_basetable_n1
 POSTHOOK: Input: default@cmv_mat_view_n1
 #### A masked pattern was here ####
+3
+3
 1
 PREHOOK: query: create table cmv_irrelevant_table_n0 (a int, b varchar(256), c decimal(10,2), d int) stored as orc TBLPROPERTIES ('transactional'='true')
 PREHOOK: type: CREATETABLE
@@ -1070,6 +1074,8 @@ POSTHOOK: Input: default@cmv_basetable_2_n0
 POSTHOOK: Input: default@cmv_basetable_n1
 POSTHOOK: Input: default@cmv_mat_view_n1
 #### A masked pattern was here ####
+3
+3
 1
 PREHOOK: query: drop materialized view cmv_mat_view_n1
 PREHOOK: type: DROP_MATERIALIZED_VIEW
