@@ -755,4 +755,14 @@ public class RelOptHiveTable implements RelOptTable {
     return partitionList != null ? partitionList.getKey().orElse(null) : null;
   }
 
+  public RelOptHiveTable fetchDeletedRows() {
+    List<VirtualColumn> virtualColumnList = new ArrayList<>(hiveVirtualCols);
+    virtualColumnList.add(VirtualColumn.ROWISDELETED);
+    return new RelOptHiveTable(schema, typeFactory, qualifiedTblName, rowType, hiveTblMetadata,
+            hiveNonPartitionCols,  hivePartitionCols,
+            virtualColumnList, hiveConf, db, tablesCache,
+            partitionCache, colStatsCache,
+            noColsMissingStats);
+  }
+
 }

@@ -23,12 +23,16 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveJoin;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class HiveDeletedRowPropagator extends HiveRelShuttleImpl {
@@ -62,6 +66,16 @@ public class HiveDeletedRowPropagator extends HiveRelShuttleImpl {
             VirtualColumn.ROWISDELETED.getName(), false, false);
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
 
+//    List<RelDataType> fieldTypes = new LinkedList<RelDataType>();
+//    List<String> fieldNames = new LinkedList<String>();
+//
+//    for (RelDataTypeField field : scan.getRowType().getFieldList()) {
+//      fieldTypes.add(convert(ci.getType(), dtFactory));
+//      fieldNames.add(ci.getInternalName());
+//    }
+//    return dtFactory.createStructType(fieldTypes, fieldNames);
+
+
     List<RexNode> projects;
     List<String> projectNames;
     if (column == null) {
@@ -81,6 +95,23 @@ public class HiveDeletedRowPropagator extends HiveRelShuttleImpl {
       String propagatedColumnName = projectNames.remove(column.getIndex());
       projectNames.add(propagatedColumnName);
     }
+
+    List<RelDataType> fieldTypes = new ArrayList<>();
+    projectNames = new ArrayList<>();
+    for (int i = 0; i < tableRowType.getFieldCount(); ++i) {
+      RelDataTypeField relDataTypeField = tableRowType.getFieldList().get(i);
+      fieldTypes.add(relDataTypeField.getType());
+      projectNames.add(relDataTypeField.getName());
+    }
+
+    fieldTypes.add(rexBuilder.getTypeFactory().createSqlType(SqlTypeName.BOOLEAN));
+    projectNames.add(VirtualColumn.ROWISDELETED.getName());
+
+    RelDataType newRowType = rexBuilder.getTypeFactory().createStructType(fieldTypes, projectNames);
+
+    HiveTableScan oldTS = (HiveTableScan) scan;
+    TableScan newTS = oldTS.copyIncludingTable(newRowType);
+
 
     return relBuilder
             .push(scan)
