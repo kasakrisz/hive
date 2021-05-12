@@ -119,15 +119,12 @@ public class VectorizedOrcAcidRowBatchReader
    * {@link RecordIdentifier}/{@link VirtualColumn#ROWID} information
    */
   private final StructColumnVector recordIdColumnVector;
-  private final LongColumnVector rowIsDeletedVector;
   private final Reader.Options readerOptions;
   private final boolean isOriginal;
   /**
    * something further in the data pipeline wants {@link VirtualColumn#ROWID}
    */
-  private final boolean rowIdProjected;
-  private final boolean rowIsDeletedProjected;
-  private final boolean fetchDeletedRows;
+//  private final boolean fetchDeletedRows;
   /**
    * if false, we don't need any acid medadata columns from the file because we
    * know all data in the split is valid (wrt to visible writeIDs/delete events)
@@ -285,7 +282,7 @@ public class VectorizedOrcAcidRowBatchReader
     deleteEventReaderOptions.range(0, Long.MAX_VALUE);
     deleteEventReaderOptions.searchArgument(null, null);
     keyInterval = findMinMaxKeys(orcSplit, conf, deleteEventReaderOptions);
-    fetchDeletedRows = conf.getBoolean(Constants.ACID_FETCH_DELETED_ROWS, false);
+    boolean fetchDeletedRows = conf.getBoolean(Constants.ACID_FETCH_DELETED_ROWS, false);
     DeleteEventRegistry der;
     try {
       // See if we can load all the relevant delete events from all the
@@ -299,21 +296,33 @@ public class VectorizedOrcAcidRowBatchReader
     }
     this.deleteEventRegistry = der;
     isOriginal = orcSplit.isOriginal();
-    if (isOriginal) {
-      recordIdColumnVector = new StructColumnVector(VectorizedRowBatch.DEFAULT_SIZE,
-        new LongColumnVector(), new LongColumnVector(), new LongColumnVector());
+
+    if (rbCtx != null) {
+      int idx = rbCtx.findVirtualColumnNum(VirtualColumn.ROWID);
+      if (idx >= 0) {
+        if (isOriginal) {
+          recordIdColumnVector = new StructColumnVector(VectorizedRowBatch.DEFAULT_SIZE,
+                  new LongColumnVector(), new LongColumnVector(), new LongColumnVector());
+        } else {
+          // Will swap in the Vectors from underlying row batch.
+          recordIdColumnVector = new StructColumnVector(
+                  VectorizedRowBatch.DEFAULT_SIZE, null, null, null);
+        }
+        virtualColumnVectorList.add(new RowIdColumnVector(
+                idx,
+                fetchDeletedRows ? OrcRecordUpdater.CURRENT_WRITEID : OrcRecordUpdater.ORIGINAL_WRITEID,
+                recordIdColumnVector));
+      } else {
+        recordIdColumnVector = null;
+      }
+      idx = rbCtx.findVirtualColumnNum(VirtualColumn.ROWISDELETED);
+      if (idx >= 0) {
+        virtualColumnVectorList.add(new RowIsDeletedColumnVector(idx));
+      }
     } else {
-      // Will swap in the Vectors from underlying row batch.
-      recordIdColumnVector = new StructColumnVector(
-          VectorizedRowBatch.DEFAULT_SIZE, null, null, null);
+      recordIdColumnVector = null;
     }
-    rowIdProjected = areRowIdsProjected(rbCtx);
-    rowIsDeletedProjected = isVirtualColumnProjected(rbCtx, VirtualColumn.ROWISDELETED);
-    if (rowIsDeletedProjected) {
-      rowIsDeletedVector = new LongColumnVector();
-    } else {
-      rowIsDeletedVector = null;
-    }
+
     rootPath = orcSplit.getRootDir();
 
     /**
@@ -355,6 +364,63 @@ public class VectorizedOrcAcidRowBatchReader
       }
     }
     includeAcidColumns = readerOptions.getIncludeAcidColumns();//default is true
+  }
+
+  private final List<VirtualColumnVector> virtualColumnVectorList = new ArrayList<>();
+
+  abstract static class VirtualColumnVector<T extends ColumnVector> {
+    private final int indexInSchema;
+    protected final T columnVector;
+
+    protected VirtualColumnVector(int indexInSchema, T columnVector) {
+      this.indexInSchema = indexInSchema;
+      this.columnVector = columnVector;
+    }
+
+    public void project(VectorizedRowBatch value) {
+      value.cols[indexInSchema] = columnVector;
+    }
+
+    public abstract void populate(VectorizedRowBatch vectorizedRowBatchBase, BitSet notDeletedBitSet);
+  }
+
+  static class RowIdColumnVector extends VirtualColumnVector<StructColumnVector> {
+    private final int writeIdIndex;
+
+    RowIdColumnVector(int indexInSchema, int writeIdIndex, StructColumnVector columnVector) {
+      super(indexInSchema, columnVector);
+      this.writeIdIndex = writeIdIndex;
+    }
+
+    @Override
+    public void populate(VectorizedRowBatch vectorizedRowBatchBase, BitSet notDeletedBitSet) {
+      columnVector.fields[0] = vectorizedRowBatchBase.cols[writeIdIndex];
+      columnVector.fields[1] = vectorizedRowBatchBase.cols[OrcRecordUpdater.BUCKET];
+      columnVector.fields[2] = vectorizedRowBatchBase.cols[OrcRecordUpdater.ROW_ID];
+    }
+  }
+
+  static class RowIsDeletedColumnVector extends VirtualColumnVector<LongColumnVector> {
+
+    protected RowIsDeletedColumnVector(int indexInSchema) {
+      super(indexInSchema, new LongColumnVector());
+    }
+
+    @Override
+    public void populate(VectorizedRowBatch vectorizedRowBatchBase, BitSet notDeletedBitSet) {
+      if (notDeletedBitSet.cardinality() == vectorizedRowBatchBase.size) {
+        columnVector.vector[0] = 0;
+        columnVector.isRepeating = true;
+      } else {
+        Arrays.fill(columnVector.vector, 1);
+        columnVector.isRepeating = false;
+        for (int setBitIndex = notDeletedBitSet.nextSetBit(0);
+             setBitIndex >= 0;
+             setBitIndex = notDeletedBitSet.nextSetBit(setBitIndex + 1)) {
+          columnVector.vector[setBitIndex] = 0;
+        }
+      }
+    }
   }
 
   /**
@@ -972,32 +1038,37 @@ public class VectorizedOrcAcidRowBatchReader
 
     copyFromBase(value);
 
-    if (rowIdProjected) {
-      int ix = rbCtx.findVirtualColumnNum(VirtualColumn.ROWID);
-      value.cols[ix] = recordIdColumnVector;
+    for (VirtualColumnVector<?> virtualColumnVector : virtualColumnVectorList) {
+      virtualColumnVector.populate(vectorizedRowBatchBase, notDeletedBitSet);
+      virtualColumnVector.project(value);
     }
-    if (rowIsDeletedProjected) {
-      if (fetchDeletedRows) {
-        if (notDeletedBitSet.cardinality() == vectorizedRowBatchBase.size) {
-          rowIsDeletedVector.vector[0] = 0;
-          rowIsDeletedVector.isRepeating = true;
-        } else {
-          Arrays.fill(rowIsDeletedVector.vector, 1);
-          rowIsDeletedVector.isRepeating = false;
-          for (int setBitIndex = notDeletedBitSet.nextSetBit(0);
-               setBitIndex >= 0;
-               setBitIndex = notDeletedBitSet.nextSetBit(setBitIndex + 1)) {
-            rowIsDeletedVector.vector[setBitIndex] = 0;
-          }
-        }
-      } else {
-        rowIsDeletedVector.vector[0] = 0;
-        rowIsDeletedVector.isRepeating = true;
-      }
 
-      int ix = rbCtx.findVirtualColumnNum(VirtualColumn.ROWISDELETED);
-      value.cols[ix] = rowIsDeletedVector;
-    }
+//    if (rowIdProjected) {
+//      int ix = rbCtx.findVirtualColumnNum(VirtualColumn.ROWID);
+//      value.cols[ix] = recordIdColumnVector;
+//    }
+//    if (rowIsDeletedProjected) {
+//      if (fetchDeletedRows) {
+//        if (notDeletedBitSet.cardinality() == vectorizedRowBatchBase.size) {
+//          rowIsDeletedVector.vector[0] = 0;
+//          rowIsDeletedVector.isRepeating = true;
+//        } else {
+//          Arrays.fill(rowIsDeletedVector.vector, 1);
+//          rowIsDeletedVector.isRepeating = false;
+//          for (int setBitIndex = notDeletedBitSet.nextSetBit(0);
+//               setBitIndex >= 0;
+//               setBitIndex = notDeletedBitSet.nextSetBit(setBitIndex + 1)) {
+//            rowIsDeletedVector.vector[setBitIndex] = 0;
+//          }
+//        }
+//      } else {
+//        rowIsDeletedVector.vector[0] = 0;
+//        rowIsDeletedVector.isRepeating = true;
+//      }
+//
+//      int ix = rbCtx.findVirtualColumnNum(VirtualColumn.ROWISDELETED);
+//      value.cols[ix] = rowIsDeletedVector;
+//    }
     progress = baseReader.getProgress();
     return true;
   }
@@ -1021,11 +1092,11 @@ public class VectorizedOrcAcidRowBatchReader
       // Transfer columnVector objects from base batch to outgoing batch.
       System.arraycopy(payloadStruct.fields, 0, value.cols, 0, value.getDataColumnCount());
     }
-    if (rowIdProjected) {
-      recordIdColumnVector.fields[0] = vectorizedRowBatchBase.cols[fetchDeletedRows ? OrcRecordUpdater.CURRENT_WRITEID : OrcRecordUpdater.ORIGINAL_WRITEID];
-      recordIdColumnVector.fields[1] = vectorizedRowBatchBase.cols[OrcRecordUpdater.BUCKET];
-      recordIdColumnVector.fields[2] = vectorizedRowBatchBase.cols[OrcRecordUpdater.ROW_ID];
-    }
+//    if (rowIdProjected) {
+//      recordIdColumnVector.fields[0] = vectorizedRowBatchBase.cols[fetchDeletedRows ? OrcRecordUpdater.CURRENT_WRITEID : OrcRecordUpdater.ORIGINAL_WRITEID];
+//      recordIdColumnVector.fields[1] = vectorizedRowBatchBase.cols[OrcRecordUpdater.BUCKET];
+//      recordIdColumnVector.fields[2] = vectorizedRowBatchBase.cols[OrcRecordUpdater.ROW_ID];
+//    }
   }
   private ColumnVector[] handleOriginalFile(
       BitSet selectedBitSet, ColumnVector[] innerRecordIdColumnVector) throws IOException {
