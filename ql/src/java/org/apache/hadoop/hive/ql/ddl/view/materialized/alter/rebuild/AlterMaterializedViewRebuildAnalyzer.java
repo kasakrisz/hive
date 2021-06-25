@@ -52,6 +52,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.ColumnPropagation
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregatePartitionIncrementalRewritingRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregatePartitionInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializationRelMetadataProvider;
@@ -381,14 +382,6 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
             RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider,
             HiveRelOptMaterialization materialization, RelNode calcitePreMVRewritingPlan) {
 
-      if (materialization.isSourceTablesUpdateDeleteModified()) {
-        // TODO: Create rewrite rule to transform the plan to partition based incremental rebuild
-        // addressing deleted records. The rule should enable fetching deleted rows and count deleted records
-        // with a negative sign when calculating sum and count functions in top aggregate.
-        // This type of rewrite also requires the existence of count(*) function call in view definition.
-        return calcitePreMVRewritingPlan;
-      }
-
       RelOptHiveTable hiveTable = (RelOptHiveTable) materialization.tableRel.getTable();
       if (!AcidUtils.isInsertOnlyTable(hiveTable.getHiveTableMD())) {
         // TODO: plan may contains TS on fully ACID table and aggregate functions which are not supported the
@@ -396,8 +389,11 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         return applyPreJoinOrderingTransforms(basePlan, mdProvider, executorProvider);
       }
 
-      return applyIncrementalRebuild(
-              basePlan, mdProvider, executorProvider, HiveAggregatePartitionIncrementalRewritingRule.INSTANCE);
+      RelOptRule rebuildRule = materialization.isSourceTablesUpdateDeleteModified() ?
+              HiveAggregatePartitionInsertDeleteIncrementalRewritingRule.INSTANCE :
+              HiveAggregatePartitionIncrementalRewritingRule.INSTANCE;
+
+      return applyIncrementalRebuild(basePlan, mdProvider, executorProvider, rebuildRule);
     }
 
     private RelNode applyIncrementalRebuild(
