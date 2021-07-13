@@ -34,7 +34,8 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuf
 @WindowFunctionDescription(
         supportsWindow = false,
         pivotResult = true,
-        impliesOrder = true)
+        impliesOrder = true,
+        supportsNullTreatment = true)
 public class GenericUDAFLead extends GenericUDAFLeadLag {
 
   static final Logger LOG = LoggerFactory.getLogger(GenericUDAFLead.class.getName());
