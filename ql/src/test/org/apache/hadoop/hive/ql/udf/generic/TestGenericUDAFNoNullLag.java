@@ -92,14 +92,11 @@ class TestGenericUDAFNoNullLag {
     GenericUDAFLag.NoNullLagBuffer buffer = leadBuffer();
 
     evaluator.iterate(buffer, parameters(null));
-    assertThat(evaluator.getNextResult(buffer), is(nullValue()));
+    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
 
     evaluator.iterate(buffer, parameters(null));
-    assertThat(evaluator.getNextResult(buffer), is(nullValue()));
+    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
 
     evaluator.terminate(buffer);
-
-    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
-    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
   }
 }
