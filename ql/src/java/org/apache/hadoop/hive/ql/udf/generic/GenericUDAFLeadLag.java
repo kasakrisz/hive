@@ -139,7 +139,7 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       this.fnName = fnName;
     }
 
-    protected abstract LeadLagBuffer getNewLLBuffer() throws HiveException;
+    protected abstract LeadLagBuffer getNewLLBuffer();
 
     @Override
     public AggregationBuffer getNewAggregationBuffer() throws HiveException {

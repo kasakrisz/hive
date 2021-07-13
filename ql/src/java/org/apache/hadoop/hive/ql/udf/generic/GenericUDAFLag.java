@@ -67,7 +67,7 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
     }
 
     @Override
-    protected LeadLagBuffer getNewLLBuffer() throws HiveException {
+    protected LeadLagBuffer getNewLLBuffer() {
      return new LagBuffer();
     }
 
