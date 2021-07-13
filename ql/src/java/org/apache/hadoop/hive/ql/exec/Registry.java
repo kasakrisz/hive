@@ -521,7 +521,7 @@ public class Registry {
     ObjectInspector args[] = new ObjectInspector[argumentOIs.size()];
     GenericUDAFResolver udafResolver = info.getGenericUDAFResolver();
     GenericUDAFParameterInfo paramInfo = new SimpleGenericUDAFParameterInfo(
-        argumentOIs.toArray(args), true, isDistinct, isAllColumns);
+        argumentOIs.toArray(args), true, isDistinct, isAllColumns, respectNulls);
     return ((GenericUDAFResolver2) udafResolver).getEvaluator(paramInfo);
   }
 

@@ -3702,9 +3702,11 @@ public class CalcitePlanner extends SemanticAnalyzer {
       boolean isDistinct = aggAst.getType() == HiveParser.TOK_FUNCTIONDI;
       boolean isAllColumns = aggAst.getType() == HiveParser.TOK_FUNCTIONSTAR;
       String aggName = unescapeIdentifier(aggAst.getChild(0).getText());
+      boolean respectNulls = new CalcitePlanner.ASTSearcher().simpleBreadthFirstSearch(
+              aggAst, HiveParser.TOK_WINDOWSPEC, HiveParser.TOK_IGNORE_NULLS) == null;
 
       AggregateInfo aInfo = functionHelper.getWindowAggregateFunctionInfo(
-          isDistinct, isAllColumns, aggName, aggParameters);
+          isDistinct, isAllColumns, respectNulls, aggName, aggParameters);
 
       // If that did not work, try GenericUDF translation
       if (aInfo == null) {

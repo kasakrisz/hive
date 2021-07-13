@@ -388,7 +388,7 @@ public class HiveFunctionHelper implements FunctionHelper {
    * {@inheritDoc}
    */
   @Override
-  public AggregateInfo getWindowAggregateFunctionInfo(boolean isDistinct, boolean isAllColumns,
+  public AggregateInfo getWindowAggregateFunctionInfo(boolean isDistinct, boolean isAllColumns, boolean respectNulls,
       String aggregateName, List<RexNode> aggregateParameters)
       throws SemanticException {
     TypeInfo returnType = null;
@@ -412,7 +412,7 @@ public class HiveFunctionHelper implements FunctionHelper {
         if (aggregateName.toLowerCase().equals(FunctionRegistry.LEAD_FUNC_NAME)
             || aggregateName.toLowerCase().equals(FunctionRegistry.LAG_FUNC_NAME)) {
           GenericUDAFEvaluator genericUDAFEvaluator = FunctionRegistry.getGenericWindowingEvaluator(aggregateName,
-              aggParameterOIs, isDistinct, isAllColumns, true);
+              aggParameterOIs, isDistinct, isAllColumns, respectNulls);
           GenericUDAFInfo udaf = SemanticAnalyzer.getGenericUDAFInfo2(
               genericUDAFEvaluator, udafMode, aggParameterOIs);
           returnType = ((ListTypeInfo) udaf.returnType).getListElementTypeInfo();
