@@ -81,6 +81,26 @@ class TestGenericUDAFNoNullLead {
 
     evaluator.terminate(buffer);
 
+    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(4)));
+    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(3)));
+
+    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
+    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
+  }
+
+  @Test
+  void testIgnoreNullsWhenAllInputValuesAreNull() throws HiveException {
+    GenericUDAFLead.NoNullLeadBuffer buffer = leadBuffer();
+    evaluator.respectNulls = false;
+
+    evaluator.iterate(buffer, parameters(null));
+    assertThat(evaluator.getNextResult(buffer), is(nullValue()));
+
+    evaluator.iterate(buffer, parameters(null));
+    assertThat(evaluator.getNextResult(buffer), is(nullValue()));
+
+    evaluator.terminate(buffer);
+
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
   }

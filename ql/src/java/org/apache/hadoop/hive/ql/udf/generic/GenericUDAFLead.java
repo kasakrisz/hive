@@ -68,7 +68,7 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
     }
 
     @Override
-    protected LeadLagBuffer getNewLLBuffer() throws HiveException {
+    protected LeadLagBuffer getNewLLBuffer() {
      return new LeadBuffer();
     }
     
@@ -85,24 +85,10 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
     public GenericUDAFNoNullLeadEvaluator() {
     }
 
-    /*
-     * used to initialize Streaming Evaluator.
-     */
-    protected GenericUDAFNoNullLeadEvaluator(GenericUDAFLeadLagEvaluator src) {
-      super(src);
-    }
-
     @Override
-    protected NoNullLeadBuffer getNewLLBuffer() throws HiveException {
+    protected NoNullLeadBuffer getNewLLBuffer() {
      return new NoNullLeadBuffer();
     }
-
-//    @Override
-//    public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
-//
-//      return new GenericUDAFLeadEvaluatorStreaming(this);
-//    }
-
   }
 
   static class LeadBuffer implements LeadLagBuffer {
@@ -175,22 +161,6 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
       lastRowIdx++;
     }
-
-//    public Object terminate() {
-//      /*
-//       * if there are fewer than leadAmt values in leadWindow; start reading from the first position.
-//       * Otherwise the window starts from nextPosInWindow.
-//       */
-//      if ( lastRowIdx < leadAmt ) {
-//        nextPosInWindow = 0;
-//      }
-//      for(int i=0; i < leadAmt; i++) {
-//        values.add(leadWindow[nextPosInWindow]);
-//        nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
-//      }
-//      return values;
-//    }
-
   }
 
   /*
