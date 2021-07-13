@@ -88,7 +88,6 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
     private int amt;
     String fnName;
     private transient Converter defaultValueConverter;
-    protected boolean respectNulls;
 
     public GenericUDAFLeadLagEvaluator() {
     }
@@ -102,7 +101,6 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       this.fnName = src.fnName;
       this.defaultValueConverter = src.defaultValueConverter;
       this.mode = src.mode;
-      this.respectNulls = src.respectNulls;
     }
 
     @Override
@@ -158,7 +156,7 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       Object rowExprVal = ObjectInspectorUtils.copyToStandardObject(parameters[0], inputOI[0]);
       Object defaultVal = parameters.length > 2 ? ObjectInspectorUtils.copyToStandardObject(
               defaultValueConverter.convert(parameters[2]), inputOI[0]) : null;
-      ((LeadLagBuffer) agg).addRow(rowExprVal, defaultVal, respectNulls);
+      ((LeadLagBuffer) agg).addRow(rowExprVal, defaultVal);
     }
 
     @Override
