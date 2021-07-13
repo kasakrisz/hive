@@ -92,7 +92,7 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
       lastRowIdx = -1;
     }
 
-    public void addRow(Object currValue, Object defaultValue) {
+    public void addRow(Object currValue, Object defaultValue, boolean respectNulls) {
       int row = lastRowIdx + 1;
       if ( row < lagAmt) {
         lagValues.add(defaultValue);

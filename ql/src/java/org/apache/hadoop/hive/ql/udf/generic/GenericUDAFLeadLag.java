@@ -159,7 +159,7 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       Object rowExprVal = ObjectInspectorUtils.copyToStandardObject(parameters[0], inputOI[0]);
       Object defaultVal = parameters.length > 2 ? ObjectInspectorUtils.copyToStandardObject(
               defaultValueConverter.convert(parameters[2]), inputOI[0]) : null;
-      ((LeadLagBuffer) agg).addRow(rowExprVal, defaultVal);
+      ((LeadLagBuffer) agg).addRow(rowExprVal, defaultVal, respectNulls);
     }
 
     @Override

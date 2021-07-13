@@ -91,10 +91,15 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       lastRowIdx = -1;
     }
 
-    public void addRow(Object leadExprValue, Object defaultValue) {
+    public void addRow(Object leadExprValue, Object defaultValue, boolean respectNulls) {
+      if (!respectNulls  && leadExprValue == null) {
+        lastRowIdx++;
+        return;
+      }
+
       int row = lastRowIdx + 1;
       int leadRow = row - leadAmt;
-      if ( leadRow >= 0 ) {
+      if ( leadRow >= 0) {
         values.add(leadExprValue);
       }
       leadWindow[nextPosInWindow] = defaultValue;

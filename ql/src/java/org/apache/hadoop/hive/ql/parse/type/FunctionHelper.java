@@ -71,7 +71,7 @@ public interface FunctionHelper {
   /**
    * Returns aggregation information for analytical function based on given parameters.
    */
-  AggregateInfo getWindowAggregateFunctionInfo(boolean isDistinct, boolean isAllColumns,
+  AggregateInfo getWindowAggregateFunctionInfo(boolean isDistinct, boolean isAllColumns, boolean respectNulls,
       String aggregateName, List<RexNode> aggregateParameters)
       throws SemanticException;
 
