@@ -79,6 +79,17 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
 
   }
 
+  public static class GenericUDAFNoNullLagEvaluator extends GenericUDAFLagEvaluator {
+
+    public GenericUDAFNoNullLagEvaluator() {
+    }
+
+    @Override
+    protected LeadLagBuffer getNewLLBuffer() {
+     return new NoNullLagBuffer();
+    }
+  }
+
   static class LagBuffer implements LeadLagBuffer {
     ArrayList<Object> values;
     int lagAmt;
@@ -118,6 +129,24 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
       }
       values.addAll(0, lagValues);
       return values;
+    }
+  }
+
+  static class NoNullLagBuffer extends LagBuffer {
+
+    public void addRow(Object currValue, Object defaultValue) {
+      int row = lastRowIdx + 1;
+      if ( row < lagAmt) {
+        lagValues.add(defaultValue);
+      }
+      if (currValue != null) {
+        values.add(currValue);
+        lastRowIdx++;
+      } else {
+        if (!values.isEmpty() && row >= lagAmt) {
+          values.add(0, values.get(0));
+        }
+      }
     }
   }
 
