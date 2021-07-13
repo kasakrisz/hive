@@ -5,14 +5,12 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,13 +29,13 @@ import static org.junit.jupiter.api.Assertions.*;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-class TestGenericUDAFLead {
+class TestGenericUDAFNoNullLead {
 
   GenericUDAFLead.GenericUDAFLeadEvaluatorStreaming evaluator;
 
   @BeforeEach
   void setUp() throws HiveException {
-    GenericUDAFLead.GenericUDAFLeadEvaluator baseEvaluator = new GenericUDAFLead.GenericUDAFLeadEvaluator();
+    GenericUDAFLead.GenericUDAFNoNullLeadEvaluator baseEvaluator = new GenericUDAFLead.GenericUDAFNoNullLeadEvaluator();
     ObjectInspector[] inputIO = new ObjectInspector[] {
             TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(TypeInfoFactory.intTypeInfo)
     };
@@ -46,9 +44,22 @@ class TestGenericUDAFLead {
     evaluator = new GenericUDAFLead.GenericUDAFLeadEvaluatorStreaming(baseEvaluator);
   }
 
+  private Object[] parameters(Object value) {
+    Object[] parameters = new Object[1];
+    parameters[0] = value == null ? null : new IntWritable((Integer) value);
+    return parameters;
+  }
+
+  private GenericUDAFLead.NoNullLeadBuffer leadBuffer() {
+    GenericUDAFLead.NoNullLeadBuffer buffer = new GenericUDAFLead.NoNullLeadBuffer();
+    buffer.initialize(2);
+    return buffer;
+  }
+
   @Test
-  void testRespectNulls() throws HiveException {
-    GenericUDAFLead.LeadBuffer buffer = leadBuffer();
+  void testIgnoreNulls() throws HiveException {
+    GenericUDAFLead.NoNullLeadBuffer buffer = leadBuffer();
+    evaluator.respectNulls = false;
 
     evaluator.iterate(buffer, parameters(8));
     assertThat(evaluator.getNextResult(buffer), is(nullValue()));
@@ -57,29 +68,20 @@ class TestGenericUDAFLead {
     assertThat(evaluator.getNextResult(buffer), is(nullValue()));
 
     evaluator.iterate(buffer, parameters(null));
-    assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
+    assertThat(evaluator.getNextResult(buffer), is(nullValue()));
 
     evaluator.iterate(buffer, parameters(5));
-    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(5)));
+    assertThat(evaluator.getNextResult(buffer), is(nullValue()));
 
     evaluator.iterate(buffer, parameters(4));
+    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(4)));
+
+    evaluator.iterate(buffer, parameters(3));
     assertThat(evaluator.getNextResult(buffer), is(new IntWritable(4)));
 
     evaluator.terminate(buffer);
 
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
-  }
-
-  private Object[] parameters(Object value) {
-    Object[] parameters = new Object[1];
-    parameters[0] = value == null ? null : new IntWritable((Integer) value);
-    return parameters;
-  }
-
-  private GenericUDAFLead.LeadBuffer leadBuffer() {
-    GenericUDAFLead.LeadBuffer buffer = new GenericUDAFLead.LeadBuffer();
-    buffer.initialize(2);
-    return buffer;
   }
 }

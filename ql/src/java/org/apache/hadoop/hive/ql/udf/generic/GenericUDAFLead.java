@@ -47,8 +47,12 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
   }
 
   @Override
-  protected GenericUDAFLeadLagEvaluator createLLEvaluator() {
-   return new GenericUDAFLeadEvaluator();
+  protected GenericUDAFLeadLagEvaluator createLLEvaluator(boolean respectNulls) {
+    if (respectNulls) {
+      return new GenericUDAFLeadEvaluator();
+    }
+
+    return new GenericUDAFNoNullLeadEvaluator();
   }
 
   public static class GenericUDAFLeadEvaluator extends GenericUDAFLeadLagEvaluator {
@@ -76,6 +80,31 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
 
   }
 
+  public static class GenericUDAFNoNullLeadEvaluator extends GenericUDAFLeadLagEvaluator {
+
+    public GenericUDAFNoNullLeadEvaluator() {
+    }
+
+    /*
+     * used to initialize Streaming Evaluator.
+     */
+    protected GenericUDAFNoNullLeadEvaluator(GenericUDAFLeadLagEvaluator src) {
+      super(src);
+    }
+
+    @Override
+    protected NoNullLeadBuffer getNewLLBuffer() throws HiveException {
+     return new NoNullLeadBuffer();
+    }
+
+//    @Override
+//    public GenericUDAFEvaluator getWindowingEvaluator(WindowFrameDef wFrmDef) {
+//
+//      return new GenericUDAFLeadEvaluatorStreaming(this);
+//    }
+
+  }
+
   static class LeadBuffer implements LeadLagBuffer {
     ArrayList<Object> values;
     int leadAmt;
@@ -92,11 +121,6 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
     }
 
     public void addRow(Object leadExprValue, Object defaultValue, boolean respectNulls) {
-      if (!respectNulls  && leadExprValue == null) {
-        lastRowIdx++;
-        return;
-      }
-
       int row = lastRowIdx + 1;
       int leadRow = row - leadAmt;
       if ( leadRow >= 0) {
@@ -121,6 +145,51 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       }
       return values;
     }
+
+  }
+
+  static class NoNullLeadBuffer extends LeadBuffer {
+    int nullCount;
+
+    @Override
+    public void initialize(int leadAmt) {
+      super.initialize(leadAmt);
+      this.nullCount = 0;
+    }
+
+    public void addRow(Object leadExprValue, Object defaultValue, boolean respectNulls) {
+      if (leadExprValue == null) {
+        nullCount++;
+        return;
+      }
+
+      int row = lastRowIdx + 1;
+      int leadRow = row - leadAmt;
+      if (leadRow >= 0) {
+        for (int i = 0; i < nullCount + 1; ++i) {
+          values.add(leadExprValue);
+        }
+        nullCount = 0;
+      }
+      leadWindow[nextPosInWindow] = defaultValue;
+      nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
+      lastRowIdx++;
+    }
+
+//    public Object terminate() {
+//      /*
+//       * if there are fewer than leadAmt values in leadWindow; start reading from the first position.
+//       * Otherwise the window starts from nextPosInWindow.
+//       */
+//      if ( lastRowIdx < leadAmt ) {
+//        nextPosInWindow = 0;
+//      }
+//      for(int i=0; i < leadAmt; i++) {
+//        values.add(leadWindow[nextPosInWindow]);
+//        nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
+//      }
+//      return values;
+//    }
 
   }
 

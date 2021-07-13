@@ -50,7 +50,7 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
   }
 
   @Override
-  protected GenericUDAFLeadLagEvaluator createLLEvaluator() {
+  protected GenericUDAFLeadLagEvaluator createLLEvaluator(boolean respectNulls) {
     return new GenericUDAFLagEvaluator();
   }
 
