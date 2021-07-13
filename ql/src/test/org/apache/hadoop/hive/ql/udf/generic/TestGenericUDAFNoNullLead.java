@@ -59,7 +59,6 @@ class TestGenericUDAFNoNullLead {
   @Test
   void testIgnoreNulls() throws HiveException {
     GenericUDAFLead.NoNullLeadBuffer buffer = leadBuffer();
-    evaluator.respectNulls = false;
 
     evaluator.iterate(buffer, parameters(8));
     assertThat(evaluator.getNextResult(buffer), is(nullValue()));
@@ -91,7 +90,6 @@ class TestGenericUDAFNoNullLead {
   @Test
   void testIgnoreNullsWhenAllInputValuesAreNull() throws HiveException {
     GenericUDAFLead.NoNullLeadBuffer buffer = leadBuffer();
-    evaluator.respectNulls = false;
 
     evaluator.iterate(buffer, parameters(null));
     assertThat(evaluator.getNextResult(buffer), is(nullValue()));

@@ -23,7 +23,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuf
 interface LeadLagBuffer extends AggregationBuffer {
   void initialize(int leadAmt);
 
-  void addRow(Object leadExprValue, Object defaultValue, boolean respectNulls);
+  void addRow(Object leadExprValue, Object defaultValue);
 
   Object terminate();
 

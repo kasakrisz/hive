@@ -106,7 +106,7 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       lastRowIdx = -1;
     }
 
-    public void addRow(Object leadExprValue, Object defaultValue, boolean respectNulls) {
+    public void addRow(Object leadExprValue, Object defaultValue) {
       int row = lastRowIdx + 1;
       int leadRow = row - leadAmt;
       if ( leadRow >= 0) {
@@ -143,7 +143,8 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       this.nullCount = 0;
     }
 
-    public void addRow(Object leadExprValue, Object defaultValue, boolean respectNulls) {
+    @Override
+    public void addRow(Object leadExprValue, Object defaultValue) {
       if (leadExprValue == null) {
         nullCount++;
         return;
