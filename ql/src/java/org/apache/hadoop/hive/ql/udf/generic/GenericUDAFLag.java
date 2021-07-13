@@ -38,7 +38,8 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFLeadLag.GenericUDAFLeadL
 @WindowFunctionDescription(
         supportsWindow = false,
         pivotResult = true,
-        impliesOrder = true)
+        impliesOrder = true,
+        supportsNullTreatment = true)
 public class GenericUDAFLag extends GenericUDAFLeadLag {
 
   static final Logger LOG = LoggerFactory.getLogger(GenericUDAFLag.class.getName());
@@ -51,7 +52,10 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
 
   @Override
   protected GenericUDAFLeadLagEvaluator createLLEvaluator(boolean respectNulls) {
-    return new GenericUDAFLagEvaluator();
+    if (respectNulls) {
+      return new GenericUDAFLagEvaluator();
+    }
+    return new GenericUDAFNoNullLagEvaluator();
   }
 
   public static class GenericUDAFLagEvaluator extends GenericUDAFLeadLagEvaluator {
