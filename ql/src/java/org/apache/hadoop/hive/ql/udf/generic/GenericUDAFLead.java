@@ -19,6 +19,8 @@
 package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,29 +122,31 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
   }
 
   static class NoNullLeadBuffer extends LeadBuffer {
-    int nullCount;
+    List<AtomicInteger> counters;
 
     @Override
     public void initialize(int leadAmt) {
       super.initialize(leadAmt);
-      this.nullCount = 0;
+      this.counters = new ArrayList<>();
     }
 
     @Override
     public void addRow(Object leadExprValue, Object defaultValue) {
-      if (leadExprValue == null) {
-        nullCount++;
-        return;
+      counters.add(new AtomicInteger(leadAmt));
+      for (AtomicInteger counter : counters) {
+        if (counter.get() > 0) {
+          counter.decrementAndGet();
+        }
       }
 
-      int row = lastRowIdx + 1;
-      int leadRow = row - leadAmt;
-      if (leadRow >= 0) {
-        for (int i = 0; i < nullCount + 1; ++i) {
+      if (leadExprValue != null) {
+        long zeros = counters.stream().filter(atomicInteger -> atomicInteger.get() == 0).count();
+        for (long i = 0; i < zeros; ++i) {
           values.add(leadExprValue);
         }
-        nullCount = 0;
+        counters.removeIf(atomicInteger -> atomicInteger.get() == 0);
       }
+
       leadWindow[nextPosInWindow] = defaultValue;
       nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
       lastRowIdx++;
