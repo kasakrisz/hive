@@ -73,20 +73,22 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       ObjectInspectorConverters.getConverter(paramOIs[2], paramOIs[0]);
     }
 
-    GenericUDAFLeadLagEvaluator eval = createLLEvaluator(parameters.respectNulls());
+    GenericUDAFLeadLagEvaluator eval = createLLEvaluator();
     eval.setAmt(amt);
+    eval.setRespectNulls(parameters.respectNulls());
     return eval;
   }
 
   protected abstract String functionName();
 
-  protected abstract GenericUDAFLeadLagEvaluator createLLEvaluator(boolean respectNulls);
+  protected abstract GenericUDAFLeadLagEvaluator createLLEvaluator();
 
   public static abstract class GenericUDAFLeadLagEvaluator extends GenericUDAFEvaluator {
 
     private transient ObjectInspector[] inputOI;
     private int amt;
     String fnName;
+    private boolean respectNulls;
     private transient Converter defaultValueConverter;
 
     public GenericUDAFLeadLagEvaluator() {
@@ -127,6 +129,14 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
 
     public void setAmt(int amt) {
       this.amt = amt;
+    }
+
+    public boolean respectNulls() {
+      return respectNulls;
+    }
+
+    public void setRespectNulls(boolean respectNulls) {
+      this.respectNulls = respectNulls;
     }
 
     public String getFnName() {

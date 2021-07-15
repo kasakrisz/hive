@@ -47,12 +47,8 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
   }
 
   @Override
-  protected GenericUDAFLeadLagEvaluator createLLEvaluator(boolean respectNulls) {
-    if (respectNulls) {
-      return new GenericUDAFLeadEvaluator();
-    }
-
-    return new GenericUDAFNoNullLeadEvaluator();
+  protected GenericUDAFLeadLagEvaluator createLLEvaluator() {
+    return new GenericUDAFLeadEvaluator();
   }
 
   public static class GenericUDAFLeadEvaluator extends GenericUDAFLeadLagEvaluator {
@@ -69,7 +65,7 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
 
     @Override
     protected LeadLagBuffer getNewLLBuffer() {
-     return new LeadBuffer();
+     return respectNulls() ? new LeadBuffer() : new NoNullLeadBuffer();
     }
     
     @Override
@@ -78,17 +74,6 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       return new GenericUDAFLeadEvaluatorStreaming(this);
     }
 
-  }
-
-  public static class GenericUDAFNoNullLeadEvaluator extends GenericUDAFLeadLagEvaluator {
-
-    public GenericUDAFNoNullLeadEvaluator() {
-    }
-
-    @Override
-    protected NoNullLeadBuffer getNewLLBuffer() {
-     return new NoNullLeadBuffer();
-    }
   }
 
   static class LeadBuffer implements LeadLagBuffer {

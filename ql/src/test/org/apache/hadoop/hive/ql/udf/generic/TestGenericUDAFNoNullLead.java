@@ -35,11 +35,12 @@ class TestGenericUDAFNoNullLead {
 
   @BeforeEach
   void setUp() throws HiveException {
-    GenericUDAFLead.GenericUDAFNoNullLeadEvaluator baseEvaluator = new GenericUDAFLead.GenericUDAFNoNullLeadEvaluator();
+    GenericUDAFLead.GenericUDAFLeadEvaluator baseEvaluator = new GenericUDAFLead.GenericUDAFLeadEvaluator();
     ObjectInspector[] inputIO = new ObjectInspector[] {
             TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(TypeInfoFactory.intTypeInfo)
     };
     baseEvaluator.init(GenericUDAFEvaluator.Mode.COMPLETE, inputIO);
+    baseEvaluator.setRespectNulls(false);
 
     evaluator = new GenericUDAFLead.GenericUDAFLeadEvaluatorStreaming(baseEvaluator);
   }
