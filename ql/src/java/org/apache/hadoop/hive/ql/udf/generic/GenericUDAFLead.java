@@ -152,6 +152,16 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
       lastRowIdx++;
     }
+
+    @Override
+    public Object terminate() {
+      if (counters.size() > leadAmt) {
+        for (int i = 0; i < counters.size() - leadAmt; ++i) {
+          values.add(null);
+        }
+      }
+      return super.terminate();
+    }
   }
 
   /*
