@@ -103,6 +103,7 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       this.fnName = src.fnName;
       this.defaultValueConverter = src.defaultValueConverter;
       this.mode = src.mode;
+      this.respectNulls = src.respectNulls;
     }
 
     @Override
