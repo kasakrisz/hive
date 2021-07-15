@@ -131,19 +131,21 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
 
     @Override
     public void addRow(Object leadExprValue, Object defaultValue) {
-      counters.add(new AtomicInteger(leadAmt));
-      for (AtomicInteger counter : counters) {
-        if (counter.get() > 0) {
-          counter.decrementAndGet();
-        }
-      }
-
       if (leadExprValue != null) {
+        counters.add(new AtomicInteger(leadAmt + 1));
+        for (AtomicInteger counter : counters) {
+          if (counter.get() > 0) {
+            counter.decrementAndGet();
+          }
+        }
+
         long zeros = counters.stream().filter(atomicInteger -> atomicInteger.get() == 0).count();
         for (long i = 0; i < zeros; ++i) {
           values.add(leadExprValue);
         }
         counters.removeIf(atomicInteger -> atomicInteger.get() == 0);
+      } else {
+        counters.add(new AtomicInteger(leadAmt));
       }
 
       leadWindow[nextPosInWindow] = defaultValue;
