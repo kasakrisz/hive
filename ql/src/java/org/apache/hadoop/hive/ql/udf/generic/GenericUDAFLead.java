@@ -28,7 +28,6 @@ import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 
 @Description(
         name = "lead",
@@ -178,8 +177,12 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
     }
 
     @Override
-    public int getRowsRemainingAfterTerminate() throws HiveException {
-      return getAmt();
+    public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
+      if (agg == null) {
+        return getAmt();
+      }
+      LeadBuffer lb = (LeadBuffer) agg;
+      return lb.values.size();
     }
   }
 

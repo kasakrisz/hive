@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
@@ -222,7 +221,7 @@ public abstract class GenericUDAFStreamingEvaluator<T1> extends
     }
 
     @Override
-    public int getRowsRemainingAfterTerminate() throws HiveException {
+    public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
       throw new UnsupportedOperationException();
     }
 

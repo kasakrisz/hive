@@ -473,7 +473,7 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
         WindowingFunctionInfoHelper wFnInfo = getWindowingFunctionInfoHelper(wFn.getName());
         if (!wFnInfo.isSupportsWindow()) {
           numRowsRemaining = ((ISupportStreamingModeForWindowing) fnEval)
-              .getRowsRemainingAfterTerminate();
+              .getRowsRemainingAfterTerminate(streamingState.aggBuffers[i]);
         }
 
         if (numRowsRemaining != BoundarySpec.UNBOUNDED_AMOUNT) {
@@ -543,7 +543,7 @@ public class WindowingTableFunction extends TableFunctionEvaluator {
         GenericUDAFEvaluator streamingEval = wFn.getWFnEval().getWindowingEvaluator(wFn.getWindowFrame());
         if ( streamingEval != null && streamingEval instanceof ISupportStreamingModeForWindowing ) {
           ISupportStreamingModeForWindowing strEval = (ISupportStreamingModeForWindowing) streamingEval;
-          if ( strEval.getRowsRemainingAfterTerminate() == 0 ) {
+          if ( strEval.getRowsRemainingAfterTerminate(null) == 0 ) {
             wFn.setWFnEval(streamingEval);
             if ( wFn.getOI() instanceof ListObjectInspector ) {
               ListObjectInspector listOI = (ListObjectInspector) wFn.getOI();

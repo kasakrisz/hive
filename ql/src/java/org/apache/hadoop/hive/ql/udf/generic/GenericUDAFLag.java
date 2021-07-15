@@ -26,11 +26,6 @@ import org.apache.hadoop.hive.ql.exec.Description;
 import org.apache.hadoop.hive.ql.exec.WindowFunctionDescription;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFLead.GenericUDAFLeadEvaluator;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFLead.GenericUDAFLeadEvaluatorStreaming;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFLead.LeadBuffer;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFLeadLag.GenericUDAFLeadLagEvaluator;
 
 @Description(
         name = "lag",
@@ -183,7 +178,7 @@ public class GenericUDAFLag extends GenericUDAFLeadLag {
     }
 
     @Override
-    public int getRowsRemainingAfterTerminate() throws HiveException {
+    public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
       return getAmt();
     }
   }
