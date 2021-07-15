@@ -42,6 +42,7 @@ class TestGenericUDAFLead {
             TypeInfoUtils.getStandardWritableObjectInspectorFromTypeInfo(TypeInfoFactory.intTypeInfo)
     };
     baseEvaluator.init(GenericUDAFEvaluator.Mode.COMPLETE, inputIO);
+    baseEvaluator.setRespectNulls(true);
 
     evaluator = new GenericUDAFLead.GenericUDAFLeadEvaluatorStreaming(baseEvaluator);
   }
