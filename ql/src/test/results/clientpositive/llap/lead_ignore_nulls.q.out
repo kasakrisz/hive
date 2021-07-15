@@ -9,24 +9,26 @@ POSTHOOK: Output: default@t1
 PREHOOK: query: insert into t1(a, b) values
 (1000, 1000),
 (2000, 2000),
-(3000, 3000),
+(3000, NULL),
 (4000, 4000),
-(5000, 5000),
+(5000, NULL),
 (6000, NULL),
-(7000, NULL),
-(8000, 8000)
+(7000, 7000),
+(8000, 8000),
+(9000, 9000)
 PREHOOK: type: QUERY
 PREHOOK: Input: _dummy_database@_dummy_table
 PREHOOK: Output: default@t1
 POSTHOOK: query: insert into t1(a, b) values
 (1000, 1000),
 (2000, 2000),
-(3000, 3000),
+(3000, NULL),
 (4000, 4000),
-(5000, 5000),
+(5000, NULL),
 (6000, NULL),
-(7000, NULL),
-(8000, 8000)
+(7000, 7000),
+(8000, 8000),
+(9000, 9000)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@t1
@@ -34,27 +36,28 @@ POSTHOOK: Lineage: t1.a SCRIPT []
 POSTHOOK: Lineage: t1.b SCRIPT []
 PREHOOK: query: select
     b,
-    lead(b, 2) over (order by a desc),
-    lead(b, 2) ignore nulls over (order by a desc),
-    lead(b, 3) ignore nulls over (order by a desc)
+
+    lead(b, 2) ignore nulls over (order by a desc)
+
 from t1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
 POSTHOOK: query: select
     b,
-    lead(b, 2) over (order by a desc),
-    lead(b, 2) ignore nulls over (order by a desc),
-    lead(b, 3) ignore nulls over (order by a desc)
+
+    lead(b, 2) ignore nulls over (order by a desc)
+
 from t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 #### A masked pattern was here ####
-8000	NULL	4000	3000
-NULL	5000	4000	3000
-NULL	4000	4000	3000
-5000	3000	3000	2000
-4000	2000	2000	1000
-3000	1000	1000	NULL
-2000	NULL	NULL	NULL
-1000	NULL	NULL	NULL
+9000	8000
+8000	7000
+7000	4000
+NULL	4000
+NULL	4000
+4000	2000
+NULL	2000
+2000	1000
+1000	NULL

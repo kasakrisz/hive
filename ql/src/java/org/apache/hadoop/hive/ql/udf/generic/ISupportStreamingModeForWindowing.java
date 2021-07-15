@@ -40,7 +40,7 @@ public interface ISupportStreamingModeForWindowing {
    * this method shouldn't be called. For Ranking fns return 0; lead/lag fns return the
    * lead/lag amt.
    */
-  int getRowsRemainingAfterTerminate() throws HiveException;
+  int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException;
 
   public static Object NULL_RESULT = new Object();
 }

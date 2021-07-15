@@ -28,12 +28,8 @@ import org.apache.hadoop.hive.ql.exec.vector.VectorizedUDAFs;
 import org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.gen.*;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.parse.WindowingSpec.BoundarySpec;
-import org.apache.hadoop.hive.ql.plan.ptf.BoundaryDef;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.UDFType;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationType;
 import org.apache.hadoop.hive.ql.util.JavaDataModel;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
@@ -329,7 +325,7 @@ public class GenericUDAFMax extends AbstractGenericUDAFResolver {
     }
 
     @Override
-    public int getRowsRemainingAfterTerminate() throws HiveException {
+    public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
       throw new UnsupportedOperationException();
     }
 

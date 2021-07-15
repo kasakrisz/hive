@@ -29,8 +29,6 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ptf.WindowFrameDef;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator.AggregationBuffer;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFRank.GenericUDAFAbstractRankEvaluator;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFRank.RankBuffer;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
@@ -149,7 +147,7 @@ public class GenericUDAFRowNumber extends AbstractGenericUDAFResolver {
     }
 
     @Override
-    public int getRowsRemainingAfterTerminate() throws HiveException {
+    public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
       return 0;
     }
   }

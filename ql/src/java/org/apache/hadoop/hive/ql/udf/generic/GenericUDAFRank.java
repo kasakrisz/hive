@@ -241,7 +241,7 @@ public class GenericUDAFRank extends AbstractGenericUDAFResolver {
     }
 
     @Override
-    public int getRowsRemainingAfterTerminate() throws HiveException {
+    public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
       return 0;
     }
   }
