@@ -19,6 +19,8 @@
 package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -120,49 +122,150 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
 
   }
 
+  static class Counter {
+
+    private final AtomicInteger numberOfValues;
+    private final AtomicInteger lead;
+
+    Counter(int leadAmt) {
+      this.numberOfValues = new AtomicInteger(0);
+      lead = new AtomicInteger(leadAmt);
+    }
+
+    public void incNumberOfValues() {
+      numberOfValues.incrementAndGet();
+    }
+
+    public int numberOfValues() {
+      return numberOfValues.get();
+    }
+
+    public void decLead() {
+      lead.decrementAndGet();
+    }
+
+    public int lead() {
+      return lead.get();
+    }
+  }
+
+  static class Entry {
+    Object value;
+    long rowIdx;
+  }
+
   static class NoNullLeadBuffer extends LeadBuffer {
-    List<AtomicInteger> counters;
+    Deque<Entry> counters;
+    boolean prevWasNull;
+    int readerIdx;
 
     @Override
     public void initialize(int leadAmt) {
       super.initialize(leadAmt);
-      this.counters = new ArrayList<>();
+      this.counters = new LinkedList<>();
+      prevWasNull = false;
+      readerIdx = 0;
     }
 
     @Override
     public void addRow(Object leadExprValue, Object defaultValue) {
       if (leadExprValue != null) {
-        counters.add(new AtomicInteger(leadAmt + 1));
-        for (AtomicInteger counter : counters) {
-          if (counter.get() > 0) {
-            counter.decrementAndGet();
-          }
-        }
-
-        long zeros = counters.stream().filter(atomicInteger -> atomicInteger.get() == 0).count();
-        for (long i = 0; i < zeros; ++i) {
-          values.add(leadExprValue);
-        }
-        counters.removeIf(atomicInteger -> atomicInteger.get() == 0);
-      } else {
-        counters.add(new AtomicInteger(leadAmt));
+        Entry entry = new Entry();
+        entry.rowIdx = lastRowIdx + leadAmt;
+        entry.value = leadExprValue;
+        counters.add(entry);
       }
 
-      leadWindow[nextPosInWindow] = defaultValue;
-      nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
+//      leadWindow[nextPosInWindow] = defaultValue;
+//      nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
       lastRowIdx++;
     }
 
     @Override
     public Object terminate() {
-      if (counters.size() > leadAmt) {
-        for (int i = 0; i < counters.size() - leadAmt; ++i) {
+      int numberOfValues = 0;
+      for (Counter counter : counters) {
+        numberOfValues += counter.numberOfValues();
+      }
+
+      if (numberOfValues > leadAmt) {
+        for (Counter counter : counters) {
+          numberOfValues--;
+          if (numberOfValues == 0) {
+            break;
+          }
           values.add(null);
         }
+//        for (int i = 0; i < counters.size() - leadAmt; ++i) {
+//          values.add(null);
+//        }
       }
       return super.terminate();
     }
   }
+//  static class NoNullLeadBuffer extends LeadBuffer {
+//    List<Counter> counters;
+//    boolean prevWasNull;
+//
+//    @Override
+//    public void initialize(int leadAmt) {
+//      super.initialize(leadAmt);
+//      this.counters = new ArrayList<>();
+//      prevWasNull = false;
+//    }
+//
+//    @Override
+//    public void addRow(Object leadExprValue, Object defaultValue) {
+//      if (leadExprValue != null) {
+//        counters.add(new Counter(leadAmt + 1));
+//        for (Counter counter : counters) {
+//          if (counter.lead() > 0) {
+//            counter.decLead();
+//          }
+//        }
+//
+//        for (Counter counter : counters) {
+//          if (counter.lead() == 0)
+//          values.add(leadExprValue);
+//        }
+//        counters.removeIf(counter -> counter.lead() == 0);
+//        prevWasNull = false;
+//      } else {
+//        if (!prevWasNull) {
+//          counters.get(counters.size() - 1).incNumberOfValues();
+//        } else {
+//          counters.add(new Counter(leadAmt));
+//        }
+//        prevWasNull = true;
+//      }
+//
+//      leadWindow[nextPosInWindow] = defaultValue;
+//      nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
+//      lastRowIdx++;
+//    }
+//
+//    @Override
+//    public Object terminate() {
+//      int numberOfValues = 0;
+//      for (Counter counter : counters) {
+//        numberOfValues += counter.numberOfValues();
+//      }
+//
+//      if (numberOfValues > leadAmt) {
+//        for (Counter counter : counters) {
+//          numberOfValues--;
+//          if (numberOfValues == 0) {
+//            break;
+//          }
+//          values.add(null);
+//        }
+////        for (int i = 0; i < counters.size() - leadAmt; ++i) {
+////          values.add(null);
+////        }
+//      }
+//      return super.terminate();
+//    }
+//  }
 
   /*
    * StreamingEval: wrap regular eval. on getNext remove first row from values
@@ -177,16 +280,32 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
 
     @Override
     public Object getNextResult(AggregationBuffer agg) throws HiveException {
-      LeadBuffer lb = (LeadBuffer) agg;
-      if (!lb.values.isEmpty()) {
-        Object res = lb.values.remove(0);
+      NoNullLeadBuffer lb = (NoNullLeadBuffer) agg;
+      if (lb.counters.size() >= lb.leadAmt) {
+        Object res = lb.counters.getLast().value;
         if (res == null) {
           return ISupportStreamingModeForWindowing.NULL_RESULT;
+        }
+        lb.readerIdx++;
+        if (lb.readerIdx >= lb.counters.getFirst().rowIdx) {
+          lb.counters.removeFirst();
         }
         return res;
       }
       return null;
     }
+//    @Override
+//    public Object getNextResult(AggregationBuffer agg) throws HiveException {
+//      LeadBuffer lb = (LeadBuffer) agg;
+//      if (!lb.values.isEmpty()) {
+//        Object res = lb.values.remove(0);
+//        if (res == null) {
+//          return ISupportStreamingModeForWindowing.NULL_RESULT;
+//        }
+//        return res;
+//      }
+//      return null;
+//    }
 
     @Override
     public int getRowsRemainingAfterTerminate(AggregationBuffer agg) throws HiveException {
