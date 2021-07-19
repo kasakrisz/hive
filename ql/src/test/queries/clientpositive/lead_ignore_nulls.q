@@ -3,13 +3,14 @@ create table t1(a int, b int);
 insert into t1(a, b) values
 (1000, 1000),
 (2000, 2000),
+(2000, 2000),
 (3000, NULL),
 (4000, 4000),
 (5000, NULL),
 (6000, NULL),
 (7000, NULL),
 (8000, 8000),
-(9000, 9000)
+(8000, 8000)
 ;
 
 select

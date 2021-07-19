@@ -9,18 +9,6 @@ POSTHOOK: Output: default@t1
 PREHOOK: query: insert into t1(a, b) values
 (1000, 1000),
 (2000, 2000),
-(3000, NULL),
-(4000, 4000),
-(5000, NULL),
-(6000, NULL),
-(7000, NULL),
-(8000, 8000),
-(9000, 9000)
-PREHOOK: type: QUERY
-PREHOOK: Input: _dummy_database@_dummy_table
-PREHOOK: Output: default@t1
-POSTHOOK: query: insert into t1(a, b) values
-(1000, 1000),
 (2000, 2000),
 (3000, NULL),
 (4000, 4000),
@@ -28,7 +16,21 @@ POSTHOOK: query: insert into t1(a, b) values
 (6000, NULL),
 (7000, NULL),
 (8000, 8000),
-(9000, 9000)
+(8000, 8000)
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@t1
+POSTHOOK: query: insert into t1(a, b) values
+(1000, 1000),
+(2000, 2000),
+(2000, 2000),
+(3000, NULL),
+(4000, 4000),
+(5000, NULL),
+(6000, NULL),
+(7000, NULL),
+(8000, 8000),
+(8000, 8000)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@t1
@@ -50,12 +52,13 @@ from t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 #### A masked pattern was here ####
-9000	4000	2000
-8000	2000	1000
+8000	4000	2000
+8000	2000	2000
+NULL	2000	2000
+NULL	2000	2000
+NULL	2000	2000
+4000	2000	1000
 NULL	2000	1000
-NULL	2000	1000
-NULL	2000	1000
-4000	1000	NULL
-NULL	1000	NULL
+2000	1000	NULL
 2000	NULL	NULL
 1000	NULL	NULL
