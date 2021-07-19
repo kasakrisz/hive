@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.ql.udf.generic;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,37 +119,55 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
 
   }
 
+  static class CounterEntry {
+    int valueCount;
+    int leadAmt;
+  }
+
   static class NoNullLeadBuffer extends LeadBuffer {
-    List<AtomicInteger> counters;
+    List<CounterEntry> counters;
+    Object previousValue;
 
     @Override
     public void initialize(int leadAmt) {
       super.initialize(leadAmt);
       this.counters = new ArrayList<>();
+      this.previousValue = null;
     }
 
     @Override
     public void addRow(Object leadExprValue, Object defaultValue) {
+      if (leadExprValue == previousValue && !counters.isEmpty()) {
+        counters.get(counters.size() - 1).valueCount++;
+      } else {
+        CounterEntry e = new CounterEntry();
+        e.leadAmt = leadAmt;
+        if (leadExprValue != null) {
+          e.leadAmt++;
+        }
+        e.valueCount = 1;
+        counters.add(e);
+      }
+
       if (leadExprValue != null) {
-        counters.add(new AtomicInteger(leadAmt + 1));
-        for (AtomicInteger counter : counters) {
-          if (counter.get() > 0) {
-            counter.decrementAndGet();
+        for (CounterEntry counter : counters) {
+          if (counter.leadAmt > 0) {
+            counter.leadAmt--;
+          }
+          if (counter.leadAmt == 0) {
+            for (long i = 0; i < counter.valueCount; ++i) {
+              values.add(leadExprValue);
+            }
           }
         }
 
-        long zeros = counters.stream().filter(atomicInteger -> atomicInteger.get() == 0).count();
-        for (long i = 0; i < zeros; ++i) {
-          values.add(leadExprValue);
-        }
-        counters.removeIf(atomicInteger -> atomicInteger.get() == 0);
-      } else {
-        counters.add(new AtomicInteger(leadAmt));
+        counters.removeIf(atomicInteger -> atomicInteger.leadAmt == 0);
       }
 
       leadWindow[nextPosInWindow] = defaultValue;
       nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
       lastRowIdx++;
+      previousValue = leadExprValue;
     }
 
     @Override
