@@ -68,6 +68,8 @@ class TestGenericUDAFLead {
 
     evaluator.terminate(buffer);
 
+    assertThat(evaluator.getRowsRemainingAfterTerminate(buffer), is(2));
+
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
   }

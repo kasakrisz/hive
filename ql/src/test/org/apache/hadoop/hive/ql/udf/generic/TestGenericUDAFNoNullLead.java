@@ -73,13 +73,18 @@ class TestGenericUDAFNoNullLead {
     evaluator.iterate(buffer, parameters(5));
     assertThat(evaluator.getNextResult(buffer), is(nullValue()));
 
+    evaluator.iterate(buffer, parameters(5));
+    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(5)));
+
     evaluator.iterate(buffer, parameters(4));
-    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(4)));
+    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(5)));
 
     evaluator.iterate(buffer, parameters(3));
-    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(4)));
+    assertThat(evaluator.getNextResult(buffer), is(new IntWritable(5)));
 
     evaluator.terminate(buffer);
+
+    assertThat(evaluator.getRowsRemainingAfterTerminate(buffer), is(4));
 
     assertThat(evaluator.getNextResult(buffer), is(new IntWritable(4)));
     assertThat(evaluator.getNextResult(buffer), is(new IntWritable(3)));
@@ -99,6 +104,8 @@ class TestGenericUDAFNoNullLead {
     assertThat(evaluator.getNextResult(buffer), is(nullValue()));
 
     evaluator.terminate(buffer);
+
+    assertThat(evaluator.getRowsRemainingAfterTerminate(buffer), is(2));
 
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));
     assertThat(evaluator.getNextResult(buffer), is(ISupportStreamingModeForWindowing.NULL_RESULT));

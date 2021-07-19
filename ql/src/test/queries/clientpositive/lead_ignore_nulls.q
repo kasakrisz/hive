@@ -16,5 +16,7 @@ insert into t1(a, b) values
 select
     b,
     lead(b, 2) ignore nulls over (order by a desc),
-    lead(b, 3) ignore nulls over (order by a desc)
+    lead(b, 2, 222) ignore nulls over (order by a desc),
+    lead(b, 4) ignore nulls over (order by a desc),
+    lead(b, 4, 333) ignore nulls over (order by a desc)
 from t1;

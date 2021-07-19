@@ -127,6 +127,7 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
   static class NoNullLeadBuffer extends LeadBuffer {
     List<CounterEntry> counters;
     Object previousValue;
+    Object defaultValue;
 
     @Override
     public void initialize(int leadAmt) {
@@ -168,13 +169,14 @@ public class GenericUDAFLead extends GenericUDAFLeadLag {
       nextPosInWindow = (nextPosInWindow + 1) % leadAmt;
       lastRowIdx++;
       previousValue = leadExprValue;
+      this.defaultValue = defaultValue;
     }
 
     @Override
     public Object terminate() {
       if (counters.size() > leadAmt) {
         for (int i = 0; i < counters.size() - leadAmt; ++i) {
-          values.add(null);
+          values.add(defaultValue);
         }
       }
       return super.terminate();

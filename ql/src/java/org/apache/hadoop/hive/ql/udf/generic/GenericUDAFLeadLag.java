@@ -89,6 +89,7 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
     private int amt;
     String fnName;
     private boolean respectNulls;
+    private Object defaultValue;
     private transient Converter defaultValueConverter;
 
     public GenericUDAFLeadLagEvaluator() {
@@ -104,6 +105,7 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       this.defaultValueConverter = src.defaultValueConverter;
       this.mode = src.mode;
       this.respectNulls = src.respectNulls;
+      this.defaultValue = src.defaultValue;
     }
 
     @Override
@@ -118,6 +120,11 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
       if (parameters.length == 3) {
         defaultValueConverter = ObjectInspectorConverters
                 .getConverter(parameters[2], parameters[0]);
+        if (parameters[2] instanceof ConstantObjectInspector) {
+          defaultValue = ((ConstantObjectInspector) parameters[2]).getWritableConstantValue();
+        } else if (!respectNulls) {
+          throw new UnsupportedOperationException("Default value must be constant if IGNORE NULLS specified.");
+        }
       }
 
       return ObjectInspectorFactory.getStandardListObjectInspector(ObjectInspectorUtils
