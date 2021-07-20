@@ -9,11 +9,13 @@ POSTHOOK: Output: default@t1
 PREHOOK: query: insert into t1(a, b) values
 (1000, 1000),
 (2000, 2000),
+(2000, 2000),
 (3000, NULL),
-(4000, NULL),
-(5000, 5000),
-(6000, 6000),
+(4000, 4000),
+(5000, NULL),
+(6000, NULL),
 (7000, NULL),
+(8000, 8000),
 (8000, 8000)
 PREHOOK: type: QUERY
 PREHOOK: Input: _dummy_database@_dummy_table
@@ -21,11 +23,13 @@ PREHOOK: Output: default@t1
 POSTHOOK: query: insert into t1(a, b) values
 (1000, 1000),
 (2000, 2000),
+(2000, 2000),
 (3000, NULL),
-(4000, NULL),
-(5000, 5000),
-(6000, 6000),
+(4000, 4000),
+(5000, NULL),
+(6000, NULL),
 (7000, NULL),
+(8000, 8000),
 (8000, 8000)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
@@ -34,27 +38,75 @@ POSTHOOK: Lineage: t1.a SCRIPT []
 POSTHOOK: Lineage: t1.b SCRIPT []
 PREHOOK: query: select
     b,
-    lag(b, 2) over (order by a desc),
     lag(b, 2) ignore nulls over (order by a desc),
-    lag(b, 3) ignore nulls over (order by a desc)
+    lag(b, 2, 222) ignore nulls over (order by a desc),
+    lag(b, 4) ignore nulls over (order by a desc),
+    lag(b, 4, 333) ignore nulls over (order by a desc)
 from t1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
 POSTHOOK: query: select
     b,
-    lag(b, 2) over (order by a desc),
     lag(b, 2) ignore nulls over (order by a desc),
-    lag(b, 3) ignore nulls over (order by a desc)
+    lag(b, 2, 222) ignore nulls over (order by a desc),
+    lag(b, 4) ignore nulls over (order by a desc),
+    lag(b, 4, 333) ignore nulls over (order by a desc)
 from t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 #### A masked pattern was here ####
-8000	NULL	NULL	NULL
-NULL	NULL	NULL	NULL
-6000	8000	8000	NULL
-5000	NULL	NULL	8000
-NULL	6000	6000	NULL
-NULL	5000	5000	6000
-2000	NULL	NULL	5000
-1000	NULL	NULL	NULL
+8000	NULL	222	NULL	333
+8000	NULL	222	NULL	333
+NULL	8000	8000	NULL	333
+NULL	8000	8000	NULL	333
+NULL	8000	8000	NULL	333
+4000	8000	8000	NULL	333
+NULL	8000	8000	NULL	333
+2000	8000	8000	NULL	333
+2000	4000	4000	8000	8000
+1000	2000	2000	8000	8000
+PREHOOK: query: explain cbo
+select
+    b,
+    lag(b, 4, a / 10) ignore nulls over (order by a desc)
+from t1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: explain cbo
+select
+    b,
+    lag(b, 4, a / 10) ignore nulls over (order by a desc)
+from t1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+CBO PLAN:
+HiveProject(b=[$1], _o__c1=[lag($1, 4, /(CAST($0):DOUBLE, CAST(10):DOUBLE)) IGNORE NULLS OVER (PARTITION BY 0 ORDER BY $0 DESC NULLS FIRST RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)])
+  HiveTableScan(table=[[default, t1]], table:alias=[t1])
+
+PREHOOK: query: select
+    b,
+    lag(b, 4, a / 10) ignore nulls over (order by a desc)
+from t1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: select
+    b,
+    lag(b, 4, a / 10) ignore nulls over (order by a desc)
+from t1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+8000	800
+8000	800
+NULL	700
+NULL	600
+NULL	500
+4000	400
+NULL	300
+2000	200
+2000	8000
+1000	8000
