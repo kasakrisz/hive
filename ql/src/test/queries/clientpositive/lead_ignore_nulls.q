@@ -13,6 +13,14 @@ insert into t1(a, b) values
 (8000, 8000)
 ;
 
+select
+    b,
+    lead(b, 2) ignore nulls over (order by a desc),
+    lead(b, 2, 222) ignore nulls over (order by a desc),
+    lead(b, 4) ignore nulls over (order by a desc),
+    lead(b, 4, 333) ignore nulls over (order by a desc)
+from t1;
+
 explain cbo
 select
     b,
@@ -22,13 +30,4 @@ from t1;
 select
     b,
     lead(b, 4, a / 10) ignore nulls over (order by a desc)
-from t1;
-
-
-select
-    b,
-    lead(b, 2) ignore nulls over (order by a desc),
-    lead(b, 2, 222) ignore nulls over (order by a desc),
-    lead(b, 4) ignore nulls over (order by a desc),
-    lead(b, 4, 333) ignore nulls over (order by a desc)
 from t1;
