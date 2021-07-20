@@ -122,8 +122,6 @@ public abstract class GenericUDAFLeadLag extends AbstractGenericUDAFResolver {
                 .getConverter(parameters[2], parameters[0]);
         if (parameters[2] instanceof ConstantObjectInspector) {
           defaultValue = ((ConstantObjectInspector) parameters[2]).getWritableConstantValue();
-        } else if (!respectNulls) {
-          throw new UnsupportedOperationException("Default value must be constant if IGNORE NULLS specified.");
         }
       }
 

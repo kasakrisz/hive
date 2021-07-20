@@ -36,32 +36,68 @@ POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@t1
 POSTHOOK: Lineage: t1.a SCRIPT []
 POSTHOOK: Lineage: t1.b SCRIPT []
+PREHOOK: query: explain cbo
+select
+    sum(a) over (order by a desc)
+from t1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: explain cbo
+select
+    sum(a) over (order by a desc)
+from t1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+CBO PLAN:
+HiveProject(_o__c0=[sum($0) OVER (PARTITION BY 0 ORDER BY $0 DESC NULLS FIRST)])
+  HiveTableScan(table=[[default, t1]], table:alias=[t1])
+
+PREHOOK: query: explain cbo
+select
+    b,
+    lead(b, 4, a / 10) ignore nulls over (order by a desc)
+from t1
+PREHOOK: type: QUERY
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: explain cbo
+select
+    b,
+    lead(b, 4, a / 10) ignore nulls over (order by a desc)
+from t1
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+CBO PLAN:
+HiveProject(b=[$1], _o__c1=[CASE(IS NULL(lead($1, 4) IGNORE NULLS OVER (PARTITION BY 0 ORDER BY $0 DESC NULLS FIRST RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)), CAST(/(CAST($0):DOUBLE, 10)):INTEGER, lead($1, 4) IGNORE NULLS OVER (PARTITION BY 0 ORDER BY $0 DESC NULLS FIRST RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING))])
+  HiveTableScan(table=[[default, t1]], table:alias=[t1])
+
 PREHOOK: query: select
     b,
-    case when lead(b, 4) ignore nulls over (order by a desc) is null then a / 10 else lead(b, 4) ignore nulls over (order by a desc) end
-
+    lead(b, 4, a / 10) ignore nulls over (order by a desc)
 from t1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
 POSTHOOK: query: select
     b,
-    case when lead(b, 4) ignore nulls over (order by a desc) is null then a / 10 else lead(b, 4) ignore nulls over (order by a desc) end
-
+    lead(b, 4, a / 10) ignore nulls over (order by a desc)
 from t1
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 #### A masked pattern was here ####
-8000	2000.0
-8000	1000.0
-NULL	1000.0
-NULL	1000.0
-NULL	1000.0
-4000	400.0
-NULL	300.0
-2000	200.0
-2000	200.0
-1000	100.0
+8000	2000
+8000	1000
+NULL	1000
+NULL	1000
+NULL	1000
+4000	400
+NULL	300
+2000	200
+2000	200
+1000	100
 PREHOOK: query: select
     b,
     lead(b, 2) ignore nulls over (order by a desc),
