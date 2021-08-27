@@ -271,7 +271,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         }
 
         return applyPartitionIncrementalRebuildPlan(
-                basePlan, mdProvider, executorProvider, materialization, calcitePreMVRewritingPlan);
+                basePlan, mdProvider, executorProvider, materialization, calcitePreMVRewritingPlan, optCluster);
       }
 
       // Now we trigger some needed optimization rules again
@@ -379,7 +379,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
 
     private RelNode applyPartitionIncrementalRebuildPlan(
             RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider,
-            HiveRelOptMaterialization materialization, RelNode calcitePreMVRewritingPlan) {
+            HiveRelOptMaterialization materialization, RelNode calcitePreMVRewritingPlan, RelOptCluster optCluster) {
 
       if (materialization.isSourceTablesUpdateDeleteModified()) {
         // TODO: Create rewrite rule to transform the plan to partition based incremental rebuild
@@ -396,8 +396,25 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         return applyPreJoinOrderingTransforms(basePlan, mdProvider, executorProvider);
       }
 
-      return applyIncrementalRebuild(
-              basePlan, mdProvider, executorProvider, HiveAggregatePartitionIncrementalRewritingRule.INSTANCE);
+      RelNode rebuildPlan = applyIncrementalRebuild(
+          basePlan, mdProvider, executorProvider, HiveAggregatePartitionIncrementalRewritingRule.INSTANCE);
+
+      optCluster.invalidateMetadataQuery();
+      RelMetadataQuery.THREAD_PROVIDERS.set(HiveMaterializationRelMetadataProvider.DEFAULT);
+      try {
+        RelMetadataQuery mq = RelMetadataQuery.instance();
+        RelOptCost costOriginalPlan = mq.getCumulativeCost(calcitePreMVRewritingPlan);
+        RelOptCost costRebuildPlan = mq.getCumulativeCost(rebuildPlan);
+        if (costOriginalPlan.isLe(costRebuildPlan)) {
+          mvRebuildMode = MaterializationRebuildMode.INSERT_OVERWRITE_REBUILD;
+          return calcitePreMVRewritingPlan;
+        }
+
+        return basePlan;
+      } finally {
+        optCluster.invalidateMetadataQuery();
+        RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(mdProvider));
+      }
     }
 
     private RelNode applyIncrementalRebuild(
