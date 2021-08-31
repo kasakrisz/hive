@@ -83,6 +83,7 @@ import org.apache.hadoop.hive.metastore.LockTypeComparator;
 import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
 import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
 import org.apache.hadoop.hive.metastore.api.AddDynamicPartitions;
+import org.apache.hadoop.hive.metastore.api.AffectedRowsRequest;
 import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsRequest;
 import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsResponse;
 import org.apache.hadoop.hive.metastore.api.CheckLockRequest;
@@ -1531,7 +1532,7 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
         if (txnType.get() != TxnType.READ_ONLY && !isReplayedReplTxn) {
           moveTxnComponentsToCompleted(stmt, txnid, isUpdateDelete);
           if (rqst.isSetRowsAffected() && rqst.getRowsAffectedSize() > 0) {
-            
+            saveAffectedRowCounts(stmt, txnid, rqst.getRowsAffected());
           }
         } else if (isReplayedReplTxn) {
           if (rqst.isSetWriteEventInfos()) {
@@ -1704,6 +1705,25 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       //also an IUD with DP that didn't match any rows.
       LOG.info("Expected to move at least one record from txn_components to " +
               "completed_txn_components when committing txn! " + JavaUtils.txnIdToString(txnid));
+    }
+  }
+
+  private void saveAffectedRowCounts(Statement stmt, long txnid, Set<AffectedRowsRequest> rowsAffected)
+      throws SQLException {
+    for (AffectedRowsRequest affectedRowsRequest : rowsAffected) {
+      StringBuilder sb = new StringBuilder().append("UPDATE \"COMPLETED_TXN_COMPONENTS\" " +
+          "SET \"CTC_INSERTED_COUNT\" = ").append(affectedRowsRequest.getRowsAffected())
+          .append(" WHERE \"CTC_TXNID\" = ").append(txnid)
+          .append(" AND \"CTC_DATABASE\" = '").append(affectedRowsRequest.getDbName())
+          .append("' AND \"CTC_TABLE\" = '").append(affectedRowsRequest.getTableName()).append("'");
+
+      if (affectedRowsRequest.isSetPartName()) {
+        sb.append(" AND \"CTC_PARTITION\" = '").append(affectedRowsRequest.getPartName()).append("'");
+      }
+
+      String s = sb.toString();
+      LOG.debug("Going to execute update <" + s + ">");
+      stmt.executeUpdate(s);
     }
   }
 
