@@ -2652,7 +2652,7 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       }
 
       // compose a query that select transactions containing an update...
-      queryTextBuilder.append("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", \"CTC_INSERTED_COUNT\" " +
+      queryTextBuilder.append("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", count(\"CTC_INSERTED_COUNT\") " +
           "FROM \"COMPLETED_TXN_COMPONENTS\" WHERE 1=1 AND (");
 
       String[] names = TxnUtils.getDbTableName(fullyQualifiedName);
@@ -2672,6 +2672,7 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
               Arrays.asList(ArrayUtils.toObject(validReaderTxnListTo.getInvalidTransactions()))) + ") ");
     }
 
+    queryTextBuilder.append("GROUP BY \"CTC_DATABASE\", \"CTC_TABLE\"");
     String queryText = queryTextBuilder.toString();
 
     Connection dbConn = null;
@@ -2689,8 +2690,8 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       Map<String, Long> result = new HashMap<>();
 
       while (rs.next()) {
-        String fullyQualifiedName = rs.getString(0) + "." + rs.getString(1);
-        result.put(fullyQualifiedName, rs.getLong(2));
+        String fullyQualifiedName = rs.getString(1) + "." + rs.getString(2);
+        result.put(fullyQualifiedName, rs.getLong(3));
       }
       return result;
     } catch (SQLException ex) {
