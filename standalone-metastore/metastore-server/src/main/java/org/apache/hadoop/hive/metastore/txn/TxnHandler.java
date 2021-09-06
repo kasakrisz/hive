@@ -2701,22 +2701,9 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       pst = sqlGenerator.prepareStmtWithParameters(dbConn, queryText, params);
       rs = pst.executeQuery();
 
-//      Statement statement = dbConn.createStatement();
-//      rs = statement.executeQuery("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", \"CTC_TXNID\", \"CTC_WRITEID\", \"CTC_INSERTED_COUNT\"\n" +
-//              "  FROM \"COMPLETED_TXN_COMPONENTS\"");
-
       Map<String, Long> result = new HashMap<>();
-
-//      StringBuilder sb = new StringBuilder();
-
       while (rs.next()) {
         String fullyQualifiedName = rs.getString(1) + "." + rs.getString(2);
-
-//        sb.append(fullyQualifiedName).append(", ");
-//        sb.append(rs.getLong(3)).append(", ");
-//        sb.append(rs.getLong(4)).append(", ");
-//        sb.append(rs.getLong(5)).append(",\n");
-
         result.put(fullyQualifiedName, rs.getLong(3));
       }
       return result;

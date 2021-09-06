@@ -1904,8 +1904,7 @@ public class TestTxnHandler {
 
     AllocateTableWriteIdsRequest writeIdsRequest = new AllocateTableWriteIdsRequest(dbName, tableName);
     writeIdsRequest.setTxnIds(Collections.singletonList(txnId));
-    AllocateTableWriteIdsResponse writeIds = txnHandler.allocateTableWriteIds(writeIdsRequest);
-//    long writeId = writeIds.getTxnToWriteIds().get(0).getWriteId();
+    txnHandler.allocateTableWriteIds(writeIdsRequest);
 
     LockComponent comp = new LockComponent(LockType.EXCLUSIVE, LockLevel.DB, dbName);
     comp.setTablename(tableName);
