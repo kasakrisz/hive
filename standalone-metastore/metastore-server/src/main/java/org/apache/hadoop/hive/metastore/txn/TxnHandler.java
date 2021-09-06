@@ -1724,7 +1724,13 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
 
       String s = sb.toString();
       LOG.debug("Going to execute update <" + s + ">");
-      stmt.executeUpdate(s);
+      if (stmt.executeUpdate(s) < 1) {
+        LOG.info("Expected to update at least one record in COMPLETED_TXN_COMPONENTS dbName='{}' tableName='{}' partition='{}' txnId={}",
+                affectedRowsRequest.getDbName(),
+                affectedRowsRequest.getTableName(),
+                affectedRowsRequest.getPartName(),
+                JavaUtils.txnIdToString(txnid));
+      }
     }
   }
 
@@ -2643,6 +2649,11 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
     StringBuilder queryTextBuilder = new StringBuilder();
     List<String> params = new ArrayList<>();
 
+    // compose a query that select transactions containing an update...
+    queryTextBuilder.append("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", sum(\"CTC_INSERTED_COUNT\") " +
+            "FROM \"COMPLETED_TXN_COMPONENTS\" ");
+
+    boolean first = true;
     for (String fullyQualifiedName : tableNames) {
       ValidWriteIdList tblValidWriteIdList =
           validReaderWriteIdListFrom.getTableValidWriteIdList(fullyQualifiedName);
@@ -2651,9 +2662,12 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
         return null;
       }
 
-      // compose a query that select transactions containing an update...
-      queryTextBuilder.append("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", count(\"CTC_INSERTED_COUNT\") " +
-          "FROM \"COMPLETED_TXN_COMPONENTS\" WHERE 1=1 AND (");
+      if (first) {
+        queryTextBuilder.append(" WHERE (");
+        first = false;
+      } else {
+        queryTextBuilder.append(" OR (");
+      }
 
       String[] names = TxnUtils.getDbTableName(fullyQualifiedName);
       assert (names.length == 2);
@@ -2664,12 +2678,13 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       queryTextBuilder.append(tblValidWriteIdList.getInvalidWriteIds().length == 0 ? ") " :
           " OR \"CTC_WRITEID\" IN(" + StringUtils.join(",",
               Arrays.asList(ArrayUtils.toObject(tblValidWriteIdList.getInvalidWriteIds()))) + ") ");
-      queryTextBuilder.append(") ");
 
       queryTextBuilder.append(") AND \"CTC_TXNID\" <= ").append(validReaderTxnListTo.getHighWatermark());
       queryTextBuilder.append(validReaderTxnListTo.getInvalidTransactions().length == 0 ? " " :
           " AND \"CTC_TXNID\" NOT IN(" + StringUtils.join(",",
               Arrays.asList(ArrayUtils.toObject(validReaderTxnListTo.getInvalidTransactions()))) + ") ");
+
+      queryTextBuilder.append(") ");
     }
 
     queryTextBuilder.append("GROUP BY \"CTC_DATABASE\", \"CTC_TABLE\"");
@@ -2684,13 +2699,24 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
         LOG.debug("Going to execute query <" + queryText + ">");
       }
       pst = sqlGenerator.prepareStmtWithParameters(dbConn, queryText, params);
-      pst.setMaxRows(1);
       rs = pst.executeQuery();
+
+//      Statement statement = dbConn.createStatement();
+//      rs = statement.executeQuery("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", \"CTC_TXNID\", \"CTC_WRITEID\", \"CTC_INSERTED_COUNT\"\n" +
+//              "  FROM \"COMPLETED_TXN_COMPONENTS\"");
 
       Map<String, Long> result = new HashMap<>();
 
+//      StringBuilder sb = new StringBuilder();
+
       while (rs.next()) {
         String fullyQualifiedName = rs.getString(1) + "." + rs.getString(2);
+
+//        sb.append(fullyQualifiedName).append(", ");
+//        sb.append(rs.getLong(3)).append(", ");
+//        sb.append(rs.getLong(4)).append(", ");
+//        sb.append(rs.getLong(5)).append(",\n");
+
         result.put(fullyQualifiedName, rs.getLong(3));
       }
       return result;

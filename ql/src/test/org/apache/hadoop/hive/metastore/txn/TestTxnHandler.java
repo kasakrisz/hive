@@ -18,10 +18,14 @@
 package org.apache.hadoop.hive.metastore.txn;
 
 import org.apache.hadoop.hive.common.JavaUtils;
+import org.apache.hadoop.hive.common.ValidReadTxnList;
+import org.apache.hadoop.hive.common.ValidReaderWriteIdList;
+import org.apache.hadoop.hive.common.ValidTxnWriteIdList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
 import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
 import org.apache.hadoop.hive.metastore.api.AddDynamicPartitions;
+import org.apache.hadoop.hive.metastore.api.AffectedRowsRequest;
 import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsRequest;
 import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsResponse;
 import org.apache.hadoop.hive.metastore.api.CheckLockRequest;
@@ -67,6 +71,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -80,8 +85,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1859,6 +1867,67 @@ public class TestTxnHandler {
       // restore to original retry limit value
       MetastoreConf.setLongVar(conf, MetastoreConf.ConfVars.HMS_HANDLER_ATTEMPTS, originalLimit);
     }
+  }
+
+  @Test
+  public void testGetNumberOfAffectedRowsBetween() throws Exception {
+    // given
+    anInsert(1L,"anydb", "t1", 4L);
+    anInsert(2L,"anydb", "t2", 2L);
+    anInsert(3L,"anydb", "t1", 3L);
+    anInsert(4L,"anydb", "t2", 5L);
+    anInsert(5L,"anydb", "t3", 14L);
+    anInsert(6L,"anydb", "t1", 11L);
+    anInsert(7L,"anydb", "t2", 20L);
+
+    // when
+    ValidTxnWriteIdList validTxnListFrom = new ValidTxnWriteIdList(1L);
+    validTxnListFrom.addTableValidWriteIdList(
+            new ValidReaderWriteIdList("anydb.t1", new long[0], new BitSet(), 1, Long.MAX_VALUE));
+    validTxnListFrom.addTableValidWriteIdList(
+            new ValidReaderWriteIdList("anydb.t2", new long[0], new BitSet(), 1, Long.MAX_VALUE));
+
+    Map<String, Long> result = txnHandler.getNumberOfAffectedRowsBetween(
+            validTxnListFrom.toString(),
+            new ValidReadTxnList("6:9223372036854775807::").toString(),
+            new HashSet<String>() {{ add("anydb.t1"); add("anydb.t2"); }});
+
+    // then
+    assertEquals(2, result.size());
+    assertEquals(14L, result.get("anydb.t1").longValue());
+    assertEquals(5L, result.get("anydb.t2").longValue());
+  }
+
+  private void anInsert(long txnId, String dbName, String tableName, Long affectedRowCount)
+          throws MetaException, NoSuchTxnException, TxnAbortedException, NoSuchLockException, TxnOpenException {
+    txnHandler.openTxns(new OpenTxnRequest(1, "me", "localhost"));
+
+    AllocateTableWriteIdsRequest writeIdsRequest = new AllocateTableWriteIdsRequest(dbName, tableName);
+    writeIdsRequest.setTxnIds(Collections.singletonList(txnId));
+    AllocateTableWriteIdsResponse writeIds = txnHandler.allocateTableWriteIds(writeIdsRequest);
+//    long writeId = writeIds.getTxnToWriteIds().get(0).getWriteId();
+
+    LockComponent comp = new LockComponent(LockType.EXCLUSIVE, LockLevel.DB, dbName);
+    comp.setTablename(tableName);
+    comp.setOperationType(DataOperationType.INSERT);
+    List<LockComponent> components = new ArrayList<>(1);
+    components.add(comp);
+    LockRequest req = new LockRequest(components, "me", "localhost");
+    req.setTxnid(txnId);
+    txnHandler.lock(req);
+
+    CommitTxnRequest commitTxnRequest = new CommitTxnRequest(txnId);
+    commitTxnRequest.addToRowsAffected(createAffectedRowsRequest(dbName, tableName, affectedRowCount));
+    txnHandler.commitTxn(commitTxnRequest);
+  }
+
+  @NotNull
+  private AffectedRowsRequest createAffectedRowsRequest(String dbName, String tableName, long affectedRowCount) {
+    AffectedRowsRequest affectedRowsRequest = new AffectedRowsRequest();
+    affectedRowsRequest.setDbName(dbName);
+    affectedRowsRequest.setTableName(tableName);
+    affectedRowsRequest.setRowsAffected(affectedRowCount);
+    return affectedRowsRequest;
   }
 
   private void updateTxns(Connection conn) throws SQLException {
