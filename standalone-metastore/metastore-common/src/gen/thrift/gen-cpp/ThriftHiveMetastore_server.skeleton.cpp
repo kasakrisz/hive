@@ -300,6 +300,11 @@ class ThriftHiveMetastoreHandler : virtual public ThriftHiveMetastoreIf {
     printf("get_materialization_invalidation_info\n");
   }
 
+  void get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return, const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames) {
+    // Your implementation goes here
+    printf("get_number_of_affected_rows_between\n");
+  }
+
   void update_creation_metadata(const std::string& catName, const std::string& dbname, const std::string& tbl_name, const CreationMetadata& creation_metadata) {
     // Your implementation goes here
     printf("update_creation_metadata\n");

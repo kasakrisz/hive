@@ -402,6 +402,8 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
       optCluster.invalidateMetadataQuery();
       RelMetadataQuery.THREAD_PROVIDERS.set(HiveMaterializationRelMetadataProvider.DEFAULT);
       try {
+        Map<String, Long> affectedRows = db.getNumberOfAffectedRowsBetween(materialization);
+
         RelMetadataQuery mq = RelMetadataQuery.instance();
         RelOptCost costOriginalPlan = mq.getCumulativeCost(calcitePreMVRewritingPlan);
         RelOptCost costRebuildPlan = mq.getCumulativeCost(rebuildPlan);
@@ -411,6 +413,10 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         }
 
         return basePlan;
+
+      } catch (HiveException e) {
+        LOG.warn("Unable to fetch number of rows affected by transactions since last materialized view maintenance.", e);
+        return calcitePreMVRewritingPlan;
       } finally {
         optCluster.invalidateMetadataQuery();
         RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(mdProvider));

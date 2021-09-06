@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -808,6 +809,10 @@ public interface IMetaStoreClient {
    */
   Materialization getMaterializationInvalidationInfo(CreationMetadata cm, String validTxnList)
       throws MetaException, InvalidOperationException, UnknownDBException, TException;
+
+  Map<String, Long> getNumberOfAffectedRowsBetween(
+      final String validTxnListFrom, final String validTxnListTo, final Set<String> tableNames)
+      throws TException;
 
   /**
    * Updates the creation metadata for the materialized view.

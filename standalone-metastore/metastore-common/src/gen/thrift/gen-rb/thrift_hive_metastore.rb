@@ -946,6 +946,21 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_materialization_invalidation_info failed: unknown result')
     end
 
+    def get_number_of_affected_rows_between(validTxnListFrom, validTxnListTo, tableNames)
+      send_get_number_of_affected_rows_between(validTxnListFrom, validTxnListTo, tableNames)
+      return recv_get_number_of_affected_rows_between()
+    end
+
+    def send_get_number_of_affected_rows_between(validTxnListFrom, validTxnListTo, tableNames)
+      send_message('get_number_of_affected_rows_between', Get_number_of_affected_rows_between_args, :validTxnListFrom => validTxnListFrom, :validTxnListTo => validTxnListTo, :tableNames => tableNames)
+    end
+
+    def recv_get_number_of_affected_rows_between()
+      result = receive_message(Get_number_of_affected_rows_between_result)
+      return result.success unless result.success.nil?
+      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_number_of_affected_rows_between failed: unknown result')
+    end
+
     def update_creation_metadata(catName, dbname, tbl_name, creation_metadata)
       send_update_creation_metadata(catName, dbname, tbl_name, creation_metadata)
       recv_update_creation_metadata()
@@ -5123,6 +5138,13 @@ module ThriftHiveMetastore
         result.o3 = o3
       end
       write_result(result, oprot, 'get_materialization_invalidation_info', seqid)
+    end
+
+    def process_get_number_of_affected_rows_between(seqid, iprot, oprot)
+      args = read_args(iprot, Get_number_of_affected_rows_between_args)
+      result = Get_number_of_affected_rows_between_result.new()
+      result.success = @handler.get_number_of_affected_rows_between(args.validTxnListFrom, args.validTxnListTo, args.tableNames)
+      write_result(result, oprot, 'get_number_of_affected_rows_between', seqid)
     end
 
     def process_update_creation_metadata(seqid, iprot, oprot)
@@ -9695,6 +9717,42 @@ module ThriftHiveMetastore
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::MetaException},
       O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => ::InvalidOperationException},
       O3 => {:type => ::Thrift::Types::STRUCT, :name => 'o3', :class => ::UnknownDBException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_number_of_affected_rows_between_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    VALIDTXNLISTFROM = 1
+    VALIDTXNLISTTO = 2
+    TABLENAMES = 3
+
+    FIELDS = {
+      VALIDTXNLISTFROM => {:type => ::Thrift::Types::STRING, :name => 'validTxnListFrom'},
+      VALIDTXNLISTTO => {:type => ::Thrift::Types::STRING, :name => 'validTxnListTo'},
+      TABLENAMES => {:type => ::Thrift::Types::SET, :name => 'tableNames', :element => {:type => ::Thrift::Types::STRING}}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Get_number_of_affected_rows_between_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    SUCCESS = 0
+
+    FIELDS = {
+      SUCCESS => {:type => ::Thrift::Types::MAP, :name => 'success', :key => {:type => ::Thrift::Types::STRING}, :value => {:type => ::Thrift::Types::I64}}
     }
 
     def struct_fields; FIELDS; end

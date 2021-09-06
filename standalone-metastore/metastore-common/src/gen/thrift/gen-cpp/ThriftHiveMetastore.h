@@ -82,6 +82,7 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual void get_table_req(GetTableResult& _return, const GetTableRequest& req) = 0;
   virtual void get_table_objects_by_name_req(GetTablesResult& _return, const GetTablesRequest& req) = 0;
   virtual void get_materialization_invalidation_info(Materialization& _return, const CreationMetadata& creation_metadata, const std::string& validTxnList) = 0;
+  virtual void get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return, const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames) = 0;
   virtual void update_creation_metadata(const std::string& catName, const std::string& dbname, const std::string& tbl_name, const CreationMetadata& creation_metadata) = 0;
   virtual void get_table_names_by_filter(std::vector<std::string> & _return, const std::string& dbname, const std::string& filter, const int16_t max_tables) = 0;
   virtual void alter_table(const std::string& dbname, const std::string& tbl_name, const Table& new_tbl) = 0;
@@ -487,6 +488,9 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
     return;
   }
   void get_materialization_invalidation_info(Materialization& /* _return */, const CreationMetadata& /* creation_metadata */, const std::string& /* validTxnList */) {
+    return;
+  }
+  void get_number_of_affected_rows_between(std::map<std::string, int64_t> & /* _return */, const std::string& /* validTxnListFrom */, const std::string& /* validTxnListTo */, const std::set<std::string> & /* tableNames */) {
     return;
   }
   void update_creation_metadata(const std::string& /* catName */, const std::string& /* dbname */, const std::string& /* tbl_name */, const CreationMetadata& /* creation_metadata */) {
@@ -7910,6 +7914,124 @@ class ThriftHiveMetastore_get_materialization_invalidation_info_presult {
   UnknownDBException o3;
 
   _ThriftHiveMetastore_get_materialization_invalidation_info_presult__isset __isset;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+
+};
+
+typedef struct _ThriftHiveMetastore_get_number_of_affected_rows_between_args__isset {
+  _ThriftHiveMetastore_get_number_of_affected_rows_between_args__isset() : validTxnListFrom(false), validTxnListTo(false), tableNames(false) {}
+  bool validTxnListFrom :1;
+  bool validTxnListTo :1;
+  bool tableNames :1;
+} _ThriftHiveMetastore_get_number_of_affected_rows_between_args__isset;
+
+class ThriftHiveMetastore_get_number_of_affected_rows_between_args {
+ public:
+
+  ThriftHiveMetastore_get_number_of_affected_rows_between_args(const ThriftHiveMetastore_get_number_of_affected_rows_between_args&);
+  ThriftHiveMetastore_get_number_of_affected_rows_between_args& operator=(const ThriftHiveMetastore_get_number_of_affected_rows_between_args&);
+  ThriftHiveMetastore_get_number_of_affected_rows_between_args() : validTxnListFrom(), validTxnListTo() {
+  }
+
+  virtual ~ThriftHiveMetastore_get_number_of_affected_rows_between_args() noexcept;
+  std::string validTxnListFrom;
+  std::string validTxnListTo;
+  std::set<std::string>  tableNames;
+
+  _ThriftHiveMetastore_get_number_of_affected_rows_between_args__isset __isset;
+
+  void __set_validTxnListFrom(const std::string& val);
+
+  void __set_validTxnListTo(const std::string& val);
+
+  void __set_tableNames(const std::set<std::string> & val);
+
+  bool operator == (const ThriftHiveMetastore_get_number_of_affected_rows_between_args & rhs) const
+  {
+    if (!(validTxnListFrom == rhs.validTxnListFrom))
+      return false;
+    if (!(validTxnListTo == rhs.validTxnListTo))
+      return false;
+    if (!(tableNames == rhs.tableNames))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHiveMetastore_get_number_of_affected_rows_between_args &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHiveMetastore_get_number_of_affected_rows_between_args & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+
+class ThriftHiveMetastore_get_number_of_affected_rows_between_pargs {
+ public:
+
+
+  virtual ~ThriftHiveMetastore_get_number_of_affected_rows_between_pargs() noexcept;
+  const std::string* validTxnListFrom;
+  const std::string* validTxnListTo;
+  const std::set<std::string> * tableNames;
+
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHiveMetastore_get_number_of_affected_rows_between_result__isset {
+  _ThriftHiveMetastore_get_number_of_affected_rows_between_result__isset() : success(false) {}
+  bool success :1;
+} _ThriftHiveMetastore_get_number_of_affected_rows_between_result__isset;
+
+class ThriftHiveMetastore_get_number_of_affected_rows_between_result {
+ public:
+
+  ThriftHiveMetastore_get_number_of_affected_rows_between_result(const ThriftHiveMetastore_get_number_of_affected_rows_between_result&);
+  ThriftHiveMetastore_get_number_of_affected_rows_between_result& operator=(const ThriftHiveMetastore_get_number_of_affected_rows_between_result&);
+  ThriftHiveMetastore_get_number_of_affected_rows_between_result() {
+  }
+
+  virtual ~ThriftHiveMetastore_get_number_of_affected_rows_between_result() noexcept;
+  std::map<std::string, int64_t>  success;
+
+  _ThriftHiveMetastore_get_number_of_affected_rows_between_result__isset __isset;
+
+  void __set_success(const std::map<std::string, int64_t> & val);
+
+  bool operator == (const ThriftHiveMetastore_get_number_of_affected_rows_between_result & rhs) const
+  {
+    if (!(success == rhs.success))
+      return false;
+    return true;
+  }
+  bool operator != (const ThriftHiveMetastore_get_number_of_affected_rows_between_result &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const ThriftHiveMetastore_get_number_of_affected_rows_between_result & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+};
+
+typedef struct _ThriftHiveMetastore_get_number_of_affected_rows_between_presult__isset {
+  _ThriftHiveMetastore_get_number_of_affected_rows_between_presult__isset() : success(false) {}
+  bool success :1;
+} _ThriftHiveMetastore_get_number_of_affected_rows_between_presult__isset;
+
+class ThriftHiveMetastore_get_number_of_affected_rows_between_presult {
+ public:
+
+
+  virtual ~ThriftHiveMetastore_get_number_of_affected_rows_between_presult() noexcept;
+  std::map<std::string, int64_t> * success;
+
+  _ThriftHiveMetastore_get_number_of_affected_rows_between_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -33181,6 +33303,9 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void get_materialization_invalidation_info(Materialization& _return, const CreationMetadata& creation_metadata, const std::string& validTxnList);
   void send_get_materialization_invalidation_info(const CreationMetadata& creation_metadata, const std::string& validTxnList);
   void recv_get_materialization_invalidation_info(Materialization& _return);
+  void get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return, const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames);
+  void send_get_number_of_affected_rows_between(const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames);
+  void recv_get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return);
   void update_creation_metadata(const std::string& catName, const std::string& dbname, const std::string& tbl_name, const CreationMetadata& creation_metadata);
   void send_update_creation_metadata(const std::string& catName, const std::string& dbname, const std::string& tbl_name, const CreationMetadata& creation_metadata);
   void recv_update_creation_metadata();
@@ -33871,6 +33996,7 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
   void process_get_table_req(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_table_objects_by_name_req(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_materialization_invalidation_info(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
+  void process_get_number_of_affected_rows_between(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_update_creation_metadata(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_get_table_names_by_filter(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_alter_table(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
@@ -34139,6 +34265,7 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
     processMap_["get_table_req"] = &ThriftHiveMetastoreProcessor::process_get_table_req;
     processMap_["get_table_objects_by_name_req"] = &ThriftHiveMetastoreProcessor::process_get_table_objects_by_name_req;
     processMap_["get_materialization_invalidation_info"] = &ThriftHiveMetastoreProcessor::process_get_materialization_invalidation_info;
+    processMap_["get_number_of_affected_rows_between"] = &ThriftHiveMetastoreProcessor::process_get_number_of_affected_rows_between;
     processMap_["update_creation_metadata"] = &ThriftHiveMetastoreProcessor::process_update_creation_metadata;
     processMap_["get_table_names_by_filter"] = &ThriftHiveMetastoreProcessor::process_get_table_names_by_filter;
     processMap_["alter_table"] = &ThriftHiveMetastoreProcessor::process_alter_table;
@@ -34911,6 +35038,16 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
       ifaces_[i]->get_materialization_invalidation_info(_return, creation_metadata, validTxnList);
     }
     ifaces_[i]->get_materialization_invalidation_info(_return, creation_metadata, validTxnList);
+    return;
+  }
+
+  void get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return, const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames) {
+    size_t sz = ifaces_.size();
+    size_t i = 0;
+    for (; i < (sz - 1); ++i) {
+      ifaces_[i]->get_number_of_affected_rows_between(_return, validTxnListFrom, validTxnListTo, tableNames);
+    }
+    ifaces_[i]->get_number_of_affected_rows_between(_return, validTxnListFrom, validTxnListTo, tableNames);
     return;
   }
 
@@ -37104,6 +37241,9 @@ class ThriftHiveMetastoreConcurrentClient : virtual public ThriftHiveMetastoreIf
   void get_materialization_invalidation_info(Materialization& _return, const CreationMetadata& creation_metadata, const std::string& validTxnList);
   int32_t send_get_materialization_invalidation_info(const CreationMetadata& creation_metadata, const std::string& validTxnList);
   void recv_get_materialization_invalidation_info(Materialization& _return, const int32_t seqid);
+  void get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return, const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames);
+  int32_t send_get_number_of_affected_rows_between(const std::string& validTxnListFrom, const std::string& validTxnListTo, const std::set<std::string> & tableNames);
+  void recv_get_number_of_affected_rows_between(std::map<std::string, int64_t> & _return, const int32_t seqid);
   void update_creation_metadata(const std::string& catName, const std::string& dbname, const std::string& tbl_name, const CreationMetadata& creation_metadata);
   int32_t send_update_creation_metadata(const std::string& catName, const std::string& dbname, const std::string& tbl_name, const CreationMetadata& creation_metadata);
   void recv_update_creation_metadata(const int32_t seqid);

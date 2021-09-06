@@ -164,6 +164,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Splitter;
 
+import static java.util.Collections.emptyMap;
 import static org.apache.hadoop.hive.metastore.txn.TxnUtils.getEpochFn;
 import static org.apache.hadoop.hive.metastore.txn.TxnUtils.executeQueriesInBatchNoCount;
 import static org.apache.hadoop.hive.metastore.txn.TxnUtils.executeQueriesInBatch;
@@ -2630,6 +2631,77 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       close(rs, pst, dbConn);
     }
   }
+
+  @Override
+  @RetrySemantics.Idempotent
+  public Map<String, Long> getNumberOfAffectedRowsBetween(
+      final String validTxnListFrom, final String validTxnListTo, final Set<String> tableNames) throws MetaException {
+
+    final ValidTxnWriteIdList validReaderWriteIdListFrom = new ValidTxnWriteIdList(validTxnListFrom);
+    final ValidReadTxnList validReaderTxnListTo = new ValidReadTxnList(validTxnListTo);
+
+    StringBuilder queryTextBuilder = new StringBuilder();
+    List<String> params = new ArrayList<>();
+
+    for (String fullyQualifiedName : tableNames) {
+      ValidWriteIdList tblValidWriteIdList =
+          validReaderWriteIdListFrom.getTableValidWriteIdList(fullyQualifiedName);
+      if (tblValidWriteIdList == null) {
+        LOG.warn("ValidWriteIdList for table {} not present in creation metadata, this should not happen", fullyQualifiedName);
+        return null;
+      }
+
+      // compose a query that select transactions containing an update...
+      queryTextBuilder.append("SELECT \"CTC_DATABASE\", \"CTC_TABLE\", \"CTC_INSERTED_COUNT\" " +
+          "FROM \"COMPLETED_TXN_COMPONENTS\" WHERE 1=1 AND (");
+
+      String[] names = TxnUtils.getDbTableName(fullyQualifiedName);
+      assert (names.length == 2);
+      queryTextBuilder.append(" (\"CTC_DATABASE\"=? AND \"CTC_TABLE\"=?");
+      params.add(names[0]);
+      params.add(names[1]);
+      queryTextBuilder.append(" AND (\"CTC_WRITEID\" > ").append(tblValidWriteIdList.getHighWatermark());
+      queryTextBuilder.append(tblValidWriteIdList.getInvalidWriteIds().length == 0 ? ") " :
+          " OR \"CTC_WRITEID\" IN(" + StringUtils.join(",",
+              Arrays.asList(ArrayUtils.toObject(tblValidWriteIdList.getInvalidWriteIds()))) + ") ");
+      queryTextBuilder.append(") ");
+
+      queryTextBuilder.append(") AND \"CTC_TXNID\" <= ").append(validReaderTxnListTo.getHighWatermark());
+      queryTextBuilder.append(validReaderTxnListTo.getInvalidTransactions().length == 0 ? " " :
+          " AND \"CTC_TXNID\" NOT IN(" + StringUtils.join(",",
+              Arrays.asList(ArrayUtils.toObject(validReaderTxnListTo.getInvalidTransactions()))) + ") ");
+    }
+
+    String queryText = queryTextBuilder.toString();
+
+    Connection dbConn = null;
+    PreparedStatement pst = null;
+    ResultSet rs = null;
+    try {
+      dbConn = getDbConn(Connection.TRANSACTION_READ_COMMITTED);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Going to execute query <" + queryText + ">");
+      }
+      pst = sqlGenerator.prepareStmtWithParameters(dbConn, queryText, params);
+      pst.setMaxRows(1);
+      rs = pst.executeQuery();
+
+      Map<String, Long> result = new HashMap<>();
+
+      while (rs.next()) {
+        String fullyQualifiedName = rs.getString(0) + "." + rs.getString(1);
+        result.put(fullyQualifiedName, rs.getLong(2));
+      }
+      return result;
+    } catch (SQLException ex) {
+      LOG.warn("Unable load number of rows affected by transactions", ex);
+      throw new MetaException(
+          "Unable load number of rows affected by transactions: " + StringUtils.stringifyException(ex));
+    } finally {
+      close(rs, pst, dbConn);
+    }
+  }
+
 
   @Override
   public LockResponse lockMaterializationRebuild(String dbName, String tableName, long txnId)

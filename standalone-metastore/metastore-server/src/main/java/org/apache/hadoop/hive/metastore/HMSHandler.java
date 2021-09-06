@@ -3858,6 +3858,12 @@ public class HMSHandler extends FacebookBase implements IHMSHandler {
   }
 
   @Override
+  public Map<String, Long> get_number_of_affected_rows_between(
+      final String validTxnListFrom, final String validTxnListTo, final Set<String> tableNames) throws MetaException {
+    return getTxnHandler().getNumberOfAffectedRowsBetween(validTxnListFrom, validTxnListTo, tableNames);
+  }
+
+  @Override
   public void update_creation_metadata(String catName, final String dbName, final String tableName, CreationMetadata cm) throws MetaException {
     getMS().updateCreationMetadata(catName, dbName, tableName, cm);
   }

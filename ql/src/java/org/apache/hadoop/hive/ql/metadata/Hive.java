@@ -74,6 +74,7 @@ import javax.jdo.JDODataStoreException;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -2227,6 +2228,20 @@ public class Hive {
         result.add(materialization);
       }
       return result;
+    } catch (Exception e) {
+      throw new HiveException(e);
+    }
+  }
+
+  public Map<String, Long> getNumberOfAffectedRowsBetween(
+      RelOptMaterialization relOptMaterialization) throws HiveException {
+    try {
+
+      Table materializedViewTable = extractTable(relOptMaterialization);
+      CreationMetadata creationMetadata = materializedViewTable.getCreationMetadata();
+
+      return getMSC().getNumberOfAffectedRowsBetween(
+          creationMetadata.getValidTxnList(), conf.get(ValidTxnList.VALID_TXNS_KEY), creationMetadata.getTablesUsed());
     } catch (Exception e) {
       throw new HiveException(e);
     }

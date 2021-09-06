@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -1589,6 +1590,12 @@ public class HiveMetaStoreClientPreCatalog implements IMetaStoreClient, AutoClos
   public Materialization getMaterializationInvalidationInfo(CreationMetadata cm, String validTxnList)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
     return client.get_materialization_invalidation_info(cm, validTxnList);
+  }
+
+  @Override
+  public Map<String, Long> getNumberOfAffectedRowsBetween(
+      String validTxnListFrom, String validTxnListTo, Set<String> tableNames) throws TException {
+    return client.get_number_of_affected_rows_between(validTxnListFrom, validTxnListTo, tableNames);
   }
 
   /** {@inheritDoc} */

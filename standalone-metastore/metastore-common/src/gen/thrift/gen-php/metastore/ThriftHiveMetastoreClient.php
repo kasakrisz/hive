@@ -3641,6 +3641,67 @@ class ThriftHiveMetastoreClient extends \FacebookServiceClient implements \metas
         throw new \Exception("get_materialization_invalidation_info failed: unknown result");
     }
 
+    public function get_number_of_affected_rows_between($validTxnListFrom, $validTxnListTo, array $tableNames)
+    {
+        $this->send_get_number_of_affected_rows_between($validTxnListFrom, $validTxnListTo, $tableNames);
+        return $this->recv_get_number_of_affected_rows_between();
+    }
+
+    public function send_get_number_of_affected_rows_between($validTxnListFrom, $validTxnListTo, array $tableNames)
+    {
+        $args = new \metastore\ThriftHiveMetastore_get_number_of_affected_rows_between_args();
+        $args->validTxnListFrom = $validTxnListFrom;
+        $args->validTxnListTo = $validTxnListTo;
+        $args->tableNames = $tableNames;
+        $bin_accel = ($this->output_ instanceof TBinaryProtocolAccelerated) && function_exists('thrift_protocol_write_binary');
+        if ($bin_accel) {
+            thrift_protocol_write_binary(
+                $this->output_,
+                'get_number_of_affected_rows_between',
+                TMessageType::CALL,
+                $args,
+                $this->seqid_,
+                $this->output_->isStrictWrite()
+            );
+        } else {
+            $this->output_->writeMessageBegin('get_number_of_affected_rows_between', TMessageType::CALL, $this->seqid_);
+            $args->write($this->output_);
+            $this->output_->writeMessageEnd();
+            $this->output_->getTransport()->flush();
+        }
+    }
+
+    public function recv_get_number_of_affected_rows_between()
+    {
+        $bin_accel = ($this->input_ instanceof TBinaryProtocolAccelerated) && function_exists('thrift_protocol_read_binary');
+        if ($bin_accel) {
+            $result = thrift_protocol_read_binary(
+                $this->input_,
+                '\metastore\ThriftHiveMetastore_get_number_of_affected_rows_between_result',
+                $this->input_->isStrictRead()
+            );
+        } else {
+            $rseqid = 0;
+            $fname = null;
+            $mtype = 0;
+
+            $this->input_->readMessageBegin($fname, $mtype, $rseqid);
+            if ($mtype == TMessageType::EXCEPTION) {
+                $x = new TApplicationException();
+                $x->read($this->input_);
+                $this->input_->readMessageEnd();
+                throw $x;
+            }
+            $result = new \metastore\ThriftHiveMetastore_get_number_of_affected_rows_between_result();
+            $result->read($this->input_);
+            $this->input_->readMessageEnd();
+        }
+        if ($result->success !== null) {
+            return $result->success;
+        }
+        throw new \Exception("get_number_of_affected_rows_between failed: unknown result");
+    }
+
     public function update_creation_metadata($catName, $dbname, $tbl_name, \metastore\CreationMetadata $creation_metadata)
     {
         $this->send_update_creation_metadata($catName, $dbname, $tbl_name, $creation_metadata);

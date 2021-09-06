@@ -31,6 +31,7 @@ import org.apache.hadoop.hive.metastore.events.ListenerEvent;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -159,6 +160,10 @@ public interface TxnStore extends Configurable {
   Materialization getMaterializationInvalidationInfo(
       final CreationMetadata cm, final String validTxnList)
           throws MetaException;
+
+  @RetrySemantics.Idempotent
+  Map<String, Long> getNumberOfAffectedRowsBetween(
+      final String validTxnListFrom, final String validTxnListTo, final Set<String> tables) throws MetaException;
 
   @RetrySemantics.ReadOnly
   long getTxnIdForWriteId(String dbName, String tblName, long writeId)

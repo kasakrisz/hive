@@ -427,6 +427,13 @@ interface ThriftHiveMetastoreIf extends \FacebookServiceIf
      */
     public function get_materialization_invalidation_info(\metastore\CreationMetadata $creation_metadata, $validTxnList);
     /**
+     * @param string $validTxnListFrom
+     * @param string $validTxnListTo
+     * @param string[] $tableNames
+     * @return array
+     */
+    public function get_number_of_affected_rows_between($validTxnListFrom, $validTxnListTo, array $tableNames);
+    /**
      * @param string $catName
      * @param string $dbname
      * @param string $tbl_name
