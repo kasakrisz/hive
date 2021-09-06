@@ -447,6 +447,10 @@ public class RelOptHiveTable implements RelOptTable {
     return rowCount;
   }
 
+  public void setRowCount(double rowCount) {
+    this.rowCount = rowCount;
+  }
+
   public Table getHiveTableMD() {
     return hiveTblMetadata;
   }

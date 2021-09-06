@@ -46,12 +46,14 @@ import org.apache.hadoop.hive.ql.metadata.HiveRelOptMaterialization;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
+import org.apache.hadoop.hive.ql.optimizer.calcite.HiveTezModelRelMetadataProvider;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveInBetweenExpandRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.ColumnPropagationException;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregatePartitionIncrementalRewritingRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAugmentCostMaterializationRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializationRelMetadataProvider;
@@ -396,13 +398,15 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         return applyPreJoinOrderingTransforms(basePlan, mdProvider, executorProvider);
       }
 
-      RelNode rebuildPlan = applyIncrementalRebuild(
-          basePlan, mdProvider, executorProvider, HiveAggregatePartitionIncrementalRewritingRule.INSTANCE);
-
       optCluster.invalidateMetadataQuery();
-      RelMetadataQuery.THREAD_PROVIDERS.set(HiveMaterializationRelMetadataProvider.DEFAULT);
+      RelMetadataQuery.THREAD_PROVIDERS.set(HiveTezModelRelMetadataProvider.DEFAULT);
       try {
         Map<String, Long> affectedRows = db.getNumberOfAffectedRowsBetween(materialization);
+
+        RelNode rebuildPlan = applyIncrementalRebuild(
+                basePlan, mdProvider, executorProvider,
+                HiveAggregatePartitionIncrementalRewritingRule.INSTANCE,
+                new HiveAugmentCostMaterializationRule(affectedRows));
 
         RelMetadataQuery mq = RelMetadataQuery.instance();
         RelOptCost costOriginalPlan = mq.getCumulativeCost(calcitePreMVRewritingPlan);
@@ -423,8 +427,8 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
       }
     }
 
-    private RelNode applyIncrementalRebuild(
-            RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider, RelOptRule rebuildRule) {
+    private RelNode applyIncrementalRebuild(RelNode basePlan, RelMetadataProvider mdProvider,
+                                            RexExecutor executorProvider, RelOptRule... rebuildRule) {
       HepProgramBuilder program = new HepProgramBuilder();
       generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST, rebuildRule);
       basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);

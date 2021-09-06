@@ -1711,6 +1711,7 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
 
   private void saveAffectedRowCounts(Statement stmt, long txnid, Set<AffectedRowsRequest> rowsAffected)
       throws SQLException {
+    // TODO: use prepared statement
     for (AffectedRowsRequest affectedRowsRequest : rowsAffected) {
       StringBuilder sb = new StringBuilder().append("UPDATE \"COMPLETED_TXN_COMPONENTS\" " +
           "SET \"CTC_INSERTED_COUNT\" = ").append(affectedRowsRequest.getRowsAffected())
