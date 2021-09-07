@@ -398,8 +398,6 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         return applyPreJoinOrderingTransforms(basePlan, mdProvider, executorProvider);
       }
 
-      optCluster.invalidateMetadataQuery();
-      RelMetadataQuery.THREAD_PROVIDERS.set(HiveTezModelRelMetadataProvider.DEFAULT);
       try {
         Map<String, Long> affectedRows = db.getNumberOfAffectedRowsBetween(materialization);
 
@@ -407,6 +405,9 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
                 basePlan, mdProvider, executorProvider,
                 HiveAggregatePartitionIncrementalRewritingRule.INSTANCE,
                 new HiveAugmentCostMaterializationRule(affectedRows));
+
+        optCluster.invalidateMetadataQuery();
+        RelMetadataQuery.THREAD_PROVIDERS.set(HiveTezModelRelMetadataProvider.DEFAULT);
 
         RelMetadataQuery mq = RelMetadataQuery.instance();
         RelOptCost costOriginalPlan = mq.getCumulativeCost(calcitePreMVRewritingPlan);
