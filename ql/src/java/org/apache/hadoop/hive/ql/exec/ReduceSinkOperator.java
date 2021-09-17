@@ -20,8 +20,13 @@ package org.apache.hadoop.hive.ql.exec;
 
 import static org.apache.hadoop.hive.ql.plan.ReduceSinkDesc.ReducerTraits.UNIFORM;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -112,6 +117,11 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   protected transient Object[] cachedValues;
   protected transient List<List<Integer>> distinctColIndices;
   protected transient Random random;
+
+  private static final Object o = new Object();
+  private static volatile int instanceCounter = 0;
+  private File debugFile;
+
 
   protected transient BiFunction<Object[], ObjectInspector[], Integer> hashFunc;
 
@@ -243,6 +253,17 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
       LOG.error(msg, e);
       throw new RuntimeException(e);
     }
+
+    synchronized (o) {
+      debugFile = new File(String.format("/home/krisz/tmp/debug/op_%s_%d.txt", operatorId, instanceCounter++));
+    }
+
+    debugFile.delete();
+    try {
+      debugFile.createNewFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   /**
@@ -291,6 +312,12 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   @Override
   @SuppressWarnings("unchecked")
   public void process(Object row, int tag) throws HiveException {
+    try {
+      Files.write(debugFile.toPath(), (Arrays.toString((Object[]) row) + "\n").getBytes(), StandardOpenOption.APPEND);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
     try {
       ObjectInspector rowInspector = inputObjInspectors[tag];
       if (firstRow) {

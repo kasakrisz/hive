@@ -18,7 +18,13 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,6 +52,11 @@ public class LimitOperator extends Operator<LimitDesc> implements Serializable {
 
   protected transient ObjectCache runtimeCache;
   protected transient String limitKey;
+
+  private volatile static int instanceCounter = 0;
+  private File debugFile;
+  private static final Object o = new Object();
+
 
   /** Kryo ctor. */
   protected LimitOperator() {
@@ -88,10 +99,27 @@ public class LimitOperator extends Operator<LimitDesc> implements Serializable {
           currentCountForAllTasksInt, limit);
       onLimitReached();
     }
+
+    synchronized (o) {
+      debugFile = new File(String.format("/home/krisz/tmp/debug/op_%s_%d.txt", operatorId, instanceCounter++));
+    }
+
+    debugFile.delete();
+    try {
+      debugFile.createNewFile();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Override
   public void process(Object row, int tag) throws HiveException {
+    try {
+      Files.write(debugFile.toPath(), (Arrays.toString((Object[]) row) + "\n").getBytes(), StandardOpenOption.APPEND);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
     AtomicInteger currentCountForAllTasks = getCurrentCount();
     int currentCountForAllTasksInt = currentCountForAllTasks.get();
 
