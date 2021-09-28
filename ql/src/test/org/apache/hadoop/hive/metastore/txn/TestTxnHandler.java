@@ -18,6 +18,10 @@
 package org.apache.hadoop.hive.metastore.txn;
 
 import org.apache.hadoop.hive.common.JavaUtils;
+import org.apache.hadoop.hive.common.TableName;
+import org.apache.hadoop.hive.common.ValidReaderWriteIdList;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnWriteIdList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
 import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
@@ -29,6 +33,7 @@ import org.apache.hadoop.hive.metastore.api.CommitTxnRequest;
 import org.apache.hadoop.hive.metastore.api.CompactionRequest;
 import org.apache.hadoop.hive.metastore.api.CompactionResponse;
 import org.apache.hadoop.hive.metastore.api.CompactionType;
+import org.apache.hadoop.hive.metastore.api.CreationMetadata;
 import org.apache.hadoop.hive.metastore.api.DataOperationType;
 import org.apache.hadoop.hive.metastore.api.GetOpenTxnsInfoResponse;
 import org.apache.hadoop.hive.metastore.api.GetOpenTxnsResponse;
@@ -41,6 +46,7 @@ import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.LockState;
 import org.apache.hadoop.hive.metastore.api.LockType;
+import org.apache.hadoop.hive.metastore.api.Materialization;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchLockException;
 import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
@@ -80,7 +86,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -1859,6 +1867,36 @@ public class TestTxnHandler {
       // restore to original retry limit value
       MetastoreConf.setLongVar(conf, MetastoreConf.ConfVars.HMS_HANDLER_ATTEMPTS, originalLimit);
     }
+  }
+
+  @Test
+  public void testGetMaterializationInvalidationInfo() throws MetaException, TxnAbortedException, NoSuchTxnException {
+    TxnStore txnHandler = TxnUtils.getTxnStore(conf);
+    OpenTxnsResponse openTxnsResponse = txnHandler.openTxns(new OpenTxnRequest(1, "me", "localhost"));
+
+    ValidTxnWriteIdList validTxnWriteIdList = new ValidTxnWriteIdList(openTxnsResponse.getTxn_ids().get(0));
+    validTxnWriteIdList.addTableValidWriteIdList(
+            new ValidReaderWriteIdList(TableName.getDbTable("default", "t1"),
+            new long[] { 2 }, new BitSet(), 1));
+
+    CommitTxnRequest commitTxnRequest = new CommitTxnRequest();
+    commitTxnRequest.setTxnid(openTxnsResponse.getTxn_ids().get(0));
+    txnHandler.commitTxn(commitTxnRequest);
+
+
+    CreationMetadata creationMetadata = new CreationMetadata();
+    creationMetadata.setDbName("default");
+    creationMetadata.setTblName("mat1");
+    creationMetadata.setTablesUsed(new HashSet<String>() {{ add("default.t1"); }});
+    creationMetadata.setValidTxnList(validTxnWriteIdList.toString());
+
+
+    openTxnsResponse = txnHandler.openTxns(new OpenTxnRequest(1, "me", "localhost"));
+    GetOpenTxnsResponse openTxns = txnHandler.getOpenTxns();
+    ValidTxnList validTxnList = TxnCommonUtils.createValidReadTxnList(openTxns, openTxnsResponse.getTxn_ids().get(0));
+
+    Materialization materialization = txnHandler.getMaterializationInvalidationInfo(creationMetadata, validTxnList.toString());
+    assertFalse(materialization.isSourceTablesUpdateDeleteModified());
   }
 
   private void updateTxns(Connection conn) throws SQLException {
