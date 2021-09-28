@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.metastore.txn;
 
 import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.common.TableName;
+import org.apache.hadoop.hive.common.ValidReadTxnList;
 import org.apache.hadoop.hive.common.ValidReaderWriteIdList;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.common.ValidTxnWriteIdList;
@@ -1871,18 +1872,10 @@ public class TestTxnHandler {
 
   @Test
   public void testGetMaterializationInvalidationInfo() throws MetaException, TxnAbortedException, NoSuchTxnException {
-    TxnStore txnHandler = TxnUtils.getTxnStore(conf);
-    OpenTxnsResponse openTxnsResponse = txnHandler.openTxns(new OpenTxnRequest(1, "me", "localhost"));
-
-    ValidTxnWriteIdList validTxnWriteIdList = new ValidTxnWriteIdList(openTxnsResponse.getTxn_ids().get(0));
+    ValidTxnWriteIdList validTxnWriteIdList = new ValidTxnWriteIdList(5L);
     validTxnWriteIdList.addTableValidWriteIdList(
             new ValidReaderWriteIdList(TableName.getDbTable("default", "t1"),
             new long[] { 2 }, new BitSet(), 1));
-
-    CommitTxnRequest commitTxnRequest = new CommitTxnRequest();
-    commitTxnRequest.setTxnid(openTxnsResponse.getTxn_ids().get(0));
-    txnHandler.commitTxn(commitTxnRequest);
-
 
     CreationMetadata creationMetadata = new CreationMetadata();
     creationMetadata.setDbName("default");
@@ -1890,10 +1883,7 @@ public class TestTxnHandler {
     creationMetadata.setTablesUsed(new HashSet<String>() {{ add("default.t1"); }});
     creationMetadata.setValidTxnList(validTxnWriteIdList.toString());
 
-
-    openTxnsResponse = txnHandler.openTxns(new OpenTxnRequest(1, "me", "localhost"));
-    GetOpenTxnsResponse openTxns = txnHandler.getOpenTxns();
-    ValidTxnList validTxnList = TxnCommonUtils.createValidReadTxnList(openTxns, openTxnsResponse.getTxn_ids().get(0));
+    ValidTxnList validTxnList = new ValidReadTxnList(new long[] {6, 11}, new BitSet(), 10L, 12L);
 
     Materialization materialization = txnHandler.getMaterializationInvalidationInfo(creationMetadata, validTxnList.toString());
     assertFalse(materialization.isSourceTablesUpdateDeleteModified());
