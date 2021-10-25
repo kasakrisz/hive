@@ -166,6 +166,7 @@ import org.apache.hadoop.hive.metastore.api.SchemaVersionState;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.SerdeType;
 import org.apache.hadoop.hive.metastore.api.SkewedInfo;
+import org.apache.hadoop.hive.metastore.api.SourceTable;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.StoredProcedure;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -2508,8 +2509,8 @@ public class ObjectStore implements RawStore, Configurable {
     }
     assert !m.isSetMaterializationTime();
     Set<MMVSource> tablesUsed = new HashSet<>();
-    for (String fullyQualifiedName : m.getTablesUsed()) {
-      String[] names =  fullyQualifiedName.split("\\.");
+    for (SourceTable sourceTable : m.getTablesUsed()) {
+      String[] names = sourceTable.getTableName().split("\\.");
       MTable mtbl = getMTable(m.getCatName(), names[0], names[1], false).mtbl;
       MMVSource source = new MMVSource();
       source.setTable(mtbl);
@@ -2527,11 +2528,9 @@ public class ObjectStore implements RawStore, Configurable {
     if (s == null) {
       return null;
     }
-    Set<String> tablesUsed = new HashSet<>();
+    Set<SourceTable> tablesUsed = new HashSet<>();
     for (MMVSource mtbl : s.getTables()) {
-      tablesUsed.add(
-          Warehouse.getQualifiedName(
-              mtbl.getTable().getDatabase().getName(), mtbl.getTable().getTableName()));
+      tablesUsed.add(convertToSourceTable(mtbl));
     }
     CreationMetadata r = new CreationMetadata(s.getCatalogName(),
         s.getDbName(), s.getTblName(), tablesUsed);
@@ -2540,6 +2539,17 @@ public class ObjectStore implements RawStore, Configurable {
       r.setValidTxnList(s.getTxnList());
     }
     return r;
+  }
+
+  private SourceTable convertToSourceTable(MMVSource mmvSource) {
+    SourceTable sourceTable = new SourceTable();
+    MTable mTable = mmvSource.getTable();
+    sourceTable.setTableId(mTable.getId());
+    sourceTable.setTableName(Warehouse.getQualifiedName(mTable.getDatabase().getName(), mTable.getTableName()));
+    sourceTable.setInsertCount(mmvSource.getInsertedCount());
+    sourceTable.setUpdatedCount(mmvSource.getUpdatedCount());
+    sourceTable.setDeletedCount(mmvSource.getDeletedCount());
+    return sourceTable;
   }
 
   @Override
