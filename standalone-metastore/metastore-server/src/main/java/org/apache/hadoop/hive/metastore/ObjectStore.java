@@ -10539,23 +10539,23 @@ public class ObjectStore implements RawStore, Configurable {
   public void updateTransactionStatistics(UpdateTransactionalStatsRequest req) {
     LOG.debug("Begin executing updateTransactionStatistics");
 
-//    boolean committed = false;
-//    Query query = null;
-//    try {
-//      openTransaction();
-//      query = pm.newQuery(MMVSource.class, "table.id == tableId");
-//      query.declareParameters("java.lang.Long tableId");
-//      Set<MMVSource> mmvSources = (Set<MMVSource>) query.execute(req.getTableId());
-//      for (MMVSource mmvSource : mmvSources) {
-//        mmvSource.setInsertedCount(mmvSource.getInsertedCount() + req.getInsertCount());
-//        mmvSource.setUpdatedCount(mmvSource.getUpdatedCount() + req.getUpdatedCount());
-//        mmvSource.setDeletedCount(mmvSource.getDeletedCount() + req.getDeletedCount());
-//      }
-//      committed = commitTransaction();
-//    } finally {
-//      rollbackAndCleanup(committed, query);
-//      LOG.debug("Done executing updateTransactionStatistics");
-//    }
+    boolean committed = false;
+    Query query = null;
+    try {
+      openTransaction();
+      query = pm.newQuery(MMVSource.class, "table.id == tableId");
+      query.declareParameters("java.lang.Long tableId");
+      Set<MMVSource> mmvSources = (Set<MMVSource>) query.execute(req.getTableId());
+      for (MMVSource mmvSource : mmvSources) {
+        mmvSource.setInsertedCount(mmvSource.getInsertedCount() + req.getInsertCount());
+        mmvSource.setUpdatedCount(mmvSource.getUpdatedCount() + req.getUpdatedCount());
+        mmvSource.setDeletedCount(mmvSource.getDeletedCount() + req.getDeletedCount());
+      }
+      committed = commitTransaction();
+    } finally {
+      rollbackAndCleanup(committed, query);
+      LOG.debug("Done executing updateTransactionStatistics");
+    }
   }
 
   @Override
