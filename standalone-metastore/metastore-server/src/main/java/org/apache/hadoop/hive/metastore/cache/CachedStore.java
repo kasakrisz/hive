@@ -2441,6 +2441,11 @@ public class CachedStore implements RawStore, Configurable {
     }
   }
 
+  @Override
+  public void updateTransactionStatistics(UpdateTransactionalStatsRequest req) {
+    rawStore.updateTransactionStatistics(req);
+  }
+
   @Override public long cleanupEvents() {
     return rawStore.cleanupEvents();
   }

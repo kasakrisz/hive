@@ -176,6 +176,7 @@ import org.apache.hadoop.hive.metastore.api.UniqueConstraintsRequest;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.UnknownPartitionException;
 import org.apache.hadoop.hive.metastore.api.UnknownTableException;
+import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
 import org.apache.hadoop.hive.metastore.api.WMFullResourcePlan;
 import org.apache.hadoop.hive.metastore.api.WMMapping;
 import org.apache.hadoop.hive.metastore.api.WMNullablePool;
@@ -10532,6 +10533,29 @@ public class ObjectStore implements RawStore, Configurable {
       rollbackAndCleanup(ret, query);
     }
     return ret;
+  }
+
+  @Override
+  public void updateTransactionStatistics(UpdateTransactionalStatsRequest req) {
+    LOG.debug("Begin executing updateTransactionStatistics");
+
+//    boolean committed = false;
+//    Query query = null;
+//    try {
+//      openTransaction();
+//      query = pm.newQuery(MMVSource.class, "table.id == tableId");
+//      query.declareParameters("java.lang.Long tableId");
+//      Set<MMVSource> mmvSources = (Set<MMVSource>) query.execute(req.getTableId());
+//      for (MMVSource mmvSource : mmvSources) {
+//        mmvSource.setInsertedCount(mmvSource.getInsertedCount() + req.getInsertCount());
+//        mmvSource.setUpdatedCount(mmvSource.getUpdatedCount() + req.getUpdatedCount());
+//        mmvSource.setDeletedCount(mmvSource.getDeletedCount() + req.getDeletedCount());
+//      }
+//      committed = commitTransaction();
+//    } finally {
+//      rollbackAndCleanup(committed, query);
+//      LOG.debug("Done executing updateTransactionStatistics");
+//    }
   }
 
   @Override

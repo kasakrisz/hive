@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.metastore.api.SchemaVersionDescriptor;
 import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.StoredProcedure;
 import org.apache.hadoop.hive.metastore.api.UniqueConstraintsRequest;
+import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
 import org.apache.hadoop.hive.metastore.api.WMFullResourcePlan;
 
 import java.nio.ByteBuffer;
@@ -821,6 +822,12 @@ public class DummyRawStoreControlledCommit implements RawStore, Configurable {
       InvalidInputException {
     return objectStore.updatePartitionColumnStatistics(statsObj, partVals, validWriteIds, writeId);
   }
+
+  @Override
+  public void updateTransactionStatistics(UpdateTransactionalStatsRequest req) {
+    objectStore.updateTransactionStatistics(req);
+  }
+
 
   @Override
   public boolean addToken(String tokenIdentifier, String delegationToken) {

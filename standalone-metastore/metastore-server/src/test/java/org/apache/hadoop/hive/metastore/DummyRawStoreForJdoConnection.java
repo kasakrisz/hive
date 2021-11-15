@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.metastore.api.SchemaVersionDescriptor;
 import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.StoredProcedure;
 import org.apache.hadoop.hive.metastore.api.UniqueConstraintsRequest;
+import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
 import org.apache.hadoop.hive.metastore.api.WMFullResourcePlan;
 
 import java.nio.ByteBuffer;
@@ -889,6 +890,10 @@ public class DummyRawStoreForJdoConnection implements RawStore {
       String  validWriteIds, long writeId)
     throws NoSuchObjectException, MetaException, InvalidObjectException {
     return null;
+  }
+
+  @Override
+  public void updateTransactionStatistics(UpdateTransactionalStatsRequest req) {
   }
 
   @Override

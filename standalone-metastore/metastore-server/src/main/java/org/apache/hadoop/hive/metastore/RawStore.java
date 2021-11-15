@@ -104,6 +104,7 @@ import org.apache.hadoop.hive.metastore.api.UniqueConstraintsRequest;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.UnknownPartitionException;
 import org.apache.hadoop.hive.metastore.api.UnknownTableException;
+import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
 import org.apache.hadoop.hive.metastore.api.WMFullResourcePlan;
 import org.apache.hadoop.hive.metastore.api.WMMapping;
 import org.apache.hadoop.hive.metastore.api.WMNullablePool;
@@ -1252,6 +1253,8 @@ public interface RawStore extends Configurable {
   boolean deleteTableColumnStatistics(String catName, String dbName, String tableName,
     String colName, String engine)
     throws NoSuchObjectException, MetaException, InvalidObjectException, InvalidInputException;
+
+  void updateTransactionStatistics(UpdateTransactionalStatsRequest req);
 
   long cleanupEvents();
 
