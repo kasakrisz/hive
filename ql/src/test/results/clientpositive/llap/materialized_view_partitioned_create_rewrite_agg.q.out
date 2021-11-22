@@ -411,9 +411,9 @@ POSTHOOK: Lineage: mat1 PARTITION(a=1).b EXPRESSION [(mat1)default.mat1.FieldSch
 POSTHOOK: Lineage: mat1 PARTITION(a=1).sumc EXPRESSION [(mat1)default.mat1.FieldSchema(name:sumc, type:bigint, comment:null), (t1)t1.FieldSchema(name:c, type:int, comment:null), ]
 POSTHOOK: Lineage: mat1 PARTITION(a=__HIVE_DEFAULT_PARTITION__).b EXPRESSION [(mat1)default.mat1.FieldSchema(name:b, type:int, comment:null), (t1)t1.FieldSchema(name:b, type:int, comment:null), ]
 POSTHOOK: Lineage: mat1 PARTITION(a=__HIVE_DEFAULT_PARTITION__).sumc EXPRESSION [(mat1)default.mat1.FieldSchema(name:sumc, type:bigint, comment:null), (t1)t1.FieldSchema(name:c, type:int, comment:null), ]
-PREHOOK: query: explain cbo
+PREHOOK: query: EXPLAIN CBO
 SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b
+ORDER BY a, b
 PREHOOK: type: QUERY
 PREHOOK: Input: default@mat1
 PREHOOK: Input: default@mat1@a=1
@@ -421,9 +421,9 @@ PREHOOK: Input: default@mat1@a=2
 PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
-POSTHOOK: query: explain cbo
+POSTHOOK: query: EXPLAIN CBO
 SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b
+ORDER BY a, b
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@mat1
 POSTHOOK: Input: default@mat1@a=1
@@ -438,7 +438,7 @@ HiveProject(b=[$0], _o__c1=[$1], sumc=[$2])
       HiveTableScan(table=[[default, mat1]], table:alias=[default.mat1])
 
 PREHOOK: query: SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b
+ORDER BY a, b
 PREHOOK: type: QUERY
 PREHOOK: Input: default@mat1
 PREHOOK: Input: default@mat1@a=1
@@ -447,7 +447,7 @@ PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
 POSTHOOK: query: SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b
+ORDER BY a, b
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@mat1
 POSTHOOK: Input: default@mat1@a=1
@@ -470,20 +470,3 @@ POSTHOOK: query: DROP MATERIALIZED VIEW mat1
 POSTHOOK: type: DROP_MATERIALIZED_VIEW
 POSTHOOK: Input: default@mat1
 POSTHOOK: Output: default@mat1
-PREHOOK: query: SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b
-PREHOOK: type: QUERY
-PREHOOK: Input: default@t1
-#### A masked pattern was here ####
-POSTHOOK: query: SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b
-POSTHOOK: type: QUERY
-POSTHOOK: Input: default@t1
-#### A masked pattern was here ####
-1	8	1
-2	10	1
-3	210	1
-1	10	2
-2	11	2
-4	37	2
-4	220	NULL

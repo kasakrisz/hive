@@ -410,9 +410,9 @@ POSTHOOK: Lineage: mat1 PARTITION(a=1,c=1,d=one).sumb EXPRESSION [(mat1)default.
 POSTHOOK: Lineage: mat1 PARTITION(a=1,c=1,d=one).sume EXPRESSION [(mat1)default.mat1.FieldSchema(name:sume, type:double, comment:null), (t1)t1.FieldSchema(name:e, type:float, comment:null), ]
 POSTHOOK: Lineage: mat1 PARTITION(a=__HIVE_DEFAULT_PARTITION__,c=__HIVE_DEFAULT_PARTITION__,d=unknown).sumb EXPRESSION [(mat1)default.mat1.FieldSchema(name:sumb, type:bigint, comment:null), (t1)t1.FieldSchema(name:b, type:int, comment:null), ]
 POSTHOOK: Lineage: mat1 PARTITION(a=__HIVE_DEFAULT_PARTITION__,c=__HIVE_DEFAULT_PARTITION__,d=unknown).sume EXPRESSION [(mat1)default.mat1.FieldSchema(name:sume, type:double, comment:null), (t1)t1.FieldSchema(name:e, type:float, comment:null), ]
-PREHOOK: query: explain cbo
+PREHOOK: query: EXPLAIN CBO
 SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d
+ORDER BY a, c, d
 PREHOOK: type: QUERY
 PREHOOK: Input: default@mat1
 PREHOOK: Input: default@mat1@a=1/c=1/d=one
@@ -421,9 +421,9 @@ PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=2/d=unknown
 PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=__HIVE_DEFAULT_PARTITION__/d=unknown
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
-POSTHOOK: query: explain cbo
+POSTHOOK: query: EXPLAIN CBO
 SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d
+ORDER BY a, c, d
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@mat1
 POSTHOOK: Input: default@mat1@a=1/c=1/d=one
@@ -438,7 +438,7 @@ HiveSortLimit(sort0=[$0], sort1=[$2], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[
     HiveTableScan(table=[[default, mat1]], table:alias=[default.mat1])
 
 PREHOOK: query: SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d
+ORDER BY a, c, d
 PREHOOK: type: QUERY
 PREHOOK: Input: default@mat1
 PREHOOK: Input: default@mat1@a=1/c=1/d=one
@@ -448,7 +448,7 @@ PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=__HIVE_DEFAULT_PARTI
 PREHOOK: Input: default@t1
 #### A masked pattern was here ####
 POSTHOOK: query: SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d
+ORDER BY a, c, d
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@mat1
 POSTHOOK: Input: default@mat1@a=1/c=1/d=one
@@ -469,17 +469,3 @@ POSTHOOK: query: DROP MATERIALIZED VIEW mat1
 POSTHOOK: type: DROP_MATERIALIZED_VIEW
 POSTHOOK: Input: default@mat1
 POSTHOOK: Output: default@mat1
-PREHOOK: query: SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d
-PREHOOK: type: QUERY
-PREHOOK: Input: default@t1
-#### A masked pattern was here ####
-POSTHOOK: query: SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d
-POSTHOOK: type: QUERY
-POSTHOOK: Input: default@t1
-#### A masked pattern was here ####
-1	131	1	one	131.91000068187714
-2	20	2	two	64.96000003814697
-NULL	4	2	unknown	4.699999809265137
-NULL	24	NULL	unknown	24.81999921798706

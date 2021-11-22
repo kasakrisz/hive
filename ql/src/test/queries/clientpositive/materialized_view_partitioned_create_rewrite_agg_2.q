@@ -34,15 +34,15 @@ EXPLAIN
 ALTER MATERIALIZED VIEW mat1 REBUILD;
 ALTER MATERIALIZED VIEW mat1 REBUILD;
 
-explain cbo
+EXPLAIN CBO
 SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d;
+ORDER BY a, c, d;
 
 SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d;
+ORDER BY a, c, d;
 
 DROP MATERIALIZED VIEW mat1;
 
 -- Uncomment this to compare results when view is used/not used
-SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
-order by a, c, d;
+--SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
+--ORDER BY a, c, d;
