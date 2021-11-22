@@ -27,14 +27,15 @@ INSERT INTO t1(a, b, c) VALUES
 (1, 3, 110),
 (null, 4, 20);
 
-SELECT b, sum(sumc), a FROM (
-    SELECT b, sumc, a FROM mat1
-    LEFT SEMI JOIN (SELECT b, sum(c), a FROM t1 WHERE ROW__ID.writeId > 1 GROUP BY b, a) q ON (mat1.a <=> q.a)
-    UNION ALL
-    SELECT b, sum(c) sumc, a FROM t1 WHERE ROW__ID.writeId > 1 GROUP BY b, a
-) sub
-GROUP BY b, a
-ORDER BY a, b;
+-- ALTER MATERIALIZED VIEW mat1 REBUILD; runs a query like this when rebuilding incrementally the view
+--SELECT b, sum(sumc), a FROM (
+--    SELECT b, sumc, a FROM mat1
+--    LEFT SEMI JOIN (SELECT b, sum(c), a FROM t1 WHERE ROW__ID.writeId > 1 GROUP BY b, a) q ON (mat1.a <=> q.a)
+--    UNION ALL
+--    SELECT b, sum(c) sumc, a FROM t1 WHERE ROW__ID.writeId > 1 GROUP BY b, a
+--) sub
+--GROUP BY b, a
+--ORDER BY a, b;
 
 EXPLAIN CBO
 ALTER MATERIALIZED VIEW mat1 REBUILD;
@@ -42,10 +43,18 @@ EXPLAIN
 ALTER MATERIALIZED VIEW mat1 REBUILD;
 ALTER MATERIALIZED VIEW mat1 REBUILD;
 
-SELECT b, sumc, a FROM mat1
+--SELECT b, sumc, a FROM mat1
+--order by a, b;
+
+explain cbo
+SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
+order by a, b;
+
+SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
 order by a, b;
 
 DROP MATERIALIZED VIEW mat1;
 
-SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
-order by a, b;
+-- Uncomment this to compare results when view is used/not used
+-- SELECT b, sum(c), a sumc FROM t1 GROUP BY b, a
+-- order by a, b;
