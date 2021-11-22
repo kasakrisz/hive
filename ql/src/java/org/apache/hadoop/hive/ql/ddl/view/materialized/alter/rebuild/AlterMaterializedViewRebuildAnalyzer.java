@@ -417,6 +417,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         RelMetadataQuery mq = RelMetadataQuery.instance();
         RelOptCost costOriginalPlan = mq.getCumulativeCost(calcitePreMVRewritingPlan);
         RelOptCost costIncrementalRebuildPlan = mq.getCumulativeCost(incrementalRebuildPlan);
+        LOG.debug("Cost of full/incremental rebuild plan: {}/{}", costOriginalPlan, costIncrementalRebuildPlan);
         if (costOriginalPlan.isLe(costIncrementalRebuildPlan)) {
           mvRebuildMode = MaterializationRebuildMode.INSERT_OVERWRITE_REBUILD;
           return calcitePreMVRewritingPlan;
