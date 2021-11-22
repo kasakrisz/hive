@@ -33,7 +33,6 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.LockState;
-import org.apache.hadoop.hive.metastore.api.SourceTable;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryState;
@@ -59,7 +58,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertInc
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializationRelMetadataProvider;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils;
-import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveScanCostSetterRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveScanRowCountSetterRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.MaterializedViewRewritingRelVisitor;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.CalcitePlanner;
@@ -407,7 +406,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
               HiveAggregatePartitionIncrementalRewritingRule.INSTANCE);
 
       HepProgramBuilder program = new HepProgramBuilder();
-      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST, HiveScanCostSetterRule.with(materialization));
+      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST, HiveScanRowCountSetterRule.with(materialization));
       incrementalRebuildPlan = executeProgram(incrementalRebuildPlan, program.build(), mdProvider, executorProvider);
 
       // Make a cost-based decision factoring the configuration property

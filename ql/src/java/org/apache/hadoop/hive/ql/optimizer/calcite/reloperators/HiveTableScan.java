@@ -180,6 +180,11 @@ public class HiveTableScan extends TableScan implements HiveRelNode {
         this.concatQbIDAlias, newRowtype, this.useQBIdInDigest, this.insideView, this.tableScanTrait);
   }
 
+  public HiveTableScan copy(RelOptHiveTable table) {
+    return new HiveTableScan(getCluster(), getTraitSet(), table, this.tblAlias, this.concatQbIDAlias,
+        this.useQBIdInDigest, this.insideView, this.tableScanTrait);
+  }
+
   public HiveTableScan setTableScanTrait(HiveTableScanTrait tableScanTrait) {
     return new HiveTableScan(getCluster(), getTraitSet(), ((RelOptHiveTable) table), this.tblAlias,
         this.concatQbIDAlias, this.rowType, this.useQBIdInDigest, this.insideView, tableScanTrait);

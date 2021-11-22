@@ -19,10 +19,7 @@ package org.apache.hadoop.hive.ql.optimizer.calcite.rules.views;/*
 import org.apache.calcite.plan.RelOptMaterialization;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
-import org.apache.calcite.plan.RelOptRuleOperand;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.TableScan;
-import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.metastore.api.SourceTable;
 import org.apache.hadoop.hive.metastore.api.Table;
@@ -33,9 +30,9 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HiveScanCostSetterRule extends RelOptRule {
+public class HiveScanRowCountSetterRule extends RelOptRule {
 
-  public static HiveScanCostSetterRule with(RelOptMaterialization materialization) {
+  public static HiveScanRowCountSetterRule with(RelOptMaterialization materialization) {
     Table matTable = ((RelOptHiveTable) materialization.tableRel.getTable()).getHiveTableMD().getTTable();
     Map<String, SourceTable> sourceTableMap = new HashMap<>(matTable.getCreationMetadata().getTablesUsedSize());
     for (SourceTable sourceTable : matTable.getCreationMetadata().getTablesUsed()) {
@@ -44,12 +41,12 @@ public class HiveScanCostSetterRule extends RelOptRule {
               TableName.getQualified(table.getCatName(), table.getDbName(), table.getTableName()), sourceTable);
     }
 
-    return new HiveScanCostSetterRule(sourceTableMap);
+    return new HiveScanRowCountSetterRule(sourceTableMap);
   }
 
   private final Map<String, SourceTable> sourceTableMap;
 
-  public HiveScanCostSetterRule(Map<String, SourceTable> sourceTableMap) {
+  public HiveScanRowCountSetterRule(Map<String, SourceTable> sourceTableMap) {
     super(operand(TableScan.class, none()),
             HiveRelFactories.HIVE_BUILDER, "HiveScanCostSetterRule");
     this.sourceTableMap = sourceTableMap;
@@ -66,19 +63,8 @@ public class HiveScanCostSetterRule extends RelOptRule {
       return;
     }
 
-    HiveTableScan newTableScan = new HiveTableScan(
-            tableScan.getCluster(),
-            tableScan.getTraitSet(),
-            relOptHiveTable.setRowCount(sourceTable.getInsertedCount()),
-            tableScan.getTableAlias(),
-            tableScan.getConcatQbIDAlias(),
-            false,
-            false,
-            tableScan.getTableScanTrait());
+    HiveTableScan newTableScan = tableScan.copy(relOptHiveTable.setRowCount(sourceTable.getInsertedCount()));
 
-    call.transformTo(
-            call.builder()
-                    .push(newTableScan)
-                    .build());
+    call.transformTo(newTableScan);
   }
 }
