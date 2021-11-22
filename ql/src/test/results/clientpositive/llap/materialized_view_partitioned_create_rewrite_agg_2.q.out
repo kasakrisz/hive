@@ -14,7 +14,14 @@ PREHOOK: query: INSERT INTO t1(a, b, c, d, e) VALUES
 (2, 2, 2, 'two', 2.2),
 (1, 3, 1, 'one', 3.1),
 (null, 4, null, 'unknown', 4.6),
-(null, 4, 2, 'unknown', 4.7)
+(null, 4, 2, 'unknown', 4.7),
+(2, 1, 2, 'two', 5.6),
+(2, 1, 2, 'two', 7.14),
+(2, 1, 2, 'two', 17.4),
+(2, 1, 2, 'two', 7.4),
+(2, 4, 2, 'two', 7.4),
+(2, 4, 2, 'two', 8.22),
+(2, 4, 2, 'two', 7.4)
 PREHOOK: type: QUERY
 PREHOOK: Input: _dummy_database@_dummy_table
 PREHOOK: Output: default@t1
@@ -26,7 +33,14 @@ POSTHOOK: query: INSERT INTO t1(a, b, c, d, e) VALUES
 (2, 2, 2, 'two', 2.2),
 (1, 3, 1, 'one', 3.1),
 (null, 4, null, 'unknown', 4.6),
-(null, 4, 2, 'unknown', 4.7)
+(null, 4, 2, 'unknown', 4.7),
+(2, 1, 2, 'two', 5.6),
+(2, 1, 2, 'two', 7.14),
+(2, 1, 2, 'two', 17.4),
+(2, 1, 2, 'two', 7.4),
+(2, 4, 2, 'two', 7.4),
+(2, 4, 2, 'two', 8.22),
+(2, 4, 2, 'two', 7.4)
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@t1
@@ -181,14 +195,14 @@ STAGE PLANS:
                 TableScan
                   alias: t1
                   filterExpr: (ROW__ID.writeid > 1L) (type: boolean)
-                  Statistics: Num rows: 11 Data size: 1044 Basic stats: COMPLETE Column stats: COMPLETE
+                  Statistics: Num rows: 18 Data size: 1716 Basic stats: COMPLETE Column stats: COMPLETE
                   Filter Operator
                     predicate: (ROW__ID.writeid > 1L) (type: boolean)
-                    Statistics: Num rows: 3 Data size: 288 Basic stats: COMPLETE Column stats: COMPLETE
+                    Statistics: Num rows: 6 Data size: 576 Basic stats: COMPLETE Column stats: COMPLETE
                     Select Operator
                       expressions: a (type: int), c (type: int), d (type: string)
                       outputColumnNames: a, c, d
-                      Statistics: Num rows: 3 Data size: 288 Basic stats: COMPLETE Column stats: COMPLETE
+                      Statistics: Num rows: 6 Data size: 576 Basic stats: COMPLETE Column stats: COMPLETE
                       Group By Operator
                         keys: a (type: int), c (type: int), d (type: string)
                         minReductionHashAggr: 0.4
@@ -204,7 +218,7 @@ STAGE PLANS:
                     Select Operator
                       expressions: a (type: int), b (type: int), c (type: int), d (type: string), e (type: float)
                       outputColumnNames: a, b, c, d, e
-                      Statistics: Num rows: 3 Data size: 312 Basic stats: COMPLETE Column stats: COMPLETE
+                      Statistics: Num rows: 6 Data size: 624 Basic stats: COMPLETE Column stats: COMPLETE
                       Group By Operator
                         aggregations: sum(b), sum(e)
                         keys: a (type: int), c (type: int), d (type: string)
@@ -396,7 +410,8 @@ POSTHOOK: Lineage: mat1 PARTITION(a=1,c=1,d=one).sumb EXPRESSION [(mat1)default.
 POSTHOOK: Lineage: mat1 PARTITION(a=1,c=1,d=one).sume EXPRESSION [(mat1)default.mat1.FieldSchema(name:sume, type:double, comment:null), (t1)t1.FieldSchema(name:e, type:float, comment:null), ]
 POSTHOOK: Lineage: mat1 PARTITION(a=__HIVE_DEFAULT_PARTITION__,c=__HIVE_DEFAULT_PARTITION__,d=unknown).sumb EXPRESSION [(mat1)default.mat1.FieldSchema(name:sumb, type:bigint, comment:null), (t1)t1.FieldSchema(name:b, type:int, comment:null), ]
 POSTHOOK: Lineage: mat1 PARTITION(a=__HIVE_DEFAULT_PARTITION__,c=__HIVE_DEFAULT_PARTITION__,d=unknown).sume EXPRESSION [(mat1)default.mat1.FieldSchema(name:sume, type:double, comment:null), (t1)t1.FieldSchema(name:e, type:float, comment:null), ]
-PREHOOK: query: SELECT a, sumb, c, d, sume FROM mat1
+PREHOOK: query: explain cbo
+SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
 order by a, c, d
 PREHOOK: type: QUERY
 PREHOOK: Input: default@mat1
@@ -404,8 +419,10 @@ PREHOOK: Input: default@mat1@a=1/c=1/d=one
 PREHOOK: Input: default@mat1@a=2/c=2/d=two
 PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=2/d=unknown
 PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=__HIVE_DEFAULT_PARTITION__/d=unknown
+PREHOOK: Input: default@t1
 #### A masked pattern was here ####
-POSTHOOK: query: SELECT a, sumb, c, d, sume FROM mat1
+POSTHOOK: query: explain cbo
+SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
 order by a, c, d
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@mat1
@@ -413,9 +430,35 @@ POSTHOOK: Input: default@mat1@a=1/c=1/d=one
 POSTHOOK: Input: default@mat1@a=2/c=2/d=two
 POSTHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=2/d=unknown
 POSTHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=__HIVE_DEFAULT_PARTITION__/d=unknown
+POSTHOOK: Input: default@t1
+#### A masked pattern was here ####
+CBO PLAN:
+HiveSortLimit(sort0=[$0], sort1=[$2], sort2=[$3], dir0=[ASC], dir1=[ASC], dir2=[ASC])
+  HiveProject(a=[$2], sumb=[$0], c=[$3], d=[$4], sume=[$1])
+    HiveTableScan(table=[[default, mat1]], table:alias=[default.mat1])
+
+PREHOOK: query: SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
+order by a, c, d
+PREHOOK: type: QUERY
+PREHOOK: Input: default@mat1
+PREHOOK: Input: default@mat1@a=1/c=1/d=one
+PREHOOK: Input: default@mat1@a=2/c=2/d=two
+PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=2/d=unknown
+PREHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=__HIVE_DEFAULT_PARTITION__/d=unknown
+PREHOOK: Input: default@t1
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
+order by a, c, d
+POSTHOOK: type: QUERY
+POSTHOOK: Input: default@mat1
+POSTHOOK: Input: default@mat1@a=1/c=1/d=one
+POSTHOOK: Input: default@mat1@a=2/c=2/d=two
+POSTHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=2/d=unknown
+POSTHOOK: Input: default@mat1@a=__HIVE_DEFAULT_PARTITION__/c=__HIVE_DEFAULT_PARTITION__/d=unknown
+POSTHOOK: Input: default@t1
 #### A masked pattern was here ####
 1	131	1	one	131.91000068187714
-2	4	2	two	4.400000095367432
+2	20	2	two	64.96000003814697
 NULL	4	2	unknown	4.699999809265137
 NULL	24	NULL	unknown	24.81999921798706
 PREHOOK: query: DROP MATERIALIZED VIEW mat1
@@ -437,6 +480,6 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@t1
 #### A masked pattern was here ####
 1	131	1	one	131.91000068187714
-2	4	2	two	4.400000095367432
+2	20	2	two	64.96000003814697
 NULL	4	2	unknown	4.699999809265137
 NULL	24	NULL	unknown	24.81999921798706

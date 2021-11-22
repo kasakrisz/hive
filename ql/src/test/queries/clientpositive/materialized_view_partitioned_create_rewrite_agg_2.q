@@ -11,7 +11,14 @@ INSERT INTO t1(a, b, c, d, e) VALUES
 (2, 2, 2, 'two', 2.2),
 (1, 3, 1, 'one', 3.1),
 (null, 4, null, 'unknown', 4.6),
-(null, 4, 2, 'unknown', 4.7);
+(null, 4, 2, 'unknown', 4.7),
+(2, 1, 2, 'two', 5.6),
+(2, 1, 2, 'two', 7.14),
+(2, 1, 2, 'two', 17.4),
+(2, 1, 2, 'two', 7.4),
+(2, 4, 2, 'two', 7.4),
+(2, 4, 2, 'two', 8.22),
+(2, 4, 2, 'two', 7.4);
 
 CREATE MATERIALIZED VIEW mat1 PARTITIONED ON (a, c, d) STORED AS ORC TBLPROPERTIES ('transactional'='true', 'transactional_properties'='insert_only') AS
 SELECT a, sum(b) sumb, c, d, sum(e) sume FROM t1 GROUP BY a, c, d;
@@ -27,10 +34,15 @@ EXPLAIN
 ALTER MATERIALIZED VIEW mat1 REBUILD;
 ALTER MATERIALIZED VIEW mat1 REBUILD;
 
-SELECT a, sumb, c, d, sume FROM mat1
+explain cbo
+SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
+order by a, c, d;
+
+SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
 order by a, c, d;
 
 DROP MATERIALIZED VIEW mat1;
 
+-- Uncomment this to compare results when view is used/not used
 SELECT a, sum(b), c, d, sum(e) FROM t1 GROUP BY a, c, d
 order by a, c, d;
