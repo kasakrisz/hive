@@ -405,9 +405,8 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
               HiveInsertOnlyScanWriteIdRule.INSTANCE,
               HiveAggregatePartitionIncrementalRewritingRule.INSTANCE);
 
-      HepProgramBuilder program = new HepProgramBuilder();
-      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST, HiveScanRowCountSetterRule.with(materialization));
-      incrementalRebuildPlan = executeProgram(incrementalRebuildPlan, program.build(), mdProvider, executorProvider);
+      incrementalRebuildPlan =
+          updateScanRowCount(mdProvider, executorProvider, materialization, incrementalRebuildPlan);
 
       // Make a cost-based decision factoring the configuration property
       optCluster.invalidateMetadataQuery();
@@ -427,6 +426,15 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         optCluster.invalidateMetadataQuery();
         RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(mdProvider));
       }
+    }
+
+    private RelNode updateScanRowCount(RelMetadataProvider mdProvider, RexExecutor executorProvider,
+                                       HiveRelOptMaterialization materialization, RelNode incrementalRebuildPlan) {
+      HepProgramBuilder program = new HepProgramBuilder();
+      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+          HiveScanRowCountSetterRule.with(materialization));
+      incrementalRebuildPlan = executeProgram(incrementalRebuildPlan, program.build(), mdProvider, executorProvider);
+      return incrementalRebuildPlan;
     }
 
     private RelNode applyIncrementalRebuild(RelNode basePlan, RelMetadataProvider mdProvider,
