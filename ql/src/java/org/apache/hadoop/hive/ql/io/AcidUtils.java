@@ -1327,6 +1327,7 @@ public class AcidUtils {
     } else {
       if (dirSnapshots == null) {
         dirSnapshots = getHdfsDirSnapshots(fs, candidateDirectory);
+        LOG.debug("dirSnapshots size {}", dirSnapshots.size());
       }
       getChildState(directory, dirSnapshots, writeIdList, validTxnList, ignoreEmptyFiles);
     }
@@ -1831,10 +1832,13 @@ public class AcidUtils {
   private static void processDeltaDir(Path deltadir, ValidWriteIdList writeIdList, ValidTxnList validTxnList, AcidDirectory directory, AcidUtils.HdfsDirSnapshot dirSnapshot)
       throws IOException {
     ParsedDelta delta = parsedDelta(deltadir, directory.getFs(), dirSnapshot);
+    LOG.debug("currentDirectory candidate: {}, delta.minWriteId={}, delta.maxWriteId={}, writeIdList={}", deltadir.toString(), delta.minWriteId, delta.maxWriteId, writeIdList);
     if (!isDirUsable(deltadir, delta.getVisibilityTxnId(), directory.getAbortedDirectories(), validTxnList)) {
+      LOG.debug("currentDirectory candidate: {}, !isDirUsable", deltadir);
       return;
     }
     ValidWriteIdList.RangeResponse abortRange = writeIdList.isWriteIdRangeAborted(delta.minWriteId, delta.maxWriteId);
+    LOG.debug("currentDirectory candidate: {}, isWriteIdRangeAborted={}", deltadir, abortRange);
     if (ValidWriteIdList.RangeResponse.ALL == abortRange) {
       directory.getAbortedDirectories().add(deltadir);
       directory.getAbortedWriteIds().addAll(LongStream.rangeClosed(delta.minWriteId, delta.maxWriteId)
@@ -1845,6 +1849,7 @@ public class AcidUtils {
         // This is important for Cleaner to not remove metadata belonging to this transaction
         directory.setUnCompactedAborts(true);
       }
+      LOG.debug("currentDirectory candidate: {}, delta.minWriteId={}, delta.maxWriteId={}, writeIdList={}, decision={}", deltadir.toString(), delta.minWriteId, delta.maxWriteId, writeIdList, writeIdList.isWriteIdRangeValid(delta.minWriteId, delta.maxWriteId) != ValidWriteIdList.RangeResponse.NONE);
       if (writeIdList.isWriteIdRangeValid(delta.minWriteId, delta.maxWriteId) != ValidWriteIdList.RangeResponse.NONE) {
         directory.getCurrentDirectories().add(delta);
       }

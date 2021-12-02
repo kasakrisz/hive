@@ -950,6 +950,7 @@ public class OrcInputFormat implements InputFormat<NullWritable, OrcStruct>,
             context.cacheHitCounter.incrementAndGet();
           }
           // Ignore files eliminated by PPD, or of 0 length.
+          LOG.debug("Length of file {} : {}", file.getFileStatus().getPath().toString(), file.getFileStatus().getLen());
           if (ppdResult != FooterCache.NO_SPLIT_AFTER_PPD && file.getFileStatus().getLen() > 0) {
             result.add(new SplitInfo(context, dir.fs, file, orcTail, readerTypes,
                 isOriginal, deltas, true, dir.dir, covered, ppdResult));
