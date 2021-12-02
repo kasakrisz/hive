@@ -3368,7 +3368,7 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
 
   @Test
   public void test2() throws Exception {
-    File file = new File("/Users/krisztiankasa/tmp/stdout.txt");
+    File file = new File("/home/krisz/tmp/stdout.txt");
     file.delete();
     FileOutputStream fileOutputStream = new FileOutputStream(file);
 
