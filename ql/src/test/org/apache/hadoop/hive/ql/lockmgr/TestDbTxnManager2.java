@@ -3368,7 +3368,7 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
 
   @Test
   public void test2() throws Exception {
-    File file = new File("/home/krisz/tmp/stdout.txt");
+    File file = new File("/Users/krisztiankasa/tmp/stdout.txt");
     file.delete();
     FileOutputStream fileOutputStream = new FileOutputStream(file);
 
@@ -3377,8 +3377,8 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
     System.setOut(printStream);
     System.out.println("Begin test");
 
-    driver.run("drop table if exists lineitem_text");
-    driver.run("drop table if exists lineitem_copy");
+//    driver.run("drop table if exists lineitem_text");
+//    driver.run("drop table if exists lineitem_copy");
     driver.run("drop table if exists lineitem_acid_copy");
     driver.run("drop table if exists concurrent_insert_partitioned");
 
@@ -3410,7 +3410,7 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
 
     driver.run("drop table concurrent_insert_partitioned");
 
-    driver.run("create table concurrent_insert_partitioned(L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE) partitioned by (L_TAX DOUBLE) clustered by (L_ORDERKEY) into 10 buckets");
+    driver.run("create table concurrent_insert_partitioned(L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE) partitioned by (L_TAX DOUBLE) clustered by (L_ORDERKEY) into 2 buckets stored as orc TBLPROPERTIES ('transactional'='true')");
     driver.run("alter table concurrent_insert_partitioned add partition(L_TAX=0.01)");
 
     int insCount = 10;
@@ -3438,6 +3438,8 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
 
     CompletableFuture.allOf(jobs.toArray(new CompletableFuture[0])).join();
 
+    Thread.sleep(15000);
+
     swapTxnManager(txnMgr);
     driver.run("select count(*) from concurrent_insert_partitioned");
 
@@ -3448,5 +3450,4 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
 
     fileOutputStream.close();
   }
-
 }
