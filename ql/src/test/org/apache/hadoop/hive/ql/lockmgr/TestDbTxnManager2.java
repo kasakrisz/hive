@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.metastore.api.CommitTxnRequest;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.hive.metastore.txn.AcidHouseKeeperService;
 import org.apache.hadoop.hive.ql.Driver;
+import org.apache.hadoop.hive.ql.QueryInfo;
 import org.apache.hadoop.hive.ql.QueryState;
 import org.apache.hadoop.hive.ql.TestTxnCommands2;
 import org.junit.Assert;
@@ -50,11 +51,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * See additional tests in {@link org.apache.hadoop.hive.ql.lockmgr.TestDbTxnManager}
@@ -3357,6 +3364,89 @@ public class TestDbTxnManager2 extends DbTxnManagerEndToEndTestBase{
     driver2.getFetchTask().fetch(res);
     Assert.assertEquals(1, res.size());
     Assert.assertEquals("1\t2", res.get(0));
+  }
+
+  @Test
+  public void test2() throws Exception {
+    File file = new File("/home/krisz/tmp/stdout.txt");
+    file.delete();
+    FileOutputStream fileOutputStream = new FileOutputStream(file);
+
+    PrintStream printStream = new PrintStream(fileOutputStream);
+
+    System.setOut(printStream);
+    System.out.println("Begin test");
+
+    driver.run("drop table if exists lineitem_text");
+    driver.run("drop table if exists lineitem_copy");
+    driver.run("drop table if exists lineitem_acid_copy");
+    driver.run("drop table if exists concurrent_insert_partitioned");
+
+    conf.setBoolVar(HiveConf.ConfVars.CREATE_TABLES_AS_ACID, true);
+    conf.set("hive.exec.dynamic.partition.mode", "nonstrict");
+
+    conf.setBoolVar(HiveConf.ConfVars.HIVE_ACID_DIRECT_INSERT_ENABLED, false);
+
+//    driver.run("create external table lineitem_text(L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE, L_TAX DOUBLE, L_RETURNFLAG STRING, L_LINESTATUS STRING, L_SHIPDATE STRING, L_COMMITDATE STRING, L_RECEIPTDATE STRING, L_SHIPINSTRUCT STRING, L_SHIPMODE STRING, L_COMMENT STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' STORED AS TEXTFILE " +
+//            "LOCATION '/home/krisz/data/lineitem/'");
+//
+//    driver.run("create external table lineitem_copy (L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE, L_TAX DOUBLE, L_RETURNFLAG STRING, L_LINESTATUS STRING, L_SHIPDATE STRING, L_COMMITDATE STRING, L_RECEIPTDATE STRING, L_SHIPINSTRUCT STRING, L_SHIPMODE STRING, L_COMMENT STRING)");
+//    driver.run("INSERT INTO TABLE lineitem_copy SELECT * FROM lineitem_text");
+//    driver.run("ALTER TABLE lineitem_copy REPLACE COLUMNS (L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE, L_TAX DOUBLE)");
+
+    driver.run("create table lineitem_acid_copy (L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE, L_TAX DOUBLE) STORED AS ORC");
+//    driver.run("INSERT INTO TABLE lineitem_acid_copy SELECT * FROM lineitem_copy");
+    driver.run("INSERT INTO TABLE lineitem_acid_copy values " +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.1, 0.1)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.2, 0.2)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.3, 0.3)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.4, 0.4)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.2, 0.5)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.2, 0.6)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.2, 0.0)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.5, 0.7)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.01, 0.8)," +
+            "(1, 1, 1, 1, 1.0, 1.0, 0.01, 0.9)");
+
+    driver.run("drop table concurrent_insert_partitioned");
+
+    driver.run("create table concurrent_insert_partitioned(L_ORDERKEY BIGINT, L_PARTKEY BIGINT, L_SUPPKEY BIGINT, L_LINENUMBER INT, L_QUANTITY DOUBLE, L_EXTENDEDPRICE DOUBLE, L_DISCOUNT DOUBLE) partitioned by (L_TAX DOUBLE) clustered by (L_ORDERKEY) into 10 buckets");
+    driver.run("alter table concurrent_insert_partitioned add partition(L_TAX=0.01)");
+
+    int insCount = 10;
+    ExecutorService es = Executors.newFixedThreadPool(insCount);
+
+    List<CompletableFuture<Void>> jobs = new ArrayList<>();
+    for (int i = 0; i < insCount; ++i) {
+      final int j = i;
+      CompletableFuture<Void> cf = CompletableFuture.runAsync(() -> {
+        try {
+          QueryInfo queryInfo = new QueryInfo(null, "user2", null, null);
+          Driver driver1 = new Driver(new QueryState.Builder().withHiveConf(conf).build(), queryInfo);
+          DbTxnManager txnMgr1 = (DbTxnManager) TxnManagerFactory.getTxnManagerFactory().getTxnManager(new HiveConf(conf));
+
+          SessionState.start(conf);
+          swapTxnManager(txnMgr1);
+
+          driver1.run("insert into table concurrent_insert_partitioned partition (L_TAX = 0.0) select L_ORDERKEY, L_PARTKEY, L_SUPPKEY, L_LINENUMBER, L_QUANTITY, L_EXTENDEDPRICE, L_DISCOUNT from lineitem_acid_copy where L_TAX = 0." + j + " and L_DISCOUNT != 0.0");
+        } catch (Exception e) {
+        }
+      }, es);
+
+      jobs.add(cf);
+    }
+
+    CompletableFuture.allOf(jobs.toArray(new CompletableFuture[0])).join();
+
+    swapTxnManager(txnMgr);
+    driver.run("select count(*) from concurrent_insert_partitioned");
+
+    List<String> res = new ArrayList<>();
+    driver.getFetchTask().fetch(res);
+
+    Assert.assertEquals(Integer.toString(insCount), res.get(0));
+
+    fileOutputStream.close();
   }
 
 }
