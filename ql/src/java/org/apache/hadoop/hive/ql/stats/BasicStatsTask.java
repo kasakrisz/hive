@@ -211,7 +211,7 @@ public class BasicStatsTask implements Serializable, IStatsProcessor {
           if (!work.isTargetRewritten()) {
             String originalValue = parameters.get(statType);
             if (originalValue != null) {
-              longValue += Long.parseLong(originalValue); // todo: invalid + valid = invalid
+              longValue = Long.parseLong(originalValue); // todo: invalid + valid = invalid
             }
           }
           parameters.put(statType, String.valueOf(longValue));

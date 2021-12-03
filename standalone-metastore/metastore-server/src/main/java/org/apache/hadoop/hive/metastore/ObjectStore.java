@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.metastore;
 
 import static org.apache.commons.lang3.StringUtils.join;
+import static org.apache.hadoop.hive.common.StatsSetupConst.ROW_COUNT;
 import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_CATALOG_NAME;
 import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.getDefaultCatalog;
 import static org.apache.hadoop.hive.metastore.utils.StringUtils.normalizeIdentifier;
@@ -5038,7 +5039,10 @@ public class ObjectStore implements RawStore, Configurable {
         throw new MetaException(errorMsg);
       }
     }
+    long numRows = Long.parseLong(oldp.getParameters().get(ROW_COUNT));
+    long deltaNomRows = Long.parseLong(newPart.getParameters().get(ROW_COUNT));
     oldp.setParameters(newPart.getParameters());
+    oldp.getParameters().put(ROW_COUNT, Long.toString(numRows + deltaNomRows));
     if (!TableType.VIRTUAL_VIEW.name().equals(oldp.getTable().getTableType())) {
       copyMSD(newp.getSd(), oldp.getSd());
     }
