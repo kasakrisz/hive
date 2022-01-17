@@ -457,23 +457,6 @@ struct StorageDescriptor {
   12: optional bool   storedAsSubDirectories       // stored as subdirectories or not
 }
 
-struct SourceTable {
-    1: required Table table,
-    2: required i64 insertedCount,
-    3: required i64 updatedCount,
-    4: required i64 deletedCount
-}
-
-struct CreationMetadata {
-    1: required string catName,
-    2: required string dbName,
-    3: required string tblName,
-    4: required set<string> tablesUsed,
-    5: optional string validTxnList,
-    6: optional i64 materializationTime,
-    7: optional set<SourceTable> sourceTables
-}
-
 // column statistics
 struct BooleanColumnStatsData {
 1: required i64 numTrues,
@@ -609,6 +592,16 @@ struct ObjectDictionary {
   1: required map<string, list<binary>> values
 }
 
+struct CreationMetadata {
+    1: required string catName,
+    2: required string dbName,
+    3: required string tblName,
+    4: required set<string> tablesUsed,
+    5: optional string validTxnList,
+    6: optional i64 materializationTime,
+    7: optional set<SourceTable> sourceTables
+}
+
 // table information
 struct Table {
   1: string tableName,                // name of the table
@@ -642,6 +635,14 @@ struct Table {
   27: optional ObjectDictionary dictionary,
   28: optional i64 txnId,              // txnId associated with the table creation
 }
+
+struct SourceTable {
+    1: required Table table,
+    2: required i64 insertedCount,
+    3: required i64 updatedCount,
+    4: required i64 deletedCount
+}
+
 
 struct Partition {
   1: list<string> values // string value is converted to appropriate partition key type
