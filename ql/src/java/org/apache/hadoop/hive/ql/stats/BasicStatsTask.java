@@ -513,7 +513,7 @@ public class BasicStatsTask implements Serializable, IStatsProcessor {
         if (dpPartSpecs != null) {
           // load the list of DP partitions and return the list of partition specs
           list.addAll(dpPartSpecs);
-          // Reload partition metadata because another BasicStatsTask instance may updated the stats.
+          // Reload partition metadata because another BasicStatsTask instance may have updated the stats.
           list = db.getPartitionsByNames(table, list.stream().map(Partition::getName).collect(Collectors.toList()));
         }
       } else { // static partition
