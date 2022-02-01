@@ -69,14 +69,14 @@ class AddForeignKeyRequest
                 case 1:
                     if ($ftype == TType::LST) {
                         $this->foreignKeyCols = array();
-                        $_size433 = 0;
-                        $_etype436 = 0;
-                        $xfer += $input->readListBegin($_etype436, $_size433);
-                        for ($_i437 = 0; $_i437 < $_size433; ++$_i437) {
-                            $elem438 = null;
-                            $elem438 = new \metastore\SQLForeignKey();
-                            $xfer += $elem438->read($input);
-                            $this->foreignKeyCols []= $elem438;
+                        $_size449 = 0;
+                        $_etype452 = 0;
+                        $xfer += $input->readListBegin($_etype452, $_size449);
+                        for ($_i453 = 0; $_i453 < $_size449; ++$_i453) {
+                            $elem454 = null;
+                            $elem454 = new \metastore\SQLForeignKey();
+                            $xfer += $elem454->read($input);
+                            $this->foreignKeyCols []= $elem454;
                         }
                         $xfer += $input->readListEnd();
                     } else {
@@ -103,8 +103,8 @@ class AddForeignKeyRequest
             }
             $xfer += $output->writeFieldBegin('foreignKeyCols', TType::LST, 1);
             $output->writeListBegin(TType::STRUCT, count($this->foreignKeyCols));
-            foreach ($this->foreignKeyCols as $iter439) {
-                $xfer += $iter439->write($output);
+            foreach ($this->foreignKeyCols as $iter455) {
+                $xfer += $iter455->write($output);
             }
             $output->writeListEnd();
             $xfer += $output->writeFieldEnd();

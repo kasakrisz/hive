@@ -382,6 +382,10 @@ class SetPartitionsStatsRequest; end
 
 class SetPartitionsStatsResponse; end
 
+class StatsDelta; end
+
+class UpdateStatsRequest; end
+
 class Schema; end
 
 class PrimaryKeysRequest; end
@@ -2590,6 +2594,50 @@ class SetPartitionsStatsResponse
 
   def validate
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field result is unset!') if @result.nil?
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class StatsDelta
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  CATNAME = 1
+  DBNAME = 2
+  TABLENAME = 3
+  PARTNAME = 4
+  DELTA = 5
+
+  FIELDS = {
+    CATNAME => {:type => ::Thrift::Types::STRING, :name => 'catName', :optional => true},
+    DBNAME => {:type => ::Thrift::Types::STRING, :name => 'dbName'},
+    TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'},
+    PARTNAME => {:type => ::Thrift::Types::STRING, :name => 'partName', :optional => true},
+    DELTA => {:type => ::Thrift::Types::MAP, :name => 'delta', :key => {:type => ::Thrift::Types::STRING}, :value => {:type => ::Thrift::Types::STRING}}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field dbName is unset!') unless @dbName
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field tableName is unset!') unless @tableName
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field delta is unset!') unless @delta
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
+class UpdateStatsRequest
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  DELTAS = -1
+
+  FIELDS = {
+    DELTAS => {:type => ::Thrift::Types::LIST, :name => 'deltas', :element => {:type => ::Thrift::Types::STRUCT, :class => ::StatsDelta}}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field deltas is unset!') unless @deltas
   end
 
   ::Thrift::Struct.generate_accessors self

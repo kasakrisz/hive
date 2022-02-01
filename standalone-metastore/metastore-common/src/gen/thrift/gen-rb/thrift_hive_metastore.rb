@@ -2155,6 +2155,24 @@ module ThriftHiveMetastore
       raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'update_partition_column_statistics_req failed: unknown result')
     end
 
+    def update_statistics(req)
+      send_update_statistics(req)
+      recv_update_statistics()
+    end
+
+    def send_update_statistics(req)
+      send_message('update_statistics', Update_statistics_args, :req => req)
+    end
+
+    def recv_update_statistics()
+      result = receive_message(Update_statistics_result)
+      raise result.o1 unless result.o1.nil?
+      raise result.o2 unless result.o2.nil?
+      raise result.o3 unless result.o3.nil?
+      raise result.o4 unless result.o4.nil?
+      return
+    end
+
     def update_transaction_statistics(req)
       send_update_transaction_statistics(req)
       recv_update_transaction_statistics()
@@ -6156,6 +6174,23 @@ module ThriftHiveMetastore
         result.o4 = o4
       end
       write_result(result, oprot, 'update_partition_column_statistics_req', seqid)
+    end
+
+    def process_update_statistics(seqid, iprot, oprot)
+      args = read_args(iprot, Update_statistics_args)
+      result = Update_statistics_result.new()
+      begin
+        @handler.update_statistics(args.req)
+      rescue ::NoSuchObjectException => o1
+        result.o1 = o1
+      rescue ::InvalidObjectException => o2
+        result.o2 = o2
+      rescue ::MetaException => o3
+        result.o3 = o3
+      rescue ::InvalidInputException => o4
+        result.o4 = o4
+      end
+      write_result(result, oprot, 'update_statistics', seqid)
     end
 
     def process_update_transaction_statistics(seqid, iprot, oprot)
@@ -12582,6 +12617,44 @@ module ThriftHiveMetastore
 
     FIELDS = {
       SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::SetPartitionsStatsResponse},
+      O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::NoSuchObjectException},
+      O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => ::InvalidObjectException},
+      O3 => {:type => ::Thrift::Types::STRUCT, :name => 'o3', :class => ::MetaException},
+      O4 => {:type => ::Thrift::Types::STRUCT, :name => 'o4', :class => ::InvalidInputException}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Update_statistics_args
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    REQ = 1
+
+    FIELDS = {
+      REQ => {:type => ::Thrift::Types::STRUCT, :name => 'req', :class => ::UpdateStatsRequest}
+    }
+
+    def struct_fields; FIELDS; end
+
+    def validate
+    end
+
+    ::Thrift::Struct.generate_accessors self
+  end
+
+  class Update_statistics_result
+    include ::Thrift::Struct, ::Thrift::Struct_Union
+    O1 = 1
+    O2 = 2
+    O3 = 3
+    O4 = 4
+
+    FIELDS = {
       O1 => {:type => ::Thrift::Types::STRUCT, :name => 'o1', :class => ::NoSuchObjectException},
       O2 => {:type => ::Thrift::Types::STRUCT, :name => 'o2', :class => ::InvalidObjectException},
       O3 => {:type => ::Thrift::Types::STRUCT, :name => 'o3', :class => ::MetaException},

@@ -144,13 +144,13 @@ class ReplLastIdInfo
                 case 5:
                     if ($ftype == TType::LST) {
                         $this->partitionList = array();
-                        $_size661 = 0;
-                        $_etype664 = 0;
-                        $xfer += $input->readListBegin($_etype664, $_size661);
-                        for ($_i665 = 0; $_i665 < $_size661; ++$_i665) {
-                            $elem666 = null;
-                            $xfer += $input->readString($elem666);
-                            $this->partitionList []= $elem666;
+                        $_size677 = 0;
+                        $_etype680 = 0;
+                        $xfer += $input->readListBegin($_etype680, $_size677);
+                        for ($_i681 = 0; $_i681 < $_size677; ++$_i681) {
+                            $elem682 = null;
+                            $xfer += $input->readString($elem682);
+                            $this->partitionList []= $elem682;
                         }
                         $xfer += $input->readListEnd();
                     } else {
@@ -197,8 +197,8 @@ class ReplLastIdInfo
             }
             $xfer += $output->writeFieldBegin('partitionList', TType::LST, 5);
             $output->writeListBegin(TType::STRING, count($this->partitionList));
-            foreach ($this->partitionList as $iter667) {
-                $xfer += $output->writeString($iter667);
+            foreach ($this->partitionList as $iter683) {
+                $xfer += $output->writeString($iter683);
             }
             $output->writeListEnd();
             $xfer += $output->writeFieldEnd();

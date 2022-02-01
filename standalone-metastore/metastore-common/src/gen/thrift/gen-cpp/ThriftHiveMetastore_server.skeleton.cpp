@@ -650,6 +650,11 @@ class ThriftHiveMetastoreHandler : virtual public ThriftHiveMetastoreIf {
     printf("update_partition_column_statistics_req\n");
   }
 
+  void update_statistics(const UpdateStatsRequest& req) {
+    // Your implementation goes here
+    printf("update_statistics\n");
+  }
+
   void update_transaction_statistics(const UpdateTransactionalStatsRequest& req) {
     // Your implementation goes here
     printf("update_transaction_statistics\n");

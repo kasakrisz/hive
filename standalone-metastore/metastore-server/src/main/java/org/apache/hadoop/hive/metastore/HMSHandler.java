@@ -7310,6 +7310,11 @@ public class HMSHandler extends FacebookBase implements IHMSHandler {
   }
 
   @Override
+  public void update_statistics(UpdateStatsRequest req) throws TException {
+    int i = 0;
+  }
+
+  @Override
   public void update_transaction_statistics(UpdateTransactionalStatsRequest req) throws TException {
     getTxnHandler().updateTransactionStatistics(req);
   }

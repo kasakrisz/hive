@@ -106,6 +106,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.api.GetPartitionsByNamesRequest;
 import org.apache.hadoop.hive.metastore.api.GetTableRequest;
+import org.apache.hadoop.hive.metastore.api.UpdateStatsRequest;
 import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
 import org.apache.hadoop.hive.ql.io.HdfsUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaException;
@@ -5734,6 +5735,15 @@ private void constructOneLBLocationMap(FileStatus fSta,
         throw new HiveException(e);
       }
     }
+
+  public void updateStatistics(UpdateStatsRequest req) throws HiveException {
+    try {
+      getMSC().updateStatistics(req);
+    } catch(Exception e) {
+      LOG.debug("Failed updateStatistics {}", req, e);
+      throw new HiveException(e);
+    }
+  }
 
   public void updateTransactionalStatistics(UpdateTransactionalStatsRequest req) throws HiveException {
     try {

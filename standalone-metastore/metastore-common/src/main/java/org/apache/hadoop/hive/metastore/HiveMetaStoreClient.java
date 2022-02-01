@@ -3389,6 +3389,11 @@ public class HiveMetaStoreClient implements IMetaStoreClient, AutoCloseable {
   }
 
   @Override
+  public void updateStatistics(UpdateStatsRequest req) throws TException {
+    client.update_statistics(req);
+  }
+
+  @Override
   public void updateTransactionalStatistics(UpdateTransactionalStatsRequest req)  throws TException {
     client.update_transaction_statistics(req);
   }

@@ -570,6 +570,10 @@ class SetPartitionsStatsRequest;
 
 class SetPartitionsStatsResponse;
 
+class StatsDelta;
+
+class UpdateStatsRequest;
+
 class Schema;
 
 class PrimaryKeysRequest;
@@ -5586,6 +5590,109 @@ class SetPartitionsStatsResponse : public virtual ::apache::thrift::TBase {
 void swap(SetPartitionsStatsResponse &a, SetPartitionsStatsResponse &b);
 
 std::ostream& operator<<(std::ostream& out, const SetPartitionsStatsResponse& obj);
+
+typedef struct _StatsDelta__isset {
+  _StatsDelta__isset() : catName(false), partName(false) {}
+  bool catName :1;
+  bool partName :1;
+} _StatsDelta__isset;
+
+class StatsDelta : public virtual ::apache::thrift::TBase {
+ public:
+
+  StatsDelta(const StatsDelta&);
+  StatsDelta& operator=(const StatsDelta&);
+  StatsDelta() : catName(), dbName(), tableName(), partName() {
+  }
+
+  virtual ~StatsDelta() noexcept;
+  std::string catName;
+  std::string dbName;
+  std::string tableName;
+  std::string partName;
+  std::map<std::string, std::string>  delta;
+
+  _StatsDelta__isset __isset;
+
+  void __set_catName(const std::string& val);
+
+  void __set_dbName(const std::string& val);
+
+  void __set_tableName(const std::string& val);
+
+  void __set_partName(const std::string& val);
+
+  void __set_delta(const std::map<std::string, std::string> & val);
+
+  bool operator == (const StatsDelta & rhs) const
+  {
+    if (__isset.catName != rhs.__isset.catName)
+      return false;
+    else if (__isset.catName && !(catName == rhs.catName))
+      return false;
+    if (!(dbName == rhs.dbName))
+      return false;
+    if (!(tableName == rhs.tableName))
+      return false;
+    if (__isset.partName != rhs.__isset.partName)
+      return false;
+    else if (__isset.partName && !(partName == rhs.partName))
+      return false;
+    if (!(delta == rhs.delta))
+      return false;
+    return true;
+  }
+  bool operator != (const StatsDelta &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const StatsDelta & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(StatsDelta &a, StatsDelta &b);
+
+std::ostream& operator<<(std::ostream& out, const StatsDelta& obj);
+
+
+class UpdateStatsRequest : public virtual ::apache::thrift::TBase {
+ public:
+
+  UpdateStatsRequest(const UpdateStatsRequest&);
+  UpdateStatsRequest& operator=(const UpdateStatsRequest&);
+  UpdateStatsRequest() {
+  }
+
+  virtual ~UpdateStatsRequest() noexcept;
+  std::vector<StatsDelta>  deltas;
+
+  void __set_deltas(const std::vector<StatsDelta> & val);
+
+  bool operator == (const UpdateStatsRequest & rhs) const
+  {
+    if (!(deltas == rhs.deltas))
+      return false;
+    return true;
+  }
+  bool operator != (const UpdateStatsRequest &rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool operator < (const UpdateStatsRequest & ) const;
+
+  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
+  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
+
+  virtual void printTo(std::ostream& out) const;
+};
+
+void swap(UpdateStatsRequest &a, UpdateStatsRequest &b);
+
+std::ostream& operator<<(std::ostream& out, const UpdateStatsRequest& obj);
 
 typedef struct _Schema__isset {
   _Schema__isset() : fieldSchemas(false), properties(false) {}

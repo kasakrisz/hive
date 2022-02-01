@@ -400,14 +400,14 @@ package org.apache.hadoop.hive.metastore.api;
           case 1: // PARTITIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list596 = iprot.readListBegin();
-                struct.partitions = new java.util.ArrayList<Partition>(_list596.size);
-                @org.apache.thrift.annotation.Nullable Partition _elem597;
-                for (int _i598 = 0; _i598 < _list596.size; ++_i598)
+                org.apache.thrift.protocol.TList _list614 = iprot.readListBegin();
+                struct.partitions = new java.util.ArrayList<Partition>(_list614.size);
+                @org.apache.thrift.annotation.Nullable Partition _elem615;
+                for (int _i616 = 0; _i616 < _list614.size; ++_i616)
                 {
-                  _elem597 = new Partition();
-                  _elem597.read(iprot);
-                  struct.partitions.add(_elem597);
+                  _elem615 = new Partition();
+                  _elem615.read(iprot);
+                  struct.partitions.add(_elem615);
                 }
                 iprot.readListEnd();
               }
@@ -442,9 +442,9 @@ package org.apache.hadoop.hive.metastore.api;
           oprot.writeFieldBegin(PARTITIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.partitions.size()));
-            for (Partition _iter599 : struct.partitions)
+            for (Partition _iter617 : struct.partitions)
             {
-              _iter599.write(oprot);
+              _iter617.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -484,9 +484,9 @@ package org.apache.hadoop.hive.metastore.api;
       if (struct.isSetPartitions()) {
         {
           oprot.writeI32(struct.partitions.size());
-          for (Partition _iter600 : struct.partitions)
+          for (Partition _iter618 : struct.partitions)
           {
-            _iter600.write(oprot);
+            _iter618.write(oprot);
           }
         }
       }
@@ -501,14 +501,14 @@ package org.apache.hadoop.hive.metastore.api;
       java.util.BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TList _list601 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.partitions = new java.util.ArrayList<Partition>(_list601.size);
-          @org.apache.thrift.annotation.Nullable Partition _elem602;
-          for (int _i603 = 0; _i603 < _list601.size; ++_i603)
+          org.apache.thrift.protocol.TList _list619 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.partitions = new java.util.ArrayList<Partition>(_list619.size);
+          @org.apache.thrift.annotation.Nullable Partition _elem620;
+          for (int _i621 = 0; _i621 < _list619.size; ++_i621)
           {
-            _elem602 = new Partition();
-            _elem602.read(iprot);
-            struct.partitions.add(_elem602);
+            _elem620 = new Partition();
+            _elem620.read(iprot);
+            struct.partitions.add(_elem620);
           }
         }
         struct.setPartitionsIsSet(true);

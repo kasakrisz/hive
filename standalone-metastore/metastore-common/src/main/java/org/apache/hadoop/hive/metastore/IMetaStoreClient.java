@@ -2841,6 +2841,8 @@ public interface IMetaStoreClient {
   boolean deleteTableColumnStatistics(String catName, String dbName, String tableName, String colName, String engine)
       throws NoSuchObjectException, MetaException, InvalidObjectException, TException, InvalidInputException;
 
+  void updateStatistics(UpdateStatsRequest req) throws TException;
+
   void updateTransactionalStatistics(UpdateTransactionalStatsRequest req) throws TException;
 
   /**

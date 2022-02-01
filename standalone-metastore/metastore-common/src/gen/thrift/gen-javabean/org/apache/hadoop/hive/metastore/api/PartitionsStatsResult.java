@@ -417,26 +417,26 @@ package org.apache.hadoop.hive.metastore.api;
           case 1: // PART_STATS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map554 = iprot.readMapBegin();
-                struct.partStats = new java.util.HashMap<java.lang.String,java.util.List<ColumnStatisticsObj>>(2*_map554.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key555;
-                @org.apache.thrift.annotation.Nullable java.util.List<ColumnStatisticsObj> _val556;
-                for (int _i557 = 0; _i557 < _map554.size; ++_i557)
+                org.apache.thrift.protocol.TMap _map572 = iprot.readMapBegin();
+                struct.partStats = new java.util.HashMap<java.lang.String,java.util.List<ColumnStatisticsObj>>(2*_map572.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key573;
+                @org.apache.thrift.annotation.Nullable java.util.List<ColumnStatisticsObj> _val574;
+                for (int _i575 = 0; _i575 < _map572.size; ++_i575)
                 {
-                  _key555 = iprot.readString();
+                  _key573 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TList _list558 = iprot.readListBegin();
-                    _val556 = new java.util.ArrayList<ColumnStatisticsObj>(_list558.size);
-                    @org.apache.thrift.annotation.Nullable ColumnStatisticsObj _elem559;
-                    for (int _i560 = 0; _i560 < _list558.size; ++_i560)
+                    org.apache.thrift.protocol.TList _list576 = iprot.readListBegin();
+                    _val574 = new java.util.ArrayList<ColumnStatisticsObj>(_list576.size);
+                    @org.apache.thrift.annotation.Nullable ColumnStatisticsObj _elem577;
+                    for (int _i578 = 0; _i578 < _list576.size; ++_i578)
                     {
-                      _elem559 = new ColumnStatisticsObj();
-                      _elem559.read(iprot);
-                      _val556.add(_elem559);
+                      _elem577 = new ColumnStatisticsObj();
+                      _elem577.read(iprot);
+                      _val574.add(_elem577);
                     }
                     iprot.readListEnd();
                   }
-                  struct.partStats.put(_key555, _val556);
+                  struct.partStats.put(_key573, _val574);
                 }
                 iprot.readMapEnd();
               }
@@ -470,14 +470,14 @@ package org.apache.hadoop.hive.metastore.api;
         oprot.writeFieldBegin(PART_STATS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.partStats.size()));
-          for (java.util.Map.Entry<java.lang.String, java.util.List<ColumnStatisticsObj>> _iter561 : struct.partStats.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.List<ColumnStatisticsObj>> _iter579 : struct.partStats.entrySet())
           {
-            oprot.writeString(_iter561.getKey());
+            oprot.writeString(_iter579.getKey());
             {
-              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter561.getValue().size()));
-              for (ColumnStatisticsObj _iter562 : _iter561.getValue())
+              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter579.getValue().size()));
+              for (ColumnStatisticsObj _iter580 : _iter579.getValue())
               {
-                _iter562.write(oprot);
+                _iter580.write(oprot);
               }
               oprot.writeListEnd();
             }
@@ -510,14 +510,14 @@ package org.apache.hadoop.hive.metastore.api;
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       {
         oprot.writeI32(struct.partStats.size());
-        for (java.util.Map.Entry<java.lang.String, java.util.List<ColumnStatisticsObj>> _iter563 : struct.partStats.entrySet())
+        for (java.util.Map.Entry<java.lang.String, java.util.List<ColumnStatisticsObj>> _iter581 : struct.partStats.entrySet())
         {
-          oprot.writeString(_iter563.getKey());
+          oprot.writeString(_iter581.getKey());
           {
-            oprot.writeI32(_iter563.getValue().size());
-            for (ColumnStatisticsObj _iter564 : _iter563.getValue())
+            oprot.writeI32(_iter581.getValue().size());
+            for (ColumnStatisticsObj _iter582 : _iter581.getValue())
             {
-              _iter564.write(oprot);
+              _iter582.write(oprot);
             }
           }
         }
@@ -536,25 +536,25 @@ package org.apache.hadoop.hive.metastore.api;
     public void read(org.apache.thrift.protocol.TProtocol prot, PartitionsStatsResult struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       {
-        org.apache.thrift.protocol.TMap _map565 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST); 
-        struct.partStats = new java.util.HashMap<java.lang.String,java.util.List<ColumnStatisticsObj>>(2*_map565.size);
-        @org.apache.thrift.annotation.Nullable java.lang.String _key566;
-        @org.apache.thrift.annotation.Nullable java.util.List<ColumnStatisticsObj> _val567;
-        for (int _i568 = 0; _i568 < _map565.size; ++_i568)
+        org.apache.thrift.protocol.TMap _map583 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST); 
+        struct.partStats = new java.util.HashMap<java.lang.String,java.util.List<ColumnStatisticsObj>>(2*_map583.size);
+        @org.apache.thrift.annotation.Nullable java.lang.String _key584;
+        @org.apache.thrift.annotation.Nullable java.util.List<ColumnStatisticsObj> _val585;
+        for (int _i586 = 0; _i586 < _map583.size; ++_i586)
         {
-          _key566 = iprot.readString();
+          _key584 = iprot.readString();
           {
-            org.apache.thrift.protocol.TList _list569 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            _val567 = new java.util.ArrayList<ColumnStatisticsObj>(_list569.size);
-            @org.apache.thrift.annotation.Nullable ColumnStatisticsObj _elem570;
-            for (int _i571 = 0; _i571 < _list569.size; ++_i571)
+            org.apache.thrift.protocol.TList _list587 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            _val585 = new java.util.ArrayList<ColumnStatisticsObj>(_list587.size);
+            @org.apache.thrift.annotation.Nullable ColumnStatisticsObj _elem588;
+            for (int _i589 = 0; _i589 < _list587.size; ++_i589)
             {
-              _elem570 = new ColumnStatisticsObj();
-              _elem570.read(iprot);
-              _val567.add(_elem570);
+              _elem588 = new ColumnStatisticsObj();
+              _elem588.read(iprot);
+              _val585.add(_elem588);
             }
           }
-          struct.partStats.put(_key566, _val567);
+          struct.partStats.put(_key584, _val585);
         }
       }
       struct.setPartStatsIsSet(true);

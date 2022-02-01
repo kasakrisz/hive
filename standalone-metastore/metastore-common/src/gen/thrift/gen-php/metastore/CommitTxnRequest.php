@@ -158,14 +158,14 @@ class CommitTxnRequest
                 case 3:
                     if ($ftype == TType::LST) {
                         $this->writeEventInfos = array();
-                        $_size668 = 0;
-                        $_etype671 = 0;
-                        $xfer += $input->readListBegin($_etype671, $_size668);
-                        for ($_i672 = 0; $_i672 < $_size668; ++$_i672) {
-                            $elem673 = null;
-                            $elem673 = new \metastore\WriteEventInfo();
-                            $xfer += $elem673->read($input);
-                            $this->writeEventInfos []= $elem673;
+                        $_size684 = 0;
+                        $_etype687 = 0;
+                        $xfer += $input->readListBegin($_etype687, $_size684);
+                        for ($_i688 = 0; $_i688 < $_size684; ++$_i688) {
+                            $elem689 = null;
+                            $elem689 = new \metastore\WriteEventInfo();
+                            $xfer += $elem689->read($input);
+                            $this->writeEventInfos []= $elem689;
                         }
                         $xfer += $input->readListEnd();
                     } else {
@@ -232,8 +232,8 @@ class CommitTxnRequest
             }
             $xfer += $output->writeFieldBegin('writeEventInfos', TType::LST, 3);
             $output->writeListBegin(TType::STRUCT, count($this->writeEventInfos));
-            foreach ($this->writeEventInfos as $iter674) {
-                $xfer += $iter674->write($output);
+            foreach ($this->writeEventInfos as $iter690) {
+                $xfer += $iter690->write($output);
             }
             $output->writeListEnd();
             $xfer += $output->writeFieldEnd();

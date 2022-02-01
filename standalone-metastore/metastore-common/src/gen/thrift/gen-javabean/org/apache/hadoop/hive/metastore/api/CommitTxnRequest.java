@@ -843,14 +843,14 @@ package org.apache.hadoop.hive.metastore.api;
           case 3: // WRITE_EVENT_INFOS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list758 = iprot.readListBegin();
-                struct.writeEventInfos = new java.util.ArrayList<WriteEventInfo>(_list758.size);
-                @org.apache.thrift.annotation.Nullable WriteEventInfo _elem759;
-                for (int _i760 = 0; _i760 < _list758.size; ++_i760)
+                org.apache.thrift.protocol.TList _list776 = iprot.readListBegin();
+                struct.writeEventInfos = new java.util.ArrayList<WriteEventInfo>(_list776.size);
+                @org.apache.thrift.annotation.Nullable WriteEventInfo _elem777;
+                for (int _i778 = 0; _i778 < _list776.size; ++_i778)
                 {
-                  _elem759 = new WriteEventInfo();
-                  _elem759.read(iprot);
-                  struct.writeEventInfos.add(_elem759);
+                  _elem777 = new WriteEventInfo();
+                  _elem777.read(iprot);
+                  struct.writeEventInfos.add(_elem777);
                 }
                 iprot.readListEnd();
               }
@@ -921,9 +921,9 @@ package org.apache.hadoop.hive.metastore.api;
           oprot.writeFieldBegin(WRITE_EVENT_INFOS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.writeEventInfos.size()));
-            for (WriteEventInfo _iter761 : struct.writeEventInfos)
+            for (WriteEventInfo _iter779 : struct.writeEventInfos)
             {
-              _iter761.write(oprot);
+              _iter779.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -1000,9 +1000,9 @@ package org.apache.hadoop.hive.metastore.api;
       if (struct.isSetWriteEventInfos()) {
         {
           oprot.writeI32(struct.writeEventInfos.size());
-          for (WriteEventInfo _iter762 : struct.writeEventInfos)
+          for (WriteEventInfo _iter780 : struct.writeEventInfos)
           {
-            _iter762.write(oprot);
+            _iter780.write(oprot);
           }
         }
       }
@@ -1032,14 +1032,14 @@ package org.apache.hadoop.hive.metastore.api;
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list763 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.writeEventInfos = new java.util.ArrayList<WriteEventInfo>(_list763.size);
-          @org.apache.thrift.annotation.Nullable WriteEventInfo _elem764;
-          for (int _i765 = 0; _i765 < _list763.size; ++_i765)
+          org.apache.thrift.protocol.TList _list781 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.writeEventInfos = new java.util.ArrayList<WriteEventInfo>(_list781.size);
+          @org.apache.thrift.annotation.Nullable WriteEventInfo _elem782;
+          for (int _i783 = 0; _i783 < _list781.size; ++_i783)
           {
-            _elem764 = new WriteEventInfo();
-            _elem764.read(iprot);
-            struct.writeEventInfos.add(_elem764);
+            _elem782 = new WriteEventInfo();
+            _elem782.read(iprot);
+            struct.writeEventInfos.add(_elem782);
           }
         }
         struct.setWriteEventInfosIsSet(true);

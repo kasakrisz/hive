@@ -707,6 +707,18 @@ struct SetPartitionsStatsResponse {
 1: required bool result;
 }
 
+struct StatsDelta {
+1: optional string catName,
+2: required string dbName,
+3: required string tableName,
+4: optional string partName,
+5: required map<string, string> delta
+}
+
+struct UpdateStatsRequest {
+  required list<StatsDelta> deltas
+}
+
 // schema of the table/query results etc.
 struct Schema {
  // column names, types, comments
@@ -2780,6 +2792,9 @@ PartitionsResponse get_partitions_req(1:PartitionsRequest req)
               2:InvalidObjectException o2, 3:MetaException o3, 4:InvalidInputException o4)
   SetPartitionsStatsResponse update_partition_column_statistics_req(1:SetPartitionsStatsRequest req) throws (1:NoSuchObjectException o1,
               2:InvalidObjectException o2, 3:MetaException o3, 4:InvalidInputException o4)
+
+  void update_statistics(1:UpdateStatsRequest req) throws (1:NoSuchObjectException o1,
+        2:InvalidObjectException o2, 3:MetaException o3, 4:InvalidInputException o4)
 
   void update_transaction_statistics(1:UpdateTransactionalStatsRequest req) throws (1:MetaException o1)
 
