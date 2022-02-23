@@ -463,6 +463,7 @@ public class QTestUtil {
     Utilities.clearWorkMap(conf);
     NotificationEventPoll.shutdown();
     QueryResultsCache.cleanupInstance();
+    HiveMetaStoreClientWithLocalCache.cleanup();
     clearTablesCreatedDuringTests();
     clearUDFsCreatedDuringTests();
     clearKeysCreatedInTests();
@@ -571,11 +572,6 @@ public class QTestUtil {
 
     initMaterializedViews(); // Create views registry
     firstStartSessionState();
-
-    // setup metastore client cache
-    if (conf.getBoolVar(ConfVars.MSC_CACHE_ENABLED)) {
-      HiveMetaStoreClientWithLocalCache.init(conf);
-    }
   }
 
   private void initMaterializedViews() {
@@ -624,6 +620,11 @@ public class QTestUtil {
       ss.initFiles.add(AbstractCliConfig.HIVE_ROOT + "/data/scripts/test_init_file.sql");
     }
     cliDriver.processInitFiles(ss);
+
+    // setup metastore client cache
+    if (conf.getBoolVar(ConfVars.MSC_CACHE_ENABLED)) {
+      HiveMetaStoreClientWithLocalCache.init(conf);
+    }
 
     return outf.getAbsolutePath();
   }

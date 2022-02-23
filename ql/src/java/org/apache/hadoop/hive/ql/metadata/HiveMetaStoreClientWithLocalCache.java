@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -268,6 +270,16 @@ public class HiveMetaStoreClientWithLocalCache extends HiveMetaStoreClient imple
     mscLocalCache = cacheBuilder.build();
     cacheObjName = cacheBuilder.toString();
   }
+
+  @VisibleForTesting
+  public static void cleanup() {
+    if (mscLocalCache != null && INITIALIZED.get()) {
+      mscLocalCache.cleanUp();
+      mscLocalCache = null;
+      INITIALIZED.set(false);
+    }
+  }
+
 
   @Override
   protected GetTableResult getTableInternal(GetTableRequest req) throws TException {
