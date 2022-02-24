@@ -35,6 +35,8 @@ import org.apache.hadoop.hive.ql.hooks.LineageInfo.DependencyKey;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of a post execute hook that simply prints out its parameters
@@ -42,12 +44,23 @@ import org.apache.hadoop.security.UserGroupInformation;
  */
 public class PostExecutePrinter implements ExecuteWithHookContext {
 
+  private static final Logger LOG = LoggerFactory.getLogger(PostExecutePrinter.class);
+
   public class DependencyKeyComp implements
     Comparator<Map.Entry<DependencyKey, Dependency>> {
 
     @Override
-    public int compare(Map.Entry<DependencyKey, Dependency> o1,
-        Map.Entry<DependencyKey, Dependency> o2) {
+    public int compare(Map.Entry<DependencyKey, Dependency> o1, Map.Entry<DependencyKey, Dependency> o2) {
+      int res = doCompare(o1, o2);
+
+      LOG.info("Compare DependencyKeys {}", o1);
+      LOG.info("Compare DependencyKeys {}", o2);
+      LOG.info("Compare DependencyKeys res {}", res);
+
+      return res;
+    }
+
+    private int doCompare(Map.Entry<DependencyKey, Dependency> o1, Map.Entry<DependencyKey, Dependency> o2) {
       if (o1 == null && o2 == null) {
         return 0;
       }
@@ -127,7 +140,21 @@ public class PostExecutePrinter implements ExecuteWithHookContext {
     if (linfo != null) {
       LinkedList<Map.Entry<DependencyKey, Dependency>> entry_list =
         new LinkedList<Map.Entry<DependencyKey, Dependency>>(linfo.entrySet());
-      Collections.sort(entry_list, new DependencyKeyComp());
+
+      StringBuilder before = new StringBuilder();
+      for (Map.Entry<DependencyKey, Dependency> entry : entry_list) {
+        LOG.info("Lineage entry: {}", entry.getKey());
+        before.append(entry.getKey());
+      }
+
+      entry_list.sort(new DependencyKeyComp());
+
+      StringBuilder after = new StringBuilder();
+      for (Map.Entry<DependencyKey, Dependency> entry : entry_list) {
+        LOG.info("Lineage entry: {}", entry.getKey());
+        after.append(entry.getKey());
+      }
+
       Iterator<Map.Entry<DependencyKey, Dependency>> iter = entry_list.iterator();
       while(iter.hasNext()) {
         Map.Entry<DependencyKey, Dependency> it = iter.next();
