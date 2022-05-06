@@ -174,7 +174,7 @@ public abstract class RewriteSemanticAnalyzer extends CalcitePlanner {
       if (setRCols != null) {
         addSetRCols((ASTNode) assignment.getChildren().get(1), setRCols);
       }
-      checkValidSetClauseTarget(colName, targetTable);
+//      checkValidSetClauseTarget(colName, targetTable);
 
       String columnName = normalizeColName(colName.getText());
       // This means that in UPDATE T SET x = _something_
