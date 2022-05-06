@@ -90,6 +90,7 @@ public class SplitUpdateSemanticAnalyzer extends RewriteSemanticAnalyzer {
     StringBuilder aliasedSelectExpressions = new StringBuilder();
     List<FieldSchema> nonPartCols = mTable.getCols();
     Map<String, String> colNameToDefaultConstraint = getColNameToDefaultValueMap(mTable);
+    int setColExprIdx = 1;
     for (int i = 0; i < nonPartCols.size(); i++) {
       selectExpressions.append(',');
       if (i != 0) {
@@ -106,7 +107,7 @@ public class SplitUpdateSemanticAnalyzer extends RewriteSemanticAnalyzer {
           selectExpressions.append(identifier);
           // This is one of the columns we're setting, record it's position so we can come back
           // later and patch it up. 0th is ROW_ID
-          setColExprs.put(i + 1, setCol);
+          setColExprs.put(setColExprIdx, setCol);
         }
       } else {
         selectExpressions.append(identifier);
@@ -117,9 +118,33 @@ public class SplitUpdateSemanticAnalyzer extends RewriteSemanticAnalyzer {
 
       aliasedSelectExpressions.append("s.");
       aliasedSelectExpressions.append(identifier);
+      ++setColExprIdx;
     }
-    addPartitionColsToSelect(mTable.getPartCols(), selectExpressions);
-    addPartitionColsToSelect(mTable.getPartCols(), aliasedSelectExpressions, "s");
+//    addPartitionColsToSelect(mTable.getPartCols(), selectExpressions);
+//    addPartitionColsToSelect(mTable.getPartCols(), aliasedSelectExpressions, "s");
+    for (int i = 0; i < mTable.getPartCols().size(); i++) {
+      selectExpressions.append(',');
+      aliasedSelectExpressions.append(',');
+      String name = mTable.getPartCols().get(i).getName();
+      ASTNode setCol = setCols.get(name);
+      String identifier = HiveUtils.unparseIdentifier(name, this.conf);
+
+      if (setCol != null) {
+        selectExpressions.append(identifier);
+        // This is one of the columns we're setting, record it's position so we can come back
+        // later and patch it up. 0th is ROW_ID
+        setColExprs.put(setColExprIdx, setCol);
+      } else {
+        selectExpressions.append(identifier);
+      }
+      // Column can be a constant (ex. default value) an alias is added to enable referencing it from the insert branch
+      selectExpressions.append(" AS ");
+      selectExpressions.append(identifier);
+
+      aliasedSelectExpressions.append("s.");
+      aliasedSelectExpressions.append(identifier);
+      ++setColExprIdx;
+    }
 
     StringBuilder rewrittenQueryStr = new StringBuilder();
 
