@@ -242,7 +242,7 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
       case HiveParser.TOK_DELETE:
         numWhenMatchedDeleteClauses++;
         String s1 = handleDelete(whenClause, rewrittenQueryStr, target,
-            onClauseAsText, targetTable, extraPredicate, hintProcessed ? null : hintStr, false);
+            onClauseAsText, targetTable, extraPredicate, hintProcessed ? null : hintStr);
         hintProcessed = true;
         if (numWhenMatchedUpdateClauses + numWhenMatchedDeleteClauses == 1) {
           extraPredicate = s1; //i.e. it's the 1st WHEN MATCHED
@@ -463,21 +463,15 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
    */
   private String handleDelete(ASTNode whenMatchedDeleteClause, StringBuilder rewrittenQueryStr,
       ASTNode target, String onClauseAsString, Table targetTable, String updateExtraPredicate,
-      String hintStr, boolean splitUpdateEarly) throws SemanticException {
+      String hintStr) throws SemanticException {
     assert whenMatchedDeleteClause.getType() == HiveParser.TOK_MATCHED;
-    assert (splitUpdateEarly &&
-        getWhenClauseOperation(whenMatchedDeleteClause).getType() == HiveParser.TOK_UPDATE) ||
-        getWhenClauseOperation(whenMatchedDeleteClause).getType() == HiveParser.TOK_DELETE;
+    assert getWhenClauseOperation(whenMatchedDeleteClause).getType() == HiveParser.TOK_DELETE;
     List<FieldSchema> partCols = targetTable.getPartCols();
     String targetName = getSimpleTableName(target);
     rewrittenQueryStr.append("INSERT INTO ").append(getFullTableNameForSQL(target));
     addPartitionColsToInsert(partCols, rewrittenQueryStr);
 
-    if(splitUpdateEarly) {
-      rewrittenQueryStr.append("    -- update clause (delete part)\n SELECT ");
-    } else {
-      rewrittenQueryStr.append("    -- delete clause\n SELECT ");
-    }
+    rewrittenQueryStr.append("    -- delete clause\n SELECT ");
     if (hintStr != null) {
       rewrittenQueryStr.append(hintStr);
     }
