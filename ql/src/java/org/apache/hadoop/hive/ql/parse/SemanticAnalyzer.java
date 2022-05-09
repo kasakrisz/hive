@@ -15397,17 +15397,21 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     JOIN_INSERT_DELETE_REBUILD
   }
 
+  protected String getFullTableNameForSQL(ASTNode n) throws SemanticException {
+    return getFullTableNameForSQL(this.conf, n);
+  }
+
   /**
    * @return table name in db.table form with proper quoting/escaping to be used in a SQL statement
    */
-  protected String getFullTableNameForSQL(ASTNode n) throws SemanticException {
+  public static String getFullTableNameForSQL(HiveConf conf, ASTNode n) throws SemanticException {
     switch (n.getType()) {
     case HiveParser.TOK_TABNAME:
       TableName tableName = getQualifiedTableName(n);
-      return HiveTableName.ofNullable(HiveUtils.unparseIdentifier(tableName.getTable(), this.conf),
-          HiveUtils.unparseIdentifier(tableName.getDb(), this.conf)).getNotEmptyDbTable();
+      return HiveTableName.ofNullable(HiveUtils.unparseIdentifier(tableName.getTable(), conf),
+          HiveUtils.unparseIdentifier(tableName.getDb(), conf)).getNotEmptyDbTable();
     case HiveParser.TOK_TABREF:
-      return getFullTableNameForSQL((ASTNode) n.getChild(0));
+      return getFullTableNameForSQL(conf, (ASTNode) n.getChild(0));
     default:
       throw raiseWrongType("TOK_TABNAME", n);
     }
