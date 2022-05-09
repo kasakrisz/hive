@@ -17,14 +17,6 @@
  */
 package org.apache.hadoop.hive.ql.parse;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.antlr.runtime.TokenRewriteStream;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -42,14 +34,22 @@ import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 
 /**
- * A subclass of the {@link org.apache.hadoop.hive.ql.parse.SemanticAnalyzer} that just handles
+ * A subclass of the {@link SemanticAnalyzer} that just handles
  * merge statements. It works by rewriting the updates and deletes into insert statements (since
  * they are actually inserts) and then doing some patch up to make them work as merges instead.
  */
-public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
-  MergeSemanticAnalyzer(QueryState queryState) throws SemanticException {
+public class SplitMergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
+  SplitMergeSemanticAnalyzer(QueryState queryState) throws SemanticException {
     super(queryState);
   }
 
@@ -281,7 +281,17 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
         rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.INSERT);
         break;
       case HiveParser.TOK_UPDATE:
-        rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.UPDATE);
+        /* With 2 branches for the update, the 1st branch is the INSERT part
+          and the next one is the DELETE.  WriteSet tracking treats 2 concurrent DELETES
+          as in conflict so Lost Update is still prevented since the delete event lands in the
+          partition/bucket where the original version of the row was so any concurrent update/delete
+          of the same row will land in the same partition/bucket.
+
+          If the insert part lands in a different partition, it should not conflict with another
+          Update of that partition since that update by definition cannot be of the same row.
+          If we ever enforce unique constraints we may have to have I+I be in conflict*/
+          rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.INSERT);
+          rewrittenCtx.addDestNamePrefix(++insClauseIdx, Context.DestClausePrefix.DELETE);
         break;
       case HiveParser.TOK_DELETE:
         rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.DELETE);
@@ -388,14 +398,12 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
     String targetName = getSimpleTableName(target);
     rewrittenQueryStr.append("INSERT INTO ").append(getFullTableNameForSQL(target));
     addPartitionColsToInsert(targetTable.getPartCols(), rewrittenQueryStr);
-    rewrittenQueryStr.append("    -- update clause")
-        .append("\n SELECT ");
+    rewrittenQueryStr.append("    -- update clause (insert part)").append("\n SELECT ");
     if (hintStr != null) {
       rewrittenQueryStr.append(hintStr);
     }
-    rewrittenQueryStr.append(targetName).append(".ROW__ID, ");
 
-    ASTNode setClause = (ASTNode)getWhenClauseOperation(whenMatchedUpdateClause).getChild(0);
+    ASTNode setClause = (ASTNode) getWhenClauseOperation(whenMatchedUpdateClause).getChild(0);
     //columns being updated -> update expressions; "setRCols" (last param) is null because we use actual expressions
     //before re-parsing, i.e. they are known to SemanticAnalyzer logic
     Map<String, ASTNode> setColsExprs = collectSetColumnsAndExpressions(setClause, null, targetTable);
@@ -406,9 +414,9 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
     //names
     List<FieldSchema> nonPartCols = targetTable.getCols();
     Map<String, String> colNameToDefaultConstraint = getColNameToDefaultValueMap(targetTable);
-    for(int i = 0; i < nonPartCols.size(); i++) {
+    for (int i = 0; i < nonPartCols.size(); i++) {
       FieldSchema fs = nonPartCols.get(i);
-      if(i > 0) {
+      if (i > 0) {
         rewrittenQueryStr.append(", ");
       }
       String name = fs.getName();
@@ -416,12 +424,12 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
         String rhsExp = getMatchedText(setColsExprs.get(name));
         //"set a=5, b=8" - rhsExp picks up the next char (e.g. ',') from the token stream
         switch (rhsExp.charAt(rhsExp.length() - 1)) {
-        case ',':
-        case '\n':
-          rhsExp = rhsExp.substring(0, rhsExp.length() - 1);
-          break;
-        default:
-          //do nothing
+          case ',':
+          case '\n':
+            rhsExp = rhsExp.substring(0, rhsExp.length() - 1);
+            break;
+          default:
+            //do nothing
         }
 
         if ("`default`".equalsIgnoreCase(rhsExp.trim())) {
@@ -431,8 +439,8 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
         rewrittenQueryStr.append(rhsExp);
       } else {
         rewrittenQueryStr.append(getSimpleTableName(target))
-          .append(".")
-          .append(HiveUtils.unparseIdentifier(name, this.conf));
+                .append(".")
+                .append(HiveUtils.unparseIdentifier(name, this.conf));
       }
     }
     addPartitionColsToSelect(targetTable.getPartCols(), rewrittenQueryStr, target);
@@ -445,14 +453,19 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
     if (deleteExtraPredicate != null) {
       rewrittenQueryStr.append(" AND NOT(").append(deleteExtraPredicate).append(")");
     }
-    rewrittenQueryStr.append("\n SORT BY ");
-    rewrittenQueryStr.append(targetName).append(".ROW__ID ");
     rewrittenQueryStr.append("\n");
 
     setUpAccessControlInfoForUpdate(targetTable, setColsExprs);
     //we don't deal with columns on RHS of SET expression since the whole expr is part of the
     //rewritten SQL statement and is thus handled by SemanticAnalyzer.  Nor do we have to
     //figure which cols on RHS are from source and which from target
+
+    /**
+     * this is part of the WHEN MATCHED UPDATE, so we ignore any 'extra predicate' generated
+     * by this call to handleDelete()
+     */
+    handleDelete(whenMatchedUpdateClause, rewrittenQueryStr, target, onClauseAsString,
+            targetTable, deleteExtraPredicate, hintStr, true);
 
     return extraPredicate;
   }
