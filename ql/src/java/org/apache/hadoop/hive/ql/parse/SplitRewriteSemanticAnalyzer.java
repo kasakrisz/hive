@@ -143,11 +143,18 @@ public abstract class SplitRewriteSemanticAnalyzer extends RewriteSemanticAnalyz
     rewrittenQueryStr.append(INDENT).append("ON ").append(onClauseAsText).append('\n');
   }
 
-  protected void appendInsertBranch(ASTNode columnListNode, ASTNode valuesNode, Table targetTable)
+  protected void appendInsertBranch(List<String> columnList, List<String> values, Table targetTable)
           throws SemanticException {
     rewrittenQueryStr.append("INSERT INTO ").append(targetTableName);
-    if (columnListNode != null) {
-      rewrittenQueryStr.append(' ').append(getMatchedText(columnListNode));
+    if (columnList != null) {
+      if (columnList.size() != values.size()) {
+        throw new SemanticException(String.format("Column schema must have the same length as values (%d vs %d)",
+                columnList.size(), values.size()));
+      }
+
+      rewrittenQueryStr.append("(");
+      rewrittenQueryStr.append(StringUtils.join(columnList, ","));
+      rewrittenQueryStr.append(")");
     }
 
     rewrittenQueryStr.append("    -- insert clause\n  SELECT ");
@@ -156,22 +163,22 @@ public abstract class SplitRewriteSemanticAnalyzer extends RewriteSemanticAnalyz
 //      rewrittenQueryStr.append(hintStr);
 //    }
 
-    String valuesClause = getMatchedText(valuesNode);
-    valuesClause = valuesClause.substring(1, valuesClause.length() - 1); //strip '(' and ')'
-    valuesClause = replaceDefaultKeywordForMerge(valuesClause, targetTable, columnListNode);
-    rewrittenQueryStr.append(valuesClause);
+    rewrittenQueryStr.append(StringUtils.join(values, ","));
+
+//    String valuesClause = getMatchedText(valuesNode);
+//    valuesClause = valuesClause.substring(1, valuesClause.length() - 1); //strip '(' and ')'
+//    valuesClause = replaceDefaultKeywordForMerge(valuesClause, targetTable, columnListNode);
+//    rewrittenQueryStr.append(valuesClause);
+    rewrittenQueryStr.append('\n');
   }
 
-  protected void appendInsertBranchPredicate(String predicate, ASTNode whenNotMatchedClause) {
-    rewrittenQueryStr.append("\n").append(INDENT).append("WHERE ").append(predicate);
+  protected void appendWhereClause(String predicate) {
+    rewrittenQueryStr.append(INDENT).append("WHERE ").append(predicate).append("\n");
+  }
 
-    String extraPredicate = getWhenClausePredicate(whenNotMatchedClause);
-    if (extraPredicate != null) {
-      //we have WHEN NOT MATCHED AND <boolean expr> THEN INSERT
-      rewrittenQueryStr.append(" AND ")
-              .append(getMatchedText(((ASTNode)whenNotMatchedClause.getChild(1))));
-    }
-    rewrittenQueryStr.append('\n');
+  protected void appendSortBy(List<String> keys) {
+    rewrittenQueryStr.append("\n SORT BY ");
+    rewrittenQueryStr.append(StringUtils.join(keys, ","));
   }
 
   /**
@@ -306,20 +313,6 @@ public abstract class SplitRewriteSemanticAnalyzer extends RewriteSemanticAnalyz
       throw  raiseWrongType("Expected TOK_MATCHED|TOK_NOT_MATCHED", whenClause);
     }
     return (ASTNode) whenClause.getChild(0);
-  }
-
-  /**
-   * Returns the <boolean predicate> as in WHEN MATCHED AND <boolean predicate> THEN...
-   * @return may be null
-   */
-  private String getWhenClausePredicate(ASTNode whenClause) {
-    if (!(whenClause.getType() == HiveParser.TOK_MATCHED || whenClause.getType() == HiveParser.TOK_NOT_MATCHED)) {
-      throw raiseWrongType("Expected TOK_MATCHED|TOK_NOT_MATCHED", whenClause);
-    }
-    if (whenClause.getChildCount() == 2) {
-      return getMatchedText((ASTNode)whenClause.getChild(1));
-    }
-    return null;
   }
 
   private String replaceDefaultKeywordForMerge(String valueClause, Table table, ASTNode columnListNode)

@@ -42,7 +42,7 @@ import org.apache.hadoop.hive.ql.session.SessionStateUtil;
  */
 public class UpdateDeleteSemanticAnalyzer extends RewriteSemanticAnalyzer {
 
-  private Context.Operation operation = Context.Operation.OTHER;
+  private Context.Operation operation = Context.Operation.UPDATE;
 
   UpdateDeleteSemanticAnalyzer(QueryState queryState) throws SemanticException {
     super(queryState);

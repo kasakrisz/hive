@@ -28,12 +28,13 @@ import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.Table;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -164,7 +165,7 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
       case HiveParser.TOK_DELETE:
         numWhenMatchedDeleteClauses++;
         String s1 = handleDelete(whenClause, target,
-            onClauseAsText, targetTable, extraPredicate, hintProcessed ? null : hintStr, false);
+            onClauseAsText, targetTable, extraPredicate, hintProcessed ? null : hintStr);
         hintProcessed = true;
         if (numWhenMatchedUpdateClauses + numWhenMatchedDeleteClauses == 1) {
           extraPredicate = s1; //i.e. it's the 1st WHEN MATCHED
@@ -237,78 +238,6 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
   }
 
   /**
-   * If there is no WHEN NOT MATCHED THEN INSERT, we don't outer join.
-   */
-  private String chooseJoinType(List<ASTNode> whenClauses) {
-    for (ASTNode whenClause : whenClauses) {
-      if (getWhenClauseOperation(whenClause).getType() == HiveParser.TOK_INSERT) {
-        return "RIGHT OUTER JOIN";
-      }
-    }
-    return "INNER JOIN";
-  }
-
-  /**
-   * Per SQL Spec ISO/IEC 9075-2:2011(E) Section 14.2 under "General Rules" Item 6/Subitem a/Subitem 2/Subitem B,
-   * an error should be raised if > 1 row of "source" matches the same row in "target".
-   * This should not affect the runtime of the query as it's running in parallel with other
-   * branches of the multi-insert.  It won't actually write any data to merge_tmp_table since the
-   * cardinality_violation() UDF throws an error whenever it's called killing the query
-   * @return true if another Insert clause was added
-   */
-  private boolean handleCardinalityViolation(StringBuilder rewrittenQueryStr, ASTNode target,
-      String onClauseAsString, Table targetTable, boolean onlyHaveWhenNotMatchedClause)
-              throws SemanticException {
-    if (!conf.getBoolVar(HiveConf.ConfVars.MERGE_CARDINALITY_VIOLATION_CHECK)) {
-      LOG.info("Merge statement cardinality violation check is disabled: " +
-          HiveConf.ConfVars.MERGE_CARDINALITY_VIOLATION_CHECK.varname);
-      return false;
-    }
-    if (onlyHaveWhenNotMatchedClause) {
-      //if no update or delete in Merge, there is no need to to do cardinality check
-      return false;
-    }
-    //this is a tmp table and thus Session scoped and acid requires SQL statement to be serial in a
-    // given session, i.e. the name can be fixed across all invocations
-    String tableName = "merge_tmp_table";
-    rewrittenQueryStr.append("INSERT INTO ").append(tableName)
-      .append("\n  SELECT cardinality_violation(")
-      .append(getSimpleTableName(target)).append(".ROW__ID");
-    addPartitionColsToSelect(targetTable.getPartCols(), rewrittenQueryStr, target);
-
-    rewrittenQueryStr.append(")\n WHERE ").append(onClauseAsString)
-      .append(" GROUP BY ").append(getSimpleTableName(target)).append(".ROW__ID");
-
-    addPartitionColsToSelect(targetTable.getPartCols(), rewrittenQueryStr, target);
-
-    rewrittenQueryStr.append(" HAVING count(*) > 1");
-    //say table T has partition p, we are generating
-    //select cardinality_violation(ROW_ID, p) WHERE ... GROUP BY ROW__ID, p
-    //the Group By args are passed to cardinality_violation to add the violating value to the error msg
-    try {
-      if (null == db.getTable(tableName, false)) {
-        StorageFormat format = new StorageFormat(conf);
-        format.processStorageFormat("TextFile");
-        Table table = db.newTable(tableName);
-        table.setSerializationLib(format.getSerde());
-        List<FieldSchema> fields = new ArrayList<FieldSchema>();
-        fields.add(new FieldSchema("val", "int", null));
-        table.setFields(fields);
-        table.setDataLocation(Warehouse.getDnsPath(new Path(SessionState.get().getTempTableSpace(),
-            tableName), conf));
-        table.getTTable().setTemporary(true);
-        table.setStoredAsSubDirectories(false);
-        table.setInputFormatClass(format.getInputFormat());
-        table.setOutputFormatClass(format.getOutputFormat());
-        db.createTable(table, true);
-      }
-    } catch(HiveException|MetaException e) {
-      throw new SemanticException(e.getMessage(), e);
-    }
-    return true;
-  }
-
-  /**
    * @param onClauseAsString - because there is no clone() and we need to use in multiple places
    * @param deleteExtraPredicate - see notes at caller
    */
@@ -317,10 +246,6 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
       throws SemanticException {
     assert whenMatchedUpdateClause.getType() == HiveParser.TOK_MATCHED;
     assert getWhenClauseOperation(whenMatchedUpdateClause).getType() == HiveParser.TOK_UPDATE;
-//    String targetName = getSimpleTableName(target);
-//    rewrittenQueryStr.append("INSERT INTO ").append(getFullTableNameForSQL(target));
-//    addPartitionColsToInsert(targetTable.getPartCols(), rewrittenQueryStr);
-//    rewrittenQueryStr.append("    -- update clause (insert part)").append("\n SELECT ");
 //    if (hintStr != null) {
 //      rewrittenQueryStr.append(hintStr);
 //    }
@@ -337,6 +262,7 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
     List<FieldSchema> nonPartCols = targetTable.getCols();
     Map<String, String> colNameToDefaultConstraint = getColNameToDefaultValueMap(targetTable);
     List<String> values = new ArrayList<>(nonPartCols.size() + targetTable.getPartCols().size());
+    String quotedTableName = getSimpleTableName(target);
     for (FieldSchema fs : nonPartCols) {
       String name = fs.getName();
       if (setColsExprs.containsKey(name)) {
@@ -357,20 +283,24 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
 
         values.add(rhsExp);
       } else {
-        values.add(getSimpleTableName(target) + "." + HiveUtils.unparseIdentifier(name, this.conf));
+        values.add(quotedTableName + "." + HiveUtils.unparseIdentifier(name, this.conf));
       }
     }
-    addPartitionColsToSelect(targetTable.getPartCols(), rewrittenQueryStr, target);
-    rewrittenQueryStr.append("\n   WHERE ").append(onClauseAsString);
+    targetTable.getPartCols().forEach(fieldSchema ->
+            values.add(quotedTableName + "." + HiveUtils.unparseIdentifier(fieldSchema.getName(), this.conf)));
+
+    appendInsertBranch(null, values, targetTable);
+    StringBuilder predicate = new StringBuilder(onClauseAsString);
     String extraPredicate = getWhenClausePredicate(whenMatchedUpdateClause);
     if (extraPredicate != null) {
       //we have WHEN MATCHED AND <boolean expr> THEN DELETE
-      rewrittenQueryStr.append(" AND ").append(extraPredicate);
+      predicate.append(" AND ").append(extraPredicate);
     }
     if (deleteExtraPredicate != null) {
-      rewrittenQueryStr.append(" AND NOT(").append(deleteExtraPredicate).append(")");
+      predicate.append(" AND NOT(").append(deleteExtraPredicate).append(")");
     }
-    rewrittenQueryStr.append("\n");
+
+    appendWhereClause(predicate.toString());
 
     setUpAccessControlInfoForUpdate(targetTable, setColsExprs);
     //we don't deal with columns on RHS of SET expression since the whole expr is part of the
@@ -381,49 +311,58 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
      * this is part of the WHEN MATCHED UPDATE, so we ignore any 'extra predicate' generated
      * by this call to handleDelete()
      */
-    handleDelete(whenMatchedUpdateClause, rewrittenQueryStr, target, onClauseAsString,
-            targetTable, deleteExtraPredicate, hintStr, true);
+    handleDelete(whenMatchedUpdateClause, target, onClauseAsString,
+            targetTable, deleteExtraPredicate, hintStr);
 
     return extraPredicate;
+  }
+
+  /**
+   * Returns the <boolean predicate> as in WHEN MATCHED AND <boolean predicate> THEN...
+   * @return may be null
+   */
+  private String getWhenClausePredicate(ASTNode whenClause) {
+    if (!(whenClause.getType() == HiveParser.TOK_MATCHED || whenClause.getType() == HiveParser.TOK_NOT_MATCHED)) {
+      throw raiseWrongType("Expected TOK_MATCHED|TOK_NOT_MATCHED", whenClause);
+    }
+    if (whenClause.getChildCount() == 2) {
+      return getMatchedText((ASTNode)whenClause.getChild(1));
+    }
+    return null;
   }
 
   /**
    * @param onClauseAsString - because there is no clone() and we need to use in multiple places
    * @param updateExtraPredicate - see notes at caller
    */
-  private String handleDelete(ASTNode whenMatchedDeleteClause, StringBuilder rewrittenQueryStr,
+  private String handleDelete(ASTNode whenMatchedDeleteClause,
       ASTNode target, String onClauseAsString, Table targetTable, String updateExtraPredicate,
-      String hintStr, boolean splitUpdateEarly) throws SemanticException {
+      String hintStr) throws SemanticException {
     assert whenMatchedDeleteClause.getType() == HiveParser.TOK_MATCHED;
-    assert (splitUpdateEarly &&
-        getWhenClauseOperation(whenMatchedDeleteClause).getType() == HiveParser.TOK_UPDATE) ||
+    assert getWhenClauseOperation(whenMatchedDeleteClause).getType() == HiveParser.TOK_UPDATE ||
         getWhenClauseOperation(whenMatchedDeleteClause).getType() == HiveParser.TOK_DELETE;
     List<FieldSchema> partCols = targetTable.getPartCols();
     String targetName = getSimpleTableName(target);
-    rewrittenQueryStr.append("INSERT INTO ").append(getFullTableNameForSQL(target));
-    addPartitionColsToInsert(partCols, rewrittenQueryStr);
+    List<String> values = new ArrayList<>(partCols.size() + 1);
+    values.add(targetName + ".ROW__ID");
+    values.addAll(partCols
+            .stream().map(fieldSchema -> targetName + "." + fieldSchema.getName()).collect(Collectors.toList()));
 
-    if(splitUpdateEarly) {
-      rewrittenQueryStr.append("    -- update clause (delete part)\n SELECT ");
-    } else {
-      rewrittenQueryStr.append("    -- delete clause\n SELECT ");
-    }
-    if (hintStr != null) {
-      rewrittenQueryStr.append(hintStr);
-    }
-    rewrittenQueryStr.append(targetName).append(".ROW__ID ");
-    addPartitionColsToSelect(partCols, rewrittenQueryStr, target);
-    rewrittenQueryStr.append("\n   WHERE ").append(onClauseAsString);
+    appendInsertBranch(null, values, targetTable);
+
+    StringBuilder predicate = new StringBuilder(onClauseAsString);
     String extraPredicate = getWhenClausePredicate(whenMatchedDeleteClause);
     if (extraPredicate != null) {
       //we have WHEN MATCHED AND <boolean expr> THEN DELETE
-      rewrittenQueryStr.append(" AND ").append(extraPredicate);
+      predicate.append(" AND ").append(extraPredicate);
     }
     if (updateExtraPredicate != null) {
-      rewrittenQueryStr.append(" AND NOT(").append(updateExtraPredicate).append(")");
+      predicate.append(" AND NOT(").append(updateExtraPredicate).append(")");
     }
-    rewrittenQueryStr.append("\n SORT BY ");
-    rewrittenQueryStr.append(targetName).append(".ROW__ID \n");
+    appendWhereClause(predicate.toString());
+
+    appendSortBy(Collections.singletonList(targetName + ".ROW__ID"));
+
     return extraPredicate;
   }
 
@@ -480,18 +419,28 @@ public class SplitMergeSemanticAnalyzer extends SplitRewriteSemanticAnalyzer {
 
     // if column list is specified, then it has to have the same number of elements as the values
     // valuesNode has a child for struct, the rest are the columns
-    if (columnListNode != null && columnListNode.getChildCount() != (valuesNode.getChildCount() - 1)) {
-      throw new SemanticException(String.format("Column schema must have the same length as values (%d vs %d)",
-          columnListNode.getChildCount(), valuesNode.getChildCount() - 1));
+    List<String> columnList = null;
+    if (columnListNode != null) {
+      columnList = new ArrayList<>(columnListNode.getChildCount());
     }
 
-    appendInsertBranch(columnListNode, valuesNode, targetTable);
+    List<String> values = new ArrayList<>(valuesNode.getChildCount());
+
+    appendInsertBranch(columnList, values, targetTable);
 
     OnClauseAnalyzer oca = new OnClauseAnalyzer(onClause, targetTable, targetTableNameInSourceQuery,
             conf, onClauseAsString);
     oca.analyze();
 
-    appendInsertBranchPredicate(oca.getPredicate(), whenNotMatchedClause);
+    StringBuilder predicate = new StringBuilder(oca.getPredicate());
+    String extraPredicate = getWhenClausePredicate(whenNotMatchedClause);
+    if (extraPredicate != null) {
+      //we have WHEN NOT MATCHED AND <boolean expr> THEN INSERT
+      predicate.append(" AND ")
+              .append(getMatchedText(((ASTNode)whenNotMatchedClause.getChild(1))));
+    }
+
+    appendWhereClause(predicate.toString());
   }
 
   /**
