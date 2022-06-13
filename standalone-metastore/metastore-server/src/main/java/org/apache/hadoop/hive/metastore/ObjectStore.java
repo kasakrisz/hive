@@ -2527,15 +2527,30 @@ public class ObjectStore implements RawStore, Configurable {
     }
     assert !m.isSetMaterializationTime();
     Set<MMVSource> tablesUsed = new HashSet<>();
-    for (SourceTable sourceTable : m.getSourceTables()) {
-      Table table = sourceTable.getTable();
-      MTable mtbl = getMTable(m.getCatName(), table.getDbName(), table.getTableName(), false).mtbl;
-      MMVSource source = new MMVSource();
-      source.setTable(mtbl);
-      source.setInsertedCount(sourceTable.getInsertedCount());
-      source.setUpdatedCount(sourceTable.getUpdatedCount());
-      source.setDeletedCount(sourceTable.getDeletedCount());
-      tablesUsed.add(source);
+    if (m.isSetSourceTables()) {
+      for (SourceTable sourceTable : m.getSourceTables()) {
+        Table table = sourceTable.getTable();
+        MTable mtbl = getMTable(m.getCatName(), table.getDbName(), table.getTableName(), false).mtbl;
+        MMVSource source = new MMVSource();
+        source.setTable(mtbl);
+        source.setInsertedCount(sourceTable.getInsertedCount());
+        source.setUpdatedCount(sourceTable.getUpdatedCount());
+        source.setDeletedCount(sourceTable.getDeletedCount());
+        tablesUsed.add(source);
+      }
+    } else {
+      LOG.warn("Source tables transactional statistics is missing! Resetting all values to 0. " +
+          "Please set source table list using CreationMetadata.setSourceTables(java.util.List<SourceTable>).");
+      for (String fullyQualifiedName : m.getTablesUsed()) {
+        String[] names =  fullyQualifiedName.split("\\.");
+        MTable mtbl = getMTable(m.getCatName(), names[0], names[1], false).mtbl;
+        MMVSource source = new MMVSource();
+        source.setTable(mtbl);
+        source.setInsertedCount(0L);
+        source.setUpdatedCount(0L);
+        source.setDeletedCount(0L);
+        tablesUsed.add(source);
+      }
     }
     return new MCreationMetadata(normalizeIdentifier(m.getCatName()),
             normalizeIdentifier(m.getDbName()), normalizeIdentifier(m.getTblName()),
