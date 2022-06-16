@@ -1920,7 +1920,8 @@ public class TestTxnHandler {
     creationMetadata.setSourceTables(Collections.singletonList(sourceTable));
     creationMetadata.setValidTxnList(validTxnWriteIdList.toString());
 
-    Materialization materialization = txnHandler.getMaterializationInvalidationInfo(creationMetadata);
+    Materialization materialization = txnHandler.getMaterializationInvalidationInfo(
+        creationMetadata, validTxnWriteIdList.toString());
     assertFalse(materialization.isSourceTablesUpdateDeleteModified());
   }
 
