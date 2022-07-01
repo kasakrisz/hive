@@ -1392,6 +1392,7 @@ public class ObjectStore implements RawStore, Configurable {
       if (tbl.getCreationMetadata() != null) {
         MCreationMetadata mcm = convertToMCreationMetadata(tbl.getCreationMetadata());
         pm.makePersistent(mcm);
+        updateTransactionalStatsStatus(tbl.getCreationMetadata(), true);
       }
       tbl.setId(mtbl.getId());
 
@@ -1418,24 +1419,62 @@ public class ObjectStore implements RawStore, Configurable {
     }
   }
 
-  private void updateTransactionalStatsStatus(List<SourceTable> sourceTables, boolean valid) {
+  private void updateTransactionalStatsStatus(CreationMetadata creationMetadata, boolean valid) {
+    try {
+      if (creationMetadata.isSetSourceTables()) {
+        updateTransactionalStatsStatus(creationMetadata.getSourceTables(), valid);
+      } else {
+        invalidateTransactionalStats(creationMetadata.getCatName(), creationMetadata.getTablesUsed());
+      }
+    } catch (NoSuchObjectException ex) {
+      LOG.warn("Error while updating transactional stats status ", ex);
+    }
+  }
+
+  private void updateTransactionalStatsStatus(Collection<SourceTable> sourceTables, boolean valid)
+      throws NoSuchObjectException {
     for (SourceTable sourceTable : sourceTables) {
-      updateTransactionalStatsStatus(sourceTable.getTable(), valid);
+      MTable table = ensureGetMTable(
+          sourceTable.getTable().getCatName(),
+          sourceTable.getTable().getDbName(),
+          sourceTable.getTable().getTableName());
+      updateTransactionalStatsStatus(table, valid);
     }
   }
 
   @Deprecated
-  private void invalidateTransactionalStats(String catalog, List<String> sourceTables) throws MetaException {
+  private void invalidateTransactionalStats(String catalog, Collection<String> sourceTables)
+      throws NoSuchObjectException {
     for (String fullyQualifiedName : sourceTables) {
       String[] names =  fullyQualifiedName.split("\\.");
-      Table table = getTable(catalog, names[0], names[1]);
+      MTable table = ensureGetMTable(catalog, names[0], names[1]);
       updateTransactionalStatsStatus(table, false);
     }
   }
 
-  private void updateTransactionalStatsStatus(Table table, boolean valid) {
-    StatsSetupConst.setTransactionalStatsState(
-        table.getParameters(), valid ? StatsSetupConst.TRUE : StatsSetupConst.FALSE);
+  private void updateTransactionalStatsStatus(MTable table, boolean valid) {
+    Lock tableLock = getTableLockFor(table.getDatabase().getName(), table.getTableName());
+    tableLock.lock();
+    boolean committed = false;
+    try {
+      openTransaction();
+
+      Map<String, String> newParams = new HashMap<>(table.getParameters());
+      StatsSetupConst.setTransactionalStatsState(
+          newParams, valid ? StatsSetupConst.TRUE : StatsSetupConst.FALSE);
+      table.setParameters(newParams);
+
+      committed = commitTransaction();
+      // TODO: similar to update...Part, this used to do "return committed;"; makes little sense.
+    } finally {
+      try {
+        if (!committed) {
+          rollbackTransaction();
+        }
+      } finally {
+        tableLock.unlock();
+      }
+    }
   }
 
   /**
@@ -5104,6 +5143,7 @@ public class ObjectStore implements RawStore, Configurable {
       mcm.setTables(newMcm.getTables());
       mcm.setMaterializationTime(newMcm.getMaterializationTime());
       mcm.setTxnList(newMcm.getTxnList());
+      updateTransactionalStatsStatus(cm, true);
       // commit the changes
       success = commitTransaction();
       cm.setMaterializationTime(newMcm.getMaterializationTime());

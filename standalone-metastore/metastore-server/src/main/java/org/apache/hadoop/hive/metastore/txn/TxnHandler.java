@@ -2555,17 +2555,20 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
     }
 
     boolean wasUpdatedBasedOnStats = false;
+    boolean hasInvalidStats = false;
     Set<String> checkCompact = new HashSet<>();
     Set<String> checkUpdates = new HashSet<>();
     for (SourceTable sourceTable : creationMetadata.getSourceTables()) {
       Table table = sourceTable.getTable();
       String transactionalProp = table.getParameters().get(hive_metastoreConstants.TABLE_TRANSACTIONAL_PROPERTIES);
       if ("insert_only".equalsIgnoreCase(transactionalProp)) {
+        hasInvalidStats = true;
         checkCompact.add(
             TableName.getDbTable(sourceTable.getTable().getDbName(), sourceTable.getTable().getTableName()));
         continue;
       }
-      if (!StatsSetupConst.areBasicStatsUptoDate(sourceTable.getTable().getParameters())) {
+      if (!StatsSetupConst.areTransactionalStatsUptoDate(sourceTable.getTable().getParameters())) {
+        hasInvalidStats = true;
         String tableName =
             TableName.getDbTable(sourceTable.getTable().getDbName(), sourceTable.getTable().getTableName());
         checkCompact.add(tableName);
@@ -2586,7 +2589,7 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
     if (wasUpdated == null) {
       return null;
     }
-    return new Materialization(wasUpdatedBasedOnStats || wasUpdated, sourceTablesCompacted);
+    return new Materialization(wasUpdatedBasedOnStats || wasUpdated, sourceTablesCompacted && hasInvalidStats);
   }
 
   private Boolean wasCompacted(Collection<String> tableNames, String validTxnList) throws MetaException {

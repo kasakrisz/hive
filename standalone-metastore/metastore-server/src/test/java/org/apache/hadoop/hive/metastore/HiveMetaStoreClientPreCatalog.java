@@ -1594,7 +1594,7 @@ public class HiveMetaStoreClientPreCatalog implements IMetaStoreClient, AutoClos
   /** {@inheritDoc} */
   @Override
   public void updateCreationMetadata(String dbName, String tableName, CreationMetadata cm)
-      throws MetaException, InvalidOperationException, UnknownDBException, TException {
+      throws MetaException, InvalidOperationException, UnknownDBException, NoSuchObjectException, TException {
     client.update_creation_metadata(null, dbName, tableName, cm);
   }
 

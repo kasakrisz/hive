@@ -3432,6 +3432,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
     if (resetStatistics || !this.getConf().getBoolVar(HiveConf.ConfVars.HIVESTATSAUTOGATHER)) {
       LOG.debug("Clear table column statistics and set basic statistics to false for " + tbl.getCompleteName());
       StatsSetupConst.setBasicStatsState(tbl.getParameters(), StatsSetupConst.FALSE);
+      StatsSetupConst.setTransactionalStatsState(tbl.getParameters(), StatsSetupConst.FALSE);
     }
 
     try {
