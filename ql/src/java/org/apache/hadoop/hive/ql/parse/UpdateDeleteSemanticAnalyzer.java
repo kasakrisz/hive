@@ -285,30 +285,12 @@ public class UpdateDeleteSemanticAnalyzer extends RewriteSemanticAnalyzer {
     rewrittenQueryStr.append("(SELECT ");
 
     boolean nonNativeAcid = AcidUtils.isNonNativeAcidTable(mTable);
-    int columnOffset;
     List<String> deleteValues;
-    if (nonNativeAcid) {
-      List<FieldSchema> acidSelectColumns = mTable.getStorageHandler().acidSelectColumns(mTable, operation);
-      deleteValues = new ArrayList<>(acidSelectColumns.size());
-      for (FieldSchema fieldSchema : acidSelectColumns) {
-        String identifier = HiveUtils.unparseIdentifier(fieldSchema.getName(), this.conf);
-        rewrittenQueryStr.append(identifier).append(" AS ");
-        String prefixedIdentifier = HiveUtils.unparseIdentifier(DELETE_PREFIX + fieldSchema.getName(), this.conf);
-        rewrittenQueryStr.append(prefixedIdentifier);
-        rewrittenQueryStr.append(",");
-        deleteValues.add(String.format("%s.%s", SUB_QUERY_ALIAS, prefixedIdentifier));
-      }
-
-      columnOffset = acidSelectColumns.size();
-    } else {
-      rewrittenQueryStr.append("ROW__ID,");
-      deleteValues = new ArrayList<>(1 + mTable.getPartCols().size());
-      deleteValues.add(SUB_QUERY_ALIAS + ".ROW__ID");
-      for (FieldSchema fieldSchema : mTable.getPartCols()) {
-        deleteValues.add(SUB_QUERY_ALIAS + "." + HiveUtils.unparseIdentifier(fieldSchema.getName(), conf));
-      }
-      columnOffset = 1;
-    }
+    ColumnAppender columnAppender = nonNativeAcid ? new NonNativeAcidColumnAppender(mTable, conf) :
+            new NativeAcidColumnAppender(mTable, conf);
+    columnAppender.append(rewrittenQueryStr, operation);
+    deleteValues = columnAppender.getDeleteValues(operation);
+    int columnOffset = deleteValues.size();
 
     List<String> insertValues = new ArrayList<>(mTable.getCols().size());
     boolean first = true;
@@ -395,6 +377,88 @@ public class UpdateDeleteSemanticAnalyzer extends RewriteSemanticAnalyzer {
 
     for (String colName : setRCols) {
       columnAccessInfo.add(Table.getCompleteName(mTable.getDbName(), mTable.getTableName()), colName);
+    }
+  }
+
+  private interface ColumnAppender {
+    void append(StringBuilder stringBuilder, Context.Operation operation);
+    List<String> getDeleteValues(Context.Operation operation);
+    List<String> getSortKeys();
+  }
+
+  private static class NativeAcidColumnAppender implements ColumnAppender {
+
+    private final Table table;
+    private final HiveConf conf;
+
+    private NativeAcidColumnAppender(Table table, HiveConf conf) {
+      this.table = table;
+      this.conf = conf;
+    }
+
+    @Override
+    public void append(StringBuilder stringBuilder, Context.Operation operation) {
+      stringBuilder.append("ROW__ID,");
+    }
+
+    @Override
+    public List<String> getDeleteValues(Context.Operation operation) {
+      List<String> deleteValues = new ArrayList<>(1 + table.getPartCols().size());
+      deleteValues.add(SUB_QUERY_ALIAS + ".ROW__ID");
+      for (FieldSchema fieldSchema : table.getPartCols()) {
+        deleteValues.add(SUB_QUERY_ALIAS + "." + HiveUtils.unparseIdentifier(fieldSchema.getName(), conf));
+      }
+//      columnOffset = 1;
+      return deleteValues;
+    }
+
+    @Override
+    public List<String> getSortKeys() {
+      return singletonList(SUB_QUERY_ALIAS + ".ROW__ID ");
+    }
+  }
+
+  private static class NonNativeAcidColumnAppender implements ColumnAppender {
+
+    private final Table table;
+    private final HiveConf conf;
+
+    private NonNativeAcidColumnAppender(Table table, HiveConf conf) {
+      this.table = table;
+      this.conf = conf;
+    }
+
+    @Override
+    public void append(StringBuilder stringBuilder, Context.Operation operation) {
+      List<FieldSchema> acidSelectColumns = table.getStorageHandler().acidSelectColumns(table, operation);
+      for (FieldSchema fieldSchema : acidSelectColumns) {
+        String identifier = HiveUtils.unparseIdentifier(fieldSchema.getName(), this.conf);
+        stringBuilder.append(identifier).append(" AS ");
+        String prefixedIdentifier = HiveUtils.unparseIdentifier(DELETE_PREFIX + fieldSchema.getName(), this.conf);
+        stringBuilder.append(prefixedIdentifier);
+        stringBuilder.append(",");
+      }
+    }
+
+    @Override
+    public List<String> getDeleteValues(Context.Operation operation) {
+      List<FieldSchema> acidSelectColumns = table.getStorageHandler().acidSelectColumns(table, operation);
+      List<String> deleteValues = new ArrayList<>(acidSelectColumns.size());
+      for (FieldSchema fieldSchema : acidSelectColumns) {
+        String prefixedIdentifier = HiveUtils.unparseIdentifier(DELETE_PREFIX + fieldSchema.getName(), this.conf);
+        deleteValues.add(String.format("%s.%s", SUB_QUERY_ALIAS, prefixedIdentifier));
+      }
+      return deleteValues;
+    }
+
+    @Override
+    public List<String> getSortKeys() {
+      return table.getStorageHandler().acidSortColumns(table, Context.Operation.DELETE).stream()
+              .map(fieldSchema -> String.format(
+                      "%s.%s",
+                      SUB_QUERY_ALIAS,
+                      HiveUtils.unparseIdentifier(DELETE_PREFIX + fieldSchema.getName(), this.conf)))
+              .collect(Collectors.toList());
     }
   }
 
