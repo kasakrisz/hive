@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.ql.parse;
 
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
+import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryState;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.lib.Node;
@@ -205,5 +206,16 @@ public class SplitUpdateSemanticAnalyzer extends RewriteSemanticAnalyzer {
   @Override
   protected boolean enableColumnStatsCollecting() {
     return false;
+  }
+
+  @Override
+  protected void checkPartitionAndBucketColsInSetClauseTarget(
+      String columnName, Table targetTable) throws SemanticException {
+    // Make sure this isn't one of the partitioning columns, that's not supported.
+    for (FieldSchema fschema : targetTable.getPartCols()) {
+      if (fschema.getName().equalsIgnoreCase(columnName)) {
+        throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_PART_VALUE.getMsg());
+      }
+    }
   }
 }

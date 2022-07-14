@@ -160,19 +160,10 @@ public abstract class RewriteSemanticAnalyzer extends CalcitePlanner {
    * Assert that we are not asked to update a bucketing column or partition column.
    * @param colName it's the A in "SET A = B"
    */
-  protected void checkValidSetClauseTarget(ASTNode colName, Table targetTable) throws SemanticException {
+  private void checkValidSetClauseTarget(ASTNode colName, Table targetTable) throws SemanticException {
     String columnName = normalizeColName(colName.getText());
+    checkPartitionAndBucketColsInSetClauseTarget(columnName, targetTable);
 
-    // Make sure this isn't one of the partitioning columns, that's not supported.
-    for (FieldSchema fschema : targetTable.getPartCols()) {
-      if (fschema.getName().equalsIgnoreCase(columnName)) {
-        throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_PART_VALUE.getMsg());
-      }
-    }
-    //updating bucket column should move row from one file to another - not supported
-    if (targetTable.getBucketCols() != null && targetTable.getBucketCols().contains(columnName)) {
-      throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_BUCKET_VALUE, columnName);
-    }
     boolean foundColumnInTargetTable = false;
     for (FieldSchema col : targetTable.getCols()) {
       if (columnName.equalsIgnoreCase(col.getName())) {
@@ -183,6 +174,20 @@ public abstract class RewriteSemanticAnalyzer extends CalcitePlanner {
     if (!foundColumnInTargetTable) {
       throw new SemanticException(ErrorMsg.INVALID_TARGET_COLUMN_IN_SET_CLAUSE, colName.getText(),
         targetTable.getFullyQualifiedName());
+    }
+  }
+
+  protected void checkPartitionAndBucketColsInSetClauseTarget(
+      String columnName, Table targetTable) throws SemanticException {
+    // Make sure this isn't one of the partitioning columns, that's not supported.
+    for (FieldSchema fschema : targetTable.getPartCols()) {
+      if (fschema.getName().equalsIgnoreCase(columnName)) {
+        throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_PART_VALUE.getMsg());
+      }
+    }
+    //updating bucket column should move row from one file to another - not supported
+    if (targetTable.getBucketCols() != null && targetTable.getBucketCols().contains(columnName)) {
+      throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_BUCKET_VALUE, columnName);
     }
   }
 
