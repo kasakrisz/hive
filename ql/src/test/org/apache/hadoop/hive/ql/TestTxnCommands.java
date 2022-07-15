@@ -932,6 +932,30 @@ public class TestTxnCommands extends TxnCommandsBaseForTests {
     List<String> rs4 = runStatementOnDriver("select a,b from " + Table.ACIDTBL + " order by a,b");
     Assert.assertEquals("Wrong data after commit", stringifyValues(updatedData2), rs4);
   }
+
+  @Test
+  public void testUpdateBucketColMovesRecordToAnotherBucket() throws Exception {
+    int[][] rows1 = {{1,2},{3,4}};
+    runStatementOnDriver("insert into " + Table.ACIDTBL + "(a,b) " + makeValuesClause(rows1));
+    boolean isVectorized = hiveConf.getBoolVar(HiveConf.ConfVars.HIVE_VECTORIZATION_ENABLED);
+    String query = "select ROW__ID, a, b" + (isVectorized ? " from  " : ", INPUT__FILE__NAME from ") +  Table.ACIDTBL + " order by ROW__ID";
+    String[][] expected = new String[][] {
+        {"{\"writeid\":1,\"bucketid\":536870912,\"rowid\":0}\t3\t4", "acidtbl/delta_0000001_0000001_0000/bucket_00000_0"},
+        {"{\"writeid\":1,\"bucketid\":536936448,\"rowid\":0}\t1\t2", "acidtbl/delta_0000001_0000001_0000/bucket_00001_0"}
+    };
+    checkResult(expected, query, isVectorized, "before compact", LOG);
+
+    // Update
+    runStatementOnDriver("update " + Table.ACIDTBL + " set a=1 where b=4");
+
+    query = "select ROW__ID, a, b" + (isVectorized ? " from  " : ", INPUT__FILE__NAME from ") +  Table.ACIDTBL + " order by ROW__ID";
+    expected = new String[][] {
+        {"{\"writeid\":1,\"bucketid\":536936448,\"rowid\":0}\t1\t2", "acidtbl/delta_0000001_0000001_0000/bucket_00001_0"},
+        {"{\"writeid\":2,\"bucketid\":536936449,\"rowid\":0}\t1\t4", "acidtbl/delta_0000002_0000002_0001/bucket_00001_0"}
+    };
+    checkResult(expected, query, isVectorized, "before compact", LOG);
+  }
+
   @Test
   public void testMultipleDelete() throws Exception {
     int[][] rows1 = {{1,2},{3,4},{5,6},{7,8}};
