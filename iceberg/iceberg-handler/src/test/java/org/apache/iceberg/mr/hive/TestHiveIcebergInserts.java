@@ -66,7 +66,7 @@ public class TestHiveIcebergInserts extends HiveIcebergStorageHandlerWithEngineB
         .build();
 
     testTables.createTable(shell, identifier.name(), schema, order, PartitionSpec.unpartitioned(), fileFormat,
-        ImmutableList.of(), 1, ImmutableMap.of());
+        ImmutableList.of(), 2, ImmutableMap.of());
     shell.executeStatement(String.format("INSERT INTO TABLE %s VALUES (4, 'a'), (1, 'a'), (3, 'a'), (2, 'a'), " +
             "(null, 'a'), (3, 'b'), (3, null)", identifier.name()));
 
@@ -74,6 +74,13 @@ public class TestHiveIcebergInserts extends HiveIcebergStorageHandlerWithEngineB
         .add(null, "a").add(1, "a").add(2, "a").add(3, "b").add(3, "a").add(3, null).add(4, "a")
         .build();
     List<Object[]> result = shell.executeStatement(String.format("SELECT * FROM %s", identifier.name()));
+    HiveIcebergTestUtils.validateData(expected, HiveIcebergTestUtils.valueForRow(schema, result));
+
+    shell.executeStatement(String.format("UPDATE %s SET data = 'Changed' WHERE id = 4", identifier.name()));
+    expected = TestHelper.RecordsBuilder.newInstance(schema)
+            .add(null, "a").add(1, "a").add(2, "a").add(3, "b").add(3, "a").add(3, null).add(4, "Changed")
+            .build();
+    result = shell.executeStatement(String.format("SELECT * FROM %s", identifier.name()));
     HiveIcebergTestUtils.validateData(expected, HiveIcebergTestUtils.valueForRow(schema, result));
   }
 
