@@ -18,19 +18,9 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.hadoop.hive.conf.Constants;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
@@ -48,20 +38,21 @@ import org.apache.hadoop.hive.ql.exec.SelectOperator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.Utilities.ReduceField;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
+import org.apache.hadoop.hive.ql.io.RecordIdentifier;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
+import org.apache.hadoop.hive.ql.lib.Node;
+import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
+import org.apache.hadoop.hive.ql.lib.RuleRegExp;
 import org.apache.hadoop.hive.ql.lib.SemanticDispatcher;
 import org.apache.hadoop.hive.ql.lib.SemanticGraphWalker;
-import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.lib.SemanticNodeProcessor;
-import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.lib.SemanticRule;
-import org.apache.hadoop.hive.ql.lib.RuleRegExp;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.parse.type.*;
+import org.apache.hadoop.hive.ql.parse.type.ExprNodeTypeCheck;
 import org.apache.hadoop.hive.ql.plan.ColStatistics;
 import org.apache.hadoop.hive.ql.plan.DynamicPartitionCtx;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
@@ -77,16 +68,25 @@ import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.SelectDesc;
 import org.apache.hadoop.hive.ql.plan.Statistics;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
-import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.orc.OrcConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * When dynamic partitioning (with or without bucketing and sorting) is enabled, this optimization
@@ -200,6 +200,8 @@ public class SortedDynPartitionOptimizer extends Transform {
       List<Integer> partitionPositions = getPartitionPositions(dpCtx, fsParent.getSchema());
       LinkedList<Function<List<ExprNodeDesc>, ExprNodeDesc>> customSortExprs =
           new LinkedList<>(dpCtx.getCustomSortExpressions());
+      LinkedList<Integer> customSortOrder = new LinkedList<>(dpCtx.getCustomSortOrder());
+      LinkedList<Integer> customNullOrder = new LinkedList<>(dpCtx.getCustomSortNullOrder());
 
       // If custom sort expressions are present, there is an explicit requirement to do sorting
       if (customSortExprs.isEmpty() && !shouldDo(partitionPositions, fsParent)) {
@@ -301,8 +303,9 @@ public class SortedDynPartitionOptimizer extends Transform {
       fsOp.getConf().setTotalFiles(1);
 
       // Create ReduceSink operator
-      ReduceSinkOperator rsOp = getReduceSinkOp(partitionPositions, sortPositions, customSortExprs, sortOrder,
-          sortNullOrder, allRSCols, bucketColumns, numBuckets, fsParent, fsOp.getConf().getWriteType());
+      ReduceSinkOperator rsOp = getReduceSinkOp(partitionPositions, sortPositions, sortOrder,
+          sortNullOrder, customSortExprs, customSortOrder, customNullOrder, allRSCols, bucketColumns, numBuckets,
+          fsParent, fsOp.getConf().getWriteType());
       // we have to make sure not to reorder the child operators as it might cause weird behavior in the tasks at
       // the same level. when there is auto stats gather at the same level as another operation then it might
       // cause unnecessary preemption. Maintaining the order here to avoid such preemption and possible errors
@@ -572,8 +575,10 @@ public class SortedDynPartitionOptimizer extends Transform {
     }
 
     public ReduceSinkOperator getReduceSinkOp(List<Integer> partitionPositions, List<Integer> sortPositions,
-        List<Function<List<ExprNodeDesc>, ExprNodeDesc>> customSortExprs, List<Integer> sortOrder,
-        List<Integer> sortNullOrder, ArrayList<ExprNodeDesc> allCols, ArrayList<ExprNodeDesc> bucketColumns,
+        List<Integer> sortOrder, List<Integer> sortNullOrder,
+        List<Function<List<ExprNodeDesc>, ExprNodeDesc>> customSortExprs,
+        List<Integer> customSortOrder, List<Integer> customSortNullOrder,
+        ArrayList<ExprNodeDesc> allCols, ArrayList<ExprNodeDesc> bucketColumns,
         int numBuckets, Operator<? extends OperatorDesc> parent, AcidUtils.Operation writeType) {
 
       // Order of KEY columns, if custom sort is present partition and bucket columns are disregarded:
@@ -601,15 +606,23 @@ public class SortedDynPartitionOptimizer extends Transform {
       }
       keyColsPosInVal.addAll(sortPositions);
 
-      // by default partition and bucket columns are sorted in ascending order
       Integer order = 1;
+      // by default partition and bucket columns are sorted in ascending order
       if (sortOrder != null && !sortOrder.isEmpty()) {
         if (sortOrder.get(0) == 0) {
           order = 0;
         }
       }
-      for (int i = 0; i < keyColsPosInVal.size() + customSortExprs.size(); i++) {
+
+      for (Integer ignored : keyColsPosInVal) {
         newSortOrder.add(order);
+      }
+
+      if (customSortExprPresent) {
+        for (int i = 0; i < customSortExprs.size() - customSortOrder.size(); i++) {
+          newSortOrder.add(order);
+        }
+        newSortOrder.addAll(customSortOrder);
       }
 
       String orderStr = "";
@@ -631,8 +644,16 @@ public class SortedDynPartitionOptimizer extends Transform {
           nullOrder = 1;
         }
       }
-      for (int i = 0; i < keyColsPosInVal.size() + customSortExprs.size(); i++) {
+
+      for (Integer ignored : keyColsPosInVal) {
         newSortNullOrder.add(nullOrder);
+      }
+
+      if (customSortExprPresent) {
+        for (int i = 0; i < customSortExprs.size() - customSortNullOrder.size(); i++) {
+          newSortNullOrder.add(nullOrder);
+        }
+        newSortNullOrder.addAll(customSortNullOrder);
       }
 
       String nullOrderStr = "";

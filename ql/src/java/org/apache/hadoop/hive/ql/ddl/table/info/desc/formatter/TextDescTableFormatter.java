@@ -278,7 +278,14 @@ class TextDescTableFormatter extends DescTableFormatter {
       formatOutput("Num Buckets:", String.valueOf(storageDesc.getNumBuckets()), tableInfo);
       formatOutput("Bucket Columns:", storageDesc.getBucketCols().toString(), tableInfo);
     }
-    formatOutput("Sort Columns:", storageDesc.getSortCols().toString(), tableInfo);
+
+    String sortColumnsInfo;
+    if (table.isNonNative() && table.getStorageHandler() != null && table.getStorageHandler().supportsSortColumns()) {
+      sortColumnsInfo = table.getStorageHandler().sortColumns(table).toString();
+    } else {
+      sortColumnsInfo = storageDesc.getSortCols().toString();
+    }
+    formatOutput("Sort Columns:", sortColumnsInfo, tableInfo);
 
     if (storageDesc.isStoredAsSubDirectories()) {
       formatOutput("Stored As SubDirectories:", "Yes", tableInfo);

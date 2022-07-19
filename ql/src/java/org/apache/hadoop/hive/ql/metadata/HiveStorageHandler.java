@@ -347,6 +347,23 @@ public interface HiveStorageHandler extends Configurable {
   }
 
   /**
+   * Check if the underlying storage handler implementation supports sort columns.
+   * @return true if the storage handler can support it
+   */
+  default boolean supportsSortColumns() {
+    return false;
+  }
+
+  /**
+   * Collect the columns that are used to sort the content of the data files
+   * @param table the table which is being sorted
+   * @return the list of columns that are used during data sorting
+   */
+  default List<FieldSchema> sortColumns(org.apache.hadoop.hive.ql.metadata.Table table) {
+    return Collections.emptyList();
+  }
+
+  /**
    * Check if the underlying storage handler implementation support partition transformations.
    * @return true if the storage handler can support it
    */
