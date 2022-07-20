@@ -957,6 +957,31 @@ public class TestTxnCommands extends TxnCommandsBaseForTests {
   }
 
   @Test
+  public void testUpdatePartitionColMovesRecordToAnotherPartition() throws Exception {
+    runStatementOnDriver("insert into " + Table.ACIDTBLPART + "(a,b,p) VALUES (1, 2, 'a'), (3, 4, 'b')");
+    boolean isVectorized = hiveConf.getBoolVar(HiveConf.ConfVars.HIVE_VECTORIZATION_ENABLED);
+    String query = "select ROW__ID, a, b" + (isVectorized ? " from  " : ", INPUT__FILE__NAME from ") +
+        Table.ACIDTBLPART + " order by ROW__ID";
+    String[][] expected = new String[][] {
+        {"{\"writeid\":1,\"bucketid\":536870912,\"rowid\":0}\t3\t4", "acidtblpart/p=b/delta_0000001_0000001_0000/bucket_00000_0"},
+        {"{\"writeid\":1,\"bucketid\":536936448,\"rowid\":0}\t1\t2", "acidtblpart/p=a/delta_0000001_0000001_0000/bucket_00001_0"}
+    };
+    checkResult(expected, query, isVectorized, "before compact", LOG);
+
+    // Update
+    runStatementOnDriver("update " + Table.ACIDTBLPART + " set p='b' where a=1");
+
+    query = "select ROW__ID, a, b" + (isVectorized ? " from  " : ", INPUT__FILE__NAME from ") +
+        Table.ACIDTBLPART + " order by ROW__ID";
+    expected = new String[][] {
+        {"{\"writeid\":1,\"bucketid\":536870912,\"rowid\":0}\t1\t2", "acidtblpart/p=b/delta_0000001_0000001_0000/bucket_00000_0"},
+        {"{\"writeid\":2,\"bucketid\":536936448,\"rowid\":0}\t1\t4", "acidtblpart/p=b/delta_0000002_0000002_0001/bucket_00000_0"}
+    };
+    checkResult(expected, query, isVectorized, "before compact", LOG);
+  }
+
+
+  @Test
   public void testMultipleDelete() throws Exception {
     int[][] rows1 = {{1,2},{3,4},{5,6},{7,8}};
     runStatementOnDriver("insert into " + Table.ACIDTBL + "(a,b) " + makeValuesClause(rows1));
