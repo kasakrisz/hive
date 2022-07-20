@@ -209,13 +209,12 @@ public class SplitUpdateSemanticAnalyzer extends RewriteSemanticAnalyzer {
   }
 
   @Override
-  protected void checkPartitionAndBucketColsInSetClauseTarget(
-      String columnName, Table targetTable) throws SemanticException {
-    // Make sure this isn't one of the partitioning columns, that's not supported.
-    for (FieldSchema fschema : targetTable.getPartCols()) {
-      if (fschema.getName().equalsIgnoreCase(columnName)) {
-        throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_PART_VALUE.getMsg());
-      }
+  protected void checkValidSetClauseTarget(ASTNode colName, Table targetTable) throws SemanticException {
+    String columnName = normalizeColName(colName.getText());
+    if (!contains(columnName, targetTable.getCols()) &&
+        !contains(columnName, targetTable.getPartCols())) {
+      throw new SemanticException(ErrorMsg.INVALID_TARGET_COLUMN_IN_SET_CLAUSE, colName.getText(),
+          targetTable.getFullyQualifiedName());
     }
   }
 }

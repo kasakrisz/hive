@@ -96,14 +96,16 @@ public class SplitMergeSemanticAnalyzer extends MergeSemanticAnalyzer {
     return true;
   }
 
-  @Override
-  protected void checkPartitionAndBucketColsInSetClauseTarget(
-      String columnName, Table targetTable) throws SemanticException {
+  protected void checkValidSetClauseTarget(ASTNode colName, Table targetTable) throws SemanticException {
+    String columnName = normalizeColName(colName.getText());
     // Make sure this isn't one of the partitioning columns, that's not supported.
-    for (FieldSchema fschema : targetTable.getPartCols()) {
-      if (fschema.getName().equalsIgnoreCase(columnName)) {
-        throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_PART_VALUE.getMsg());
-      }
+    if (contains(columnName, targetTable.getPartCols())) {
+      throw new SemanticException(ErrorMsg.UPDATE_CANNOT_UPDATE_PART_VALUE.getMsg());
+    }
+
+    if (!contains(columnName, targetTable.getCols())) {
+      throw new SemanticException(ErrorMsg.INVALID_TARGET_COLUMN_IN_SET_CLAUSE, colName.getText(),
+          targetTable.getFullyQualifiedName());
     }
   }
 }
