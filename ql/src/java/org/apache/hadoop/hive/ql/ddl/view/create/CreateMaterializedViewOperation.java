@@ -41,6 +41,8 @@ import java.util.Set;
 
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 /**
  * Operation process of creating a view.
  */
@@ -66,8 +68,16 @@ public class CreateMaterializedViewOperation extends DDLOperation<CreateMaterial
       // We set the signature for the view if it is a materialized view
       if (tbl.isMaterializedView()) {
         Set<SourceTable> sourceTables = new HashSet<>(desc.getTablesUsed().size());
+        StringBuilder snapshot = new StringBuilder();
         for (TableName tableName : desc.getTablesUsed()) {
-          sourceTables.add(context.getDb().getTable(tableName).createSourceTable());
+          Table table = context.getDb().getTable(tableName);
+          if (table.getStorageHandler() != null) {
+            String sh = table.getStorageHandler().getCurrentSnapshot(table);
+            if (isNotBlank(sh)) {
+              snapshot.append(sh).append("$");
+            }
+          }
+          sourceTables.add(table.createSourceTable());
         }
         MaterializedViewMetadata metadata = new MaterializedViewMetadata(
                 MetaStoreUtils.getDefaultCatalog(context.getConf()),
