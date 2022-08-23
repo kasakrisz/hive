@@ -31,11 +31,15 @@ import org.apache.hadoop.hive.ql.ddl.DDLUtils;
 import org.apache.hadoop.hive.ql.hooks.LineageInfo.DataContainer;
 import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.MaterializationSnapshot;
 import org.apache.hadoop.hive.ql.metadata.MaterializedViewMetadata;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.metastore.Warehouse;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,13 +72,13 @@ public class CreateMaterializedViewOperation extends DDLOperation<CreateMaterial
       // We set the signature for the view if it is a materialized view
       if (tbl.isMaterializedView()) {
         Set<SourceTable> sourceTables = new HashSet<>(desc.getTablesUsed().size());
-        StringBuilder snapshot = new StringBuilder();
+        Map<String, String> snapshot = new HashMap<>(desc.getTablesUsed().size());
         for (TableName tableName : desc.getTablesUsed()) {
           Table table = context.getDb().getTable(tableName);
           if (table.getStorageHandler() != null) {
-            String sh = table.getStorageHandler().getCurrentSnapshot(table);
-            if (isNotBlank(sh)) {
-              snapshot.append(sh).append("$");
+            String tableSnapshot = table.getStorageHandler().getCurrentSnapshot(table);
+            if (isNotBlank(tableSnapshot)) {
+              snapshot.put(table.getFullyQualifiedName(), tableSnapshot);
             }
           }
           sourceTables.add(table.createSourceTable());
@@ -84,7 +88,8 @@ public class CreateMaterializedViewOperation extends DDLOperation<CreateMaterial
                 tbl.getDbName(),
                 tbl.getTableName(),
                 sourceTables,
-                context.getConf().get(ValidTxnWriteIdList.VALID_TABLES_WRITEIDS_KEY));
+                new MaterializationSnapshot(
+                        context.getConf().get(ValidTxnWriteIdList.VALID_TABLES_WRITEIDS_KEY), snapshot));
         tbl.setMaterializedViewMetadata(metadata);
       }
       context.getDb().createTable(tbl, desc.getIfNotExists());

@@ -39,9 +39,10 @@ public class MaterializedViewMetadata {
   }
 
   public MaterializedViewMetadata(
-          String catalogName, String dbName, String mvName, Set<SourceTable> sourceTables, String validTxnList) {
+          String catalogName, String dbName, String mvName, Set<SourceTable> sourceTables,
+          MaterializationSnapshot snapshot) {
     this.creationMetadata = new CreationMetadata(catalogName, dbName, mvName, toFullTableNames(sourceTables));
-    this.creationMetadata.setValidTxnList(validTxnList);
+    this.creationMetadata.setValidTxnList(snapshot.asJsonString());
     this.creationMetadata.setSourceTables(unmodifiableList(new ArrayList<>(sourceTables)));
   }
 
@@ -81,7 +82,7 @@ public class MaterializedViewMetadata {
     return unmodifiableList(creationMetadata.getSourceTables());
   }
 
-  public String getValidTxnList() {
+  public String getSnapshot() {
     return creationMetadata.getValidTxnList();
   }
 
@@ -89,7 +90,7 @@ public class MaterializedViewMetadata {
     return creationMetadata.getMaterializationTime();
   }
 
-  public MaterializedViewMetadata reset(String validTxnList) {
+  public MaterializedViewMetadata reset(MaterializationSnapshot snapshot) {
     Set<SourceTable> newSourceTables =
             creationMetadata.getSourceTables().stream().map(this::from).collect(Collectors.toSet());
 
@@ -98,7 +99,7 @@ public class MaterializedViewMetadata {
             creationMetadata.getDbName(),
             creationMetadata.getTblName(),
             unmodifiableSet(newSourceTables),
-            validTxnList);
+            snapshot);
   }
 
   private SourceTable from(SourceTable sourceTable) {

@@ -1968,7 +1968,7 @@ public class Hive {
           // disabled by default).
           materialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
               materialization, validTxnsList, new ValidTxnWriteIdList(
-                          materializedViewTable.getMVMetadata().getValidTxnList()));
+                          materializedViewTable.getMVMetadata().getSnapshot()));
         }
         result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(materialization));
       }
@@ -1986,7 +1986,7 @@ public class Hive {
    */
   public Boolean isOutdatedMaterializedView(
           Table materializedViewTable, Set<TableName> tablesUsed,
-          boolean forceMVContentsUpToDate, HiveTxnManager txnMgr) throws LockException {
+          boolean forceMVContentsUpToDate, HiveTxnManager txnMgr) throws HiveException {
 
     String validTxnsList = conf.get(ValidTxnList.VALID_TXNS_KEY);
     if (validTxnsList == null) {
@@ -2012,7 +2012,7 @@ public class Hive {
       if (forceMVContentsUpToDate || timeWindow == 0L ||
               mvMetadata.getMaterializationTime() < System.currentTimeMillis() - timeWindow) {
         return HiveMaterializedViewUtils.isOutdatedMaterializedView(
-                validTxnsList, txnMgr, tablesUsed, materializedViewTable);
+                validTxnsList, txnMgr, this, tablesUsed, materializedViewTable);
       }
     }
     return outdated;
@@ -2033,7 +2033,7 @@ public class Hive {
     }
 
     return HiveMaterializedViewUtils.isOutdatedMaterializedView(
-        validTxnsList, txnManager, table.getMVMetadata().getSourceTableNames(), table);
+        validTxnsList, txnManager, this, table.getMVMetadata().getSourceTableNames(), table);
   }
 
   /**
@@ -2201,7 +2201,7 @@ public class Hive {
               // so we can produce partial rewritings
               relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
                   relOptMaterialization, validTxnsList, new ValidTxnWriteIdList(
-                      metadata.getValidTxnList()));
+                      metadata.getSnapshot()));
             }
             addToMaterializationList(expandGroupingSets, invalidationInfo, relOptMaterialization, result);
             continue;
@@ -2224,7 +2224,7 @@ public class Hive {
             // so we can produce partial rewritings
             relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
                     hiveRelOptMaterialization, validTxnsList, new ValidTxnWriteIdList(
-                    metadata.getValidTxnList()));
+                    metadata.getSnapshot()));
           }
           addToMaterializationList(expandGroupingSets, invalidationInfo, relOptMaterialization, result);
         }
