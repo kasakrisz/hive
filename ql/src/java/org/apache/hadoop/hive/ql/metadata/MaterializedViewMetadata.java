@@ -22,6 +22,9 @@ import org.apache.hadoop.hive.common.MaterializationSnapshot;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.metastore.api.CreationMetadata;
 import org.apache.hadoop.hive.metastore.api.SourceTable;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +36,8 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableSet;
 
 public class MaterializedViewMetadata {
+  private static final Logger LOG = LoggerFactory.getLogger(MaterializedViewMetadata.class);
+
   final CreationMetadata creationMetadata;
 
   MaterializedViewMetadata(CreationMetadata creationMetadata) {
@@ -83,8 +88,13 @@ public class MaterializedViewMetadata {
     return unmodifiableList(creationMetadata.getSourceTables());
   }
 
-  public String getSnapshot() {
-    return creationMetadata.getValidTxnList();
+  public MaterializationSnapshot getSnapshot() {
+    if (creationMetadata.getValidTxnList() == null || creationMetadata.getValidTxnList().isEmpty()) {
+      LOG.debug("Could not obtain materialization snapshot of materialized view {}.{}",
+          creationMetadata.getDbName(), creationMetadata.getDbName());
+      return null;
+    }
+    return MaterializationSnapshot.fromJson(creationMetadata.getValidTxnList());
   }
 
   public long getMaterializationTime() {

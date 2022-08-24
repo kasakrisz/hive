@@ -1968,7 +1968,7 @@ public class Hive {
           // disabled by default).
           materialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
               materialization, validTxnsList, new ValidTxnWriteIdList(
-                          materializedViewTable.getMVMetadata().getSnapshot()));
+                          materializedViewTable.getMVMetadata().getSnapshot().getValidTxnList()));
         }
         result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(materialization));
       }
@@ -2201,7 +2201,7 @@ public class Hive {
               // so we can produce partial rewritings
               relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
                   relOptMaterialization, validTxnsList, new ValidTxnWriteIdList(
-                      metadata.getSnapshot()));
+                      metadata.getSnapshot().getValidTxnList()));
             }
             addToMaterializationList(expandGroupingSets, invalidationInfo, relOptMaterialization, result);
             continue;
@@ -2224,7 +2224,7 @@ public class Hive {
             // so we can produce partial rewritings
             relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
                     hiveRelOptMaterialization, validTxnsList, new ValidTxnWriteIdList(
-                    metadata.getSnapshot()));
+                    metadata.getSnapshot().getValidTxnList()));
           }
           addToMaterializationList(expandGroupingSets, invalidationInfo, relOptMaterialization, result);
         }

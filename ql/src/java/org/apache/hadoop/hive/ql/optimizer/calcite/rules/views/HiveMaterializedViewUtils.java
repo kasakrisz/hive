@@ -108,12 +108,7 @@ public class HiveMaterializedViewUtils {
           Set<TableName> tablesUsed, Table materializedViewTable) throws HiveException {
 
     MaterializedViewMetadata mvMetadata = materializedViewTable.getMVMetadata();
-    if (mvMetadata.getSnapshot() == null || mvMetadata.getSnapshot().isEmpty()) {
-      LOG.debug("Materialized view " + materializedViewTable.getFullyQualifiedName() +
-              " ignored for rewriting as we could not obtain materialization snapshot.");
-      return null;
-    }
-    MaterializationSnapshot snapshot = MaterializationSnapshot.fromJson(mvMetadata.getSnapshot());
+    MaterializationSnapshot snapshot = mvMetadata.getSnapshot();
 
     if (isNotBlank(snapshot.getValidTxnList())) {
       return isOutdatedMaterializedView(
