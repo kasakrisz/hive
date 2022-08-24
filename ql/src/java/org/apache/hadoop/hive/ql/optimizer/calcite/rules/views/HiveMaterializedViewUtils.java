@@ -492,4 +492,18 @@ public class HiveMaterializedViewUtils {
     }
     return newScan;
   }
+
+  public static Map<String, String> getSnapshotOf(Hive db, Set<TableName> tables) throws HiveException {
+    Map<String, String> snapshot = new HashMap<>(tables.size());
+    for (TableName tableName : tables) {
+      Table table = db.getTable(tableName);
+      if (table.getStorageHandler() != null) {
+        String sh = table.getStorageHandler().getCurrentSnapshot(table);
+        if (isNotBlank(sh)) {
+          snapshot.put(table.getFullyQualifiedName(), sh);
+        }
+      }
+    }
+    return snapshot;
+  }
 }

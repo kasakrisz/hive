@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hive.ql.ddl.view.materialized.update;
 
-import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.common.ValidTxnWriteIdList;
 import org.apache.hadoop.hive.ql.ddl.DDLOperation;
 import org.apache.hadoop.hive.ql.ddl.DDLOperationContext;
@@ -29,10 +28,9 @@ import org.apache.hadoop.hive.ql.metadata.MaterializedViewMetadata;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ExplainConfiguration.AnalyzeState;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils.getSnapshotOf;
 
 /**
  * Operation process of updating a materialized view.
@@ -59,17 +57,7 @@ public class MaterializedViewUpdateOperation extends DDLOperation<MaterializedVi
       } else if (desc.isUpdateCreationMetadata()) {
         // We need to update the status of the creation signature
         Table mvTable = context.getDb().getTable(desc.getName());
-        Map<String, String> snapshot = new HashMap<>(mvTable.getMVMetadata().getSourceTables().size());
-        for (TableName tableName : mvTable.getMVMetadata().getSourceTableNames()) {
-          Table table = context.getDb().getTable(tableName);
-          if (table.getStorageHandler() != null) {
-            String sh = table.getStorageHandler().getCurrentSnapshot(table);
-            if (isNotBlank(sh)) {
-              snapshot.put(table.getFullyQualifiedName(), sh);
-            }
-          }
-        }
-
+        Map<String, String> snapshot = getSnapshotOf(context.getDb(), mvTable.getMVMetadata().getSourceTableNames());
         MaterializedViewMetadata newMetadata = mvTable.getMVMetadata().reset(
                 new MaterializationSnapshot(
                 context.getConf().get(ValidTxnWriteIdList.VALID_TABLES_WRITEIDS_KEY), snapshot));

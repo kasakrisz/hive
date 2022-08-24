@@ -36,14 +36,13 @@ import org.apache.hadoop.hive.ql.metadata.MaterializedViewMetadata;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.metastore.Warehouse;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils.getSnapshotOf;
 
 /**
  * Operation process of creating a view.
@@ -70,15 +69,9 @@ public class CreateMaterializedViewOperation extends DDLOperation<CreateMaterial
       // We set the signature for the view if it is a materialized view
       if (tbl.isMaterializedView()) {
         Set<SourceTable> sourceTables = new HashSet<>(desc.getTablesUsed().size());
-        Map<String, String> snapshot = new HashMap<>(desc.getTablesUsed().size());
+        Map<String, String> snapshot = getSnapshotOf(context.getDb(), desc.getTablesUsed());
         for (TableName tableName : desc.getTablesUsed()) {
           Table table = context.getDb().getTable(tableName);
-          if (table.getStorageHandler() != null) {
-            String tableSnapshot = table.getStorageHandler().getCurrentSnapshot(table);
-            if (isNotBlank(tableSnapshot)) {
-              snapshot.put(table.getFullyQualifiedName(), tableSnapshot);
-            }
-          }
           sourceTables.add(table.createSourceTable());
         }
         MaterializedViewMetadata metadata = new MaterializedViewMetadata(
