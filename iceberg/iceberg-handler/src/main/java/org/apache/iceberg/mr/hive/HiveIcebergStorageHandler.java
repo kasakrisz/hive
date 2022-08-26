@@ -1059,4 +1059,29 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     Table table = IcebergTableUtil.getTable(conf, tableDesc.getProperties());
     return SnapshotKey.fromSnapshot(table.currentSnapshot()).equals(SnapshotKey.fromJson(otherSnapshot));
   }
+
+  @Override
+  public Boolean hasDeleteOperation(org.apache.hadoop.hive.ql.metadata.Table hmsTable, String sinceSnapshotText) {
+    SnapshotKey sinceSnapshot = SnapshotKey.fromJson(sinceSnapshotText);
+    TableDesc tableDesc = Utilities.getTableDesc(hmsTable);
+    Table table = IcebergTableUtil.getTable(conf, tableDesc.getProperties());
+    boolean foundSince = false;
+    for (Snapshot snapshot: table.snapshots()) {
+      if (!foundSince) {
+        if (snapshot.snapshotId() == sinceSnapshot.snapshotId) {
+          foundSince = true;
+        }
+      } else {
+        if ("delete".equals(snapshot.operation())) {
+          return true;
+        }
+      }
+    }
+
+    if (foundSince) {
+      return false;
+    }
+
+    return null;
+  }
 }

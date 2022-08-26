@@ -497,4 +497,8 @@ public interface HiveStorageHandler extends Configurable {
   default boolean isCurrentSnapshot(org.apache.hadoop.hive.ql.metadata.Table table, String otherSnapshot) {
     return false;
   }
+
+  default Boolean hasDeleteOperation(org.apache.hadoop.hive.ql.metadata.Table hmsTable, String sinceSnapshotText) {
+    return null;
+  }
 }
