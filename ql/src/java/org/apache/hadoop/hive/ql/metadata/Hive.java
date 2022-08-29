@@ -94,6 +94,7 @@ import org.apache.hadoop.hdfs.DFSUtilClient;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.HiveStatsUtils;
+import org.apache.hadoop.hive.common.MaterializationSnapshot;
 import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.common.ValidReaderWriteIdList;
@@ -108,6 +109,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.api.GetPartitionsByNamesRequest;
 import org.apache.hadoop.hive.metastore.api.GetTableRequest;
+import org.apache.hadoop.hive.metastore.api.SourceTable;
 import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
 import org.apache.hadoop.hive.ql.io.HdfsUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaException;
@@ -2078,8 +2080,7 @@ public class Hive {
             } else {
               // Obtain additional information if we should try incremental rewriting / rebuild
               // We will not try partial rewriting if there were update/delete/compaction operations on source tables
-              Materialization invalidationInfo = getMSC().getMaterializationInvalidationInfo(
-                  materializedViewTable.getMVMetadata().creationMetadata, conf.get(ValidTxnList.VALID_TXNS_KEY));
+              Materialization invalidationInfo = getMaterializationInvalidationInfo(materializedViewTable.getMVMetadata());
               if (invalidationInfo == null || invalidationInfo.isSourceTablesUpdateDeleteModified() ||
                   invalidationInfo.isSourceTablesCompacted()) {
                 // We ignore (as it did not meet the requirements), but we do not need to update it in the
@@ -2097,6 +2098,38 @@ public class Hive {
     } catch (Exception e) {
       throw new HiveException(e);
     }
+  }
+
+  private Materialization getMaterializationInvalidationInfo(MaterializedViewMetadata metadata)
+      throws TException, HiveException {
+    MaterializationSnapshot mvSnapshot = MaterializationSnapshot.fromJson(metadata.creationMetadata.getValidTxnList());
+    if (mvSnapshot.getTableSnapshots() != null && !mvSnapshot.getTableSnapshots().isEmpty()) {
+      boolean hasDelete = false;
+      for (SourceTable sourceTable : metadata.getSourceTables()) {
+        Table table = getTable(sourceTable.getTable().getDbName(), sourceTable.getTable().getTableName());
+        HiveStorageHandler storageHandler = table.getStorageHandler();
+        if (storageHandler == null) {
+          Materialization materialization = new Materialization();
+          materialization.setSourceTablesCompacted(true);
+          return materialization;
+        }
+        Boolean b = storageHandler.hasDeleteOperation(
+            table, mvSnapshot.getTableSnapshots().get(table.getFullyQualifiedName()));
+        if (b == null) {
+          Materialization materialization = new Materialization();
+          materialization.setSourceTablesCompacted(true);
+          return materialization;
+        } else if (b) {
+          hasDelete = true;
+        }
+      }
+      Materialization materialization = new Materialization();
+      materialization.setSourceTablesCompacted(false);
+      materialization.setSourceTablesUpdateDeleteModified(hasDelete);
+      return materialization;
+    }
+
+    return getMSC().getMaterializationInvalidationInfo(metadata.creationMetadata, conf.get(ValidTxnList.VALID_TXNS_KEY));
   }
 
   /**
@@ -2176,8 +2209,7 @@ public class Hive {
           } else {
             // Obtain additional information if we should try incremental rewriting / rebuild
             // We will not try partial rewriting if there were update/delete/compaction operations on source tables
-            invalidationInfo = getMSC().getMaterializationInvalidationInfo(
-                    metadata.creationMetadata, conf.get(ValidTxnList.VALID_TXNS_KEY));
+            invalidationInfo = getMaterializationInvalidationInfo(metadata);
             ignore = invalidationInfo == null || invalidationInfo.isSourceTablesCompacted();
           }
           if (ignore) {
