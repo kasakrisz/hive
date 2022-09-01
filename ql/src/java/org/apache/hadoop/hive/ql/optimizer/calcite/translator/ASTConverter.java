@@ -117,9 +117,9 @@ public class ASTConverter {
 
   public static ASTNode convert(final RelNode relNode, List<FieldSchema> resultSchema, boolean alignColumns, PlanMapper planMapper)
       throws CalciteSemanticException {
-    if (relNode instanceof HiveEmpty) {
-      return emptyPlan();
-    }
+//    if (relNode instanceof HiveEmpty) {
+//      return emptyPlan();
+//    }
     RelNode root = PlanModifierForASTConv.convertOpTree(relNode, resultSchema, alignColumns);
     ASTConverter c = new ASTConverter(root, 0, planMapper);
     return c.convert();
@@ -135,9 +135,11 @@ public class ASTConverter {
   //               1
   //         TOK_LIMIT
   //            0
-  private static ASTNode emptyPlan() {
-    ASTBuilder select = ASTBuilder.construct(HiveParser.TOK_SELECT, "TOK_SELECT").add(
-            ASTBuilder.selectExpr(ASTBuilder.construct(HiveParser.Number, "1").node(), "1"));
+  private static ASTNode emptyPlan(int colNum) {
+    ASTBuilder select = ASTBuilder.construct(HiveParser.TOK_SELECT, "TOK_SELECT");
+    for (int i = 0; i < colNum; ++i) {
+      select.add(ASTBuilder.selectExpr(ASTBuilder.construct(HiveParser.TOK_NULL, "TOK_NULL").node(), "c" + i));
+    }
 
     ASTNode insert = ASTBuilder.
             construct(HiveParser.TOK_INSERT, "TOK_INSERT").
@@ -161,6 +163,9 @@ public class ASTConverter {
     /*
      * 2. convert from node.
      */
+    if (from == null) {
+      return emptyPlan(root.getRowType().getFieldCount());
+    }
     QueryBlockInfo qb = convertSource(from);
     schema = qb.schema;
     hiveAST.from = ASTBuilder.construct(HiveParser.TOK_FROM, "TOK_FROM").add(qb.ast).node();

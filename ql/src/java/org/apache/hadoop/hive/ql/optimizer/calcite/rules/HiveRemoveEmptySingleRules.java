@@ -18,18 +18,25 @@
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepRelVertex;
+import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.core.Values;
-import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 
-public class HiveRemoveEmptySingleRules {
+import java.util.List;
+
+public class HiveRemoveEmptySingleRules extends PruneEmptyRules {
 
   public static final RelOptRule PROJECT_INSTANCE =
           PruneEmptyRules.RemoveEmptySingleRule.Config.EMPTY
@@ -95,4 +102,66 @@ public class HiveRemoveEmptySingleRules {
                   .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal)
                   .withRelBuilderFactory(HiveRelFactories.HIVE_BUILDER)
                   .toRule();
+
+  public static final RelOptRule UNION_INSTANCE =
+          HiveUnionEmptyPruneRuleConfig.EMPTY
+                  .withOperandSupplier(b0 ->
+                          b0.operand(Union.class).unorderedInputs(b1 ->
+                                  b1.operand(Values.class)
+                                          .predicate(Values::isEmpty).noInputs()))
+                  .withDescription("HivePruneEmptyUnionBranch")
+                  .as(HiveUnionEmptyPruneRuleConfig.class)
+                  .withRelBuilderFactory(HiveRelFactories.HIVE_BUILDER)
+                  .toRule();
+
+  public interface HiveUnionEmptyPruneRuleConfig extends PruneEmptyRules.PruneEmptyRule.Config {
+    @Override default PruneEmptyRules.PruneEmptyRule toRule() {
+      return new PruneEmptyRules.PruneEmptyRule(this) {
+        @Override public void onMatch(RelOptRuleCall call) {
+          final Union union = call.rel(0);
+          final List<RelNode> inputs = union.getInputs();
+          assert inputs != null;
+          final RelBuilder builder = call.builder();
+          int nonEmptyInputs = 0;
+          for (RelNode input : inputs) {
+            if (!isEmpty(input)) {
+              builder.push(input);
+              nonEmptyInputs++;
+            }
+          }
+          assert nonEmptyInputs < inputs.size()
+                  : "planner promised us at least one Empty child: "
+                  + RelOptUtil.toString(union);
+          if (nonEmptyInputs == 0) {
+            builder.push(union).empty();
+          } else {
+            builder.union(union.all, nonEmptyInputs);
+            builder.convert(union.getRowType(), true);
+          }
+          call.transformTo(builder.build());
+        }
+      };
+    }
+  }
+
+  private static boolean isEmpty(RelNode node) {
+    if (node instanceof Values) {
+      return ((Values) node).getTuples().isEmpty();
+    }
+    if (node instanceof HepRelVertex) {
+      return isEmpty(((HepRelVertex) node).getCurrentRel());
+    }
+    // Note: relation input might be a RelSubset, so we just iterate over the relations
+    // in order to check if the subset is equivalent to an empty relation.
+    if (!(node instanceof RelSubset)) {
+      return false;
+    }
+    RelSubset subset = (RelSubset) node;
+    for (RelNode rel : subset.getRels()) {
+      if (isEmpty(rel)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
