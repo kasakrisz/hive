@@ -19,10 +19,13 @@ package org.apache.hadoop.hive.ql.optimizer.calcite.rules;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Values;
+import org.apache.calcite.rel.rules.AggregateValuesRule;
 import org.apache.calcite.rel.rules.PruneEmptyRules;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 
@@ -65,6 +68,31 @@ public class HiveRemoveEmptySingleRules {
                                           .noInputs()))
                   .withDescription("HivePruneEmptyJoin(right)")
                   .as(PruneEmptyRules.JoinRightEmptyRuleConfig.class)
+                  .withRelBuilderFactory(HiveRelFactories.HIVE_BUILDER)
+                  .toRule();
+
+  public static final RelOptRule SORT_INSTANCE =
+          PruneEmptyRules.RemoveEmptySingleRule.Config.EMPTY
+                  .withDescription("HivePruneEmptySort")
+                  .as(PruneEmptyRules.RemoveEmptySingleRule.Config.class)
+                  .withOperandFor(Sort.class, singleRel -> true)
+                  .withRelBuilderFactory(HiveRelFactories.HIVE_BUILDER)
+                  .toRule();
+
+  public static final RelOptRule SORT_FETCH_ZERO_INSTANCE =
+          PruneEmptyRules.SortFetchZeroRuleConfig.EMPTY
+                  .withOperandSupplier(b ->
+                          b.operand(Sort.class).anyInputs())
+                  .withDescription("HivePruneSortLimit0")
+                  .as(PruneEmptyRules.SortFetchZeroRuleConfig.class)
+                  .withRelBuilderFactory(HiveRelFactories.HIVE_BUILDER)
+                  .toRule();
+
+  public static final RelOptRule AGGREGATE_INSTANCE =
+          PruneEmptyRules.RemoveEmptySingleRule.Config.EMPTY
+                  .withDescription("HivePruneEmptyAggregate")
+                  .as(PruneEmptyRules.RemoveEmptySingleRule.Config.class)
+                  .withOperandFor(Aggregate.class, Aggregate::isNotGrandTotal)
                   .withRelBuilderFactory(HiveRelFactories.HIVE_BUILDER)
                   .toRule();
 }

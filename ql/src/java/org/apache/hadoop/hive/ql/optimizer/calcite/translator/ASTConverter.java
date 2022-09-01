@@ -68,6 +68,7 @@ import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.calcite.CalciteSemanticException;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelOptUtil;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveAggregate;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveEmpty;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveGroupingID;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSortExchange;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.jdbc.HiveJdbcConverter;
@@ -116,9 +117,39 @@ public class ASTConverter {
 
   public static ASTNode convert(final RelNode relNode, List<FieldSchema> resultSchema, boolean alignColumns, PlanMapper planMapper)
       throws CalciteSemanticException {
+    if (relNode instanceof HiveEmpty) {
+      return emptyPlan();
+    }
     RelNode root = PlanModifierForASTConv.convertOpTree(relNode, resultSchema, alignColumns);
     ASTConverter c = new ASTConverter(root, 0, planMapper);
     return c.convert();
+  }
+
+  //    TOK_QUERY
+  //      TOK_INSERT
+  //         TOK_DESTINATION
+  //            TOK_DIR
+  //               TOK_TMP_FILE
+  //         TOK_SELECT
+  //            TOK_SELEXPR
+  //               1
+  //         TOK_LIMIT
+  //            0
+  private static ASTNode emptyPlan() {
+    ASTBuilder select = ASTBuilder.construct(HiveParser.TOK_SELECT, "TOK_SELECT").add(
+            ASTBuilder.selectExpr(ASTBuilder.construct(HiveParser.Number, "1").node(), "1"));
+
+    ASTNode insert = ASTBuilder.
+            construct(HiveParser.TOK_INSERT, "TOK_INSERT").
+            add(ASTBuilder.destNode()).
+            add(select).
+            add(ASTBuilder.limit(0, 0)).
+            node();
+
+    return ASTBuilder.
+            construct(HiveParser.TOK_QUERY, "TOK_QUERY").
+            add(insert).
+            node();
   }
 
   private ASTNode convert() throws CalciteSemanticException {
