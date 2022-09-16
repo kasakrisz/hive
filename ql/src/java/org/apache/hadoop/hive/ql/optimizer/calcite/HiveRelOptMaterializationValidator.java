@@ -89,10 +89,9 @@ public class HiveRelOptMaterializationValidator extends HiveRelShuttleImpl {
     if (tab.isTemporary()) {
       fail(tab.getTableName() + " is a temporary table");
     }
-    if (!AcidUtils.isTransactionalTable(tab)) {
-      if (!(tab.getStorageHandler() != null && tab.getStorageHandler().areSnapshotsSupported())) {
-        fail(tab.getFullyQualifiedName() + " is not a transactional table and does not support snapshots");
-      }
+    if (tab.getTableType() == TableType.EXTERNAL_TABLE &&
+        !(tab.getStorageHandler() != null && tab.getStorageHandler().areSnapshotsSupported())) {
+      fail(tab.getFullyQualifiedName() + " is an external table and does not support snapshots");
     }
     return hiveScan;
   }
