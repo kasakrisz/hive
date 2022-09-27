@@ -408,6 +408,8 @@ TOK_JAR;
 TOK_RESOURCE_URI;
 TOK_RESOURCE_LIST;
 TOK_SHOW_COMPACTIONS;
+TOK_COMPACTION_TYPE;
+TOK_COMPACTION_STATUS;
 TOK_SHOW_TRANSACTIONS;
 TOK_DELETE_FROM;
 TOK_UPDATE_TABLE;
@@ -1334,7 +1336,12 @@ showStatement
       |
       (parttype=partTypeExpr)? (isExtended=KW_EXTENDED)? -> ^(TOK_SHOWLOCKS $parttype? $isExtended?)
       )
-    | KW_SHOW KW_COMPACTIONS compactPool? -> ^(TOK_SHOW_COMPACTIONS compactPool?)
+    | KW_SHOW KW_COMPACTIONS
+      (
+      (KW_DATABASE|KW_SCHEMA) => (KW_DATABASE|KW_SCHEMA) (dbName=identifier) compactPool? compactionType? compactionStatus? orderByClause? limitClause? -> ^(TOK_SHOW_COMPACTIONS $dbName compactPool? compactionType? compactionStatus? orderByClause? limitClause?)
+      |
+      (parttype=partTypeExpr)? compactPool? compactionType? compactionStatus? orderByClause? limitClause? -> ^(TOK_SHOW_COMPACTIONS $parttype? compactPool? compactionType? compactionStatus? orderByClause? limitClause?)
+      )
     | KW_SHOW KW_TRANSACTIONS -> ^(TOK_SHOW_TRANSACTIONS)
     | KW_SHOW KW_CONF StringLiteral -> ^(TOK_SHOWCONF StringLiteral)
     | KW_SHOW KW_RESOURCE
@@ -1344,6 +1351,17 @@ showStatement
       )
     | KW_SHOW (KW_DATACONNECTORS) -> ^(TOK_SHOWDATACONNECTORS)
     ;
+
+compactionType
+  : KW_TYPE compactType=StringLiteral
+  -> ^(TOK_COMPACTION_TYPE $compactType)
+  ;
+
+compactionStatus
+  : KW_STATUS status=StringLiteral
+  -> ^(TOK_COMPACTION_STATUS $status)
+  ;
+
 
 showTablesFilterExpr
 @init { pushMsg("show tables filter expr", state); }
