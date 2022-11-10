@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.parse;
 
 import static java.util.Objects.nonNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.hadoop.hive.common.AcidConstants.SOFT_DELETE_TABLE;
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.DYNAMICPARTITIONCONVERT;
@@ -13425,7 +13426,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       makeAcid = false;
     }
     if ((makeInsertOnly || makeAcid || isTransactional || isManaged)
-        && !isExt  && !isMaterialization && StringUtils.isBlank(storageFormat.getStorageHandler())
+        && !isExt  && !isMaterialization && isBlank(storageFormat.getStorageHandler())
         //don't overwrite user choice if transactional attribute is explicitly set
         && !retValue.containsKey(hive_metastoreConstants.TABLE_IS_TRANSACTIONAL)) {
       if (makeInsertOnly || isTransactional) {
@@ -14204,6 +14205,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tblProps = new HashMap<>();
       }
       tblProps = convertToAcidByDefault(storageFormat, dbDotTable, null, tblProps);
+    }
+    if (tblProps == null) {
+      tblProps = new HashMap<>();
+    }
+    tblProps.put(TABLE_IS_CTAS, "true");
+    if (ctx.isExplainPlan()) {
+      tblProps.put("explain", "true");
     }
 
     createVwDesc = new CreateMaterializedViewDesc(

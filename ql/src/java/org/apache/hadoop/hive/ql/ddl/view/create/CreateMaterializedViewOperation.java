@@ -40,6 +40,7 @@ import java.util.Set;
 
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils.getSnapshotOf;
 
 /**
@@ -52,50 +53,86 @@ public class CreateMaterializedViewOperation extends DDLOperation<CreateMaterial
 
   @Override
   public int execute() throws HiveException {
-    Table oldview = context.getDb().getTable(desc.getViewName(), false);
-    if (oldview != null) {
+    Table view = getView();
+    DDLUtils.addIfAbsentByName(new WriteEntity(view, WriteEntity.WriteType.DDL_NO_LOCK),
+            context.getWork().getOutputs());
+
+    //set lineage info
+    DataContainer dc = new DataContainer(view.getTTable());
+    Map<String, String> viewProps = view.getTTable().getParameters();
+    Path tLocation;
+    try {
+      Warehouse wh = new Warehouse(context.getConf());
+      tLocation = wh.getDefaultTablePath(context.getDb().getDatabase(view.getDbName()), view.getTableName(),
+              viewProps == null || !AcidUtils.isTablePropertyTransactional(viewProps));
+    } catch (MetaException e) {
+      throw new HiveException(e);
+    }
+
+    context.getQueryState().getLineageState().setLineage(tLocation, dc, view.getCols());
+    return 0;
+  }
+
+  protected Table getView() throws HiveException {
+    if (isBlank(desc.getStorageHandler())) {
+      return createView();
+    }
+
+    return loadView();
+  }
+
+  protected Table createView() throws HiveException {
+    Table oldView = context.getDb().getTable(desc.getViewName(), false);
+    if (oldView != null) {
 
       if (desc.getIfNotExists()) {
-        return 0;
+        return null;
       }
 
       // Materialized View already exists, thus we should be replacing
       throw new HiveException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(desc.getViewName()));
-    } else {
-      // We create new view
-      Table tbl = desc.toTable(context.getConf());
-      // We set the signature for the view if it is a materialized view
-      if (tbl.isMaterializedView()) {
-        Set<SourceTable> sourceTables = new HashSet<>(desc.getTablesUsed().size());
-        for (TableName tableName : desc.getTablesUsed()) {
-          sourceTables.add(context.getDb().getTable(tableName).createSourceTable());
-        }
-        MaterializedViewMetadata metadata = new MaterializedViewMetadata(
-                MetaStoreUtils.getDefaultCatalog(context.getConf()),
-                tbl.getDbName(),
-                tbl.getTableName(),
-                sourceTables,
-                getSnapshotOf(context, desc.getTablesUsed()));
-        tbl.setMaterializedViewMetadata(metadata);
-      }
-      context.getDb().createTable(tbl, desc.getIfNotExists());
-      DDLUtils.addIfAbsentByName(new WriteEntity(tbl, WriteEntity.WriteType.DDL_NO_LOCK),
-          context.getWork().getOutputs());
-
-      //set lineage info
-      DataContainer dc = new DataContainer(tbl.getTTable());
-      Map<String, String> tblProps = tbl.getTTable().getParameters();
-      Path tlocation = null;
-      try {
-        Warehouse wh = new Warehouse(context.getConf());
-        tlocation = wh.getDefaultTablePath(context.getDb().getDatabase(tbl.getDbName()), tbl.getTableName(),
-                tblProps == null || !AcidUtils.isTablePropertyTransactional(tblProps));
-      } catch (MetaException e) {
-        throw new HiveException(e);
-      }
-
-      context.getQueryState().getLineageState().setLineage(tlocation, dc, tbl.getCols());
     }
-    return 0;
+
+    Table view = desc.toTable(context.getConf());
+    setMVData(view);
+    context.getDb().createTable(view, desc.getIfNotExists());
+    return view;
   }
+
+  private Table loadView() throws HiveException {
+    Table view = context.getDb().getTable(desc.getViewName(), false);
+    if (view == null) {
+      throw new HiveException("View does not exists! It must be created by storage handler.");
+    }
+
+    if (desc.getIfNotExists()) {
+      return null;
+    }
+
+    // Materialized View already exists, thus we should be replacing
+    if (!(view.getStorageHandler() != null && view.getStorageHandler().areSnapshotsSupported())) {
+      // Materialized View already exists, thus we should be replacing
+      throw new HiveException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(desc.getViewName()));
+    }
+    setMVData(view);
+
+    return view;
+  }
+
+  private void setMVData(Table view) throws HiveException {
+    // We set the signature for the view if it is a materialized view
+    if (view.isMaterializedView()) {
+      Set<SourceTable> sourceTables = new HashSet<>(desc.getTablesUsed().size());
+      for (TableName tableName : desc.getTablesUsed()) {
+        sourceTables.add(context.getDb().getTable(tableName).createSourceTable());
+      }
+      MaterializedViewMetadata metadata = new MaterializedViewMetadata(
+              MetaStoreUtils.getDefaultCatalog(context.getConf()),
+              view.getDbName(),
+              view.getTableName(),
+              sourceTables,
+              getSnapshotOf(context, desc.getTablesUsed()));
+      view.setMaterializedViewMetadata(metadata);
+    }
+  }  
 }
