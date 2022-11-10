@@ -178,4 +178,8 @@ public class HiveMaterializedViewASTSubQueryRewriteShuttle extends HiveRelShuttl
 
     return null;
   }
+
+  RelOptCluster getCluster() {
+    return relBuilder.getCluster();
+  }
 }

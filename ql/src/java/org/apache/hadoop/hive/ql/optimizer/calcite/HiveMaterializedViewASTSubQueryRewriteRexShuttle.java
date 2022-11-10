@@ -39,6 +39,12 @@ public class HiveMaterializedViewASTSubQueryRewriteRexShuttle extends RexShuttle
 
     RelNode newSubquery = subQuery.rel.accept(relShuttle);
 
+    SubqueryConf subqueryConfig = relShuttle.getCluster().getPlanner().getContext().unwrap(SubqueryConf.class);
+    if (subqueryConfig.getCorrScalarRexSQWithAgg().contains(subQuery.rel)) {
+      subqueryConfig.getCorrScalarRexSQWithAgg().remove(subQuery.rel);
+      subqueryConfig.getCorrScalarRexSQWithAgg().add(newSubquery);
+    }
+
     RexNode newSubQueryRex;
     switch (subQuery.op.kind) {
       case IN:
