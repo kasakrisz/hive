@@ -7736,6 +7736,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         if (tblDesc == null) {
           if (viewDesc != null) {
             destinationTable = viewDesc.toTable(conf);
+            if (viewDesc.getStorageHandler() != null) {
+              viewDesc.setLocation(calculateLocation(destinationTable));
+            }
             tableDescriptor = PlanUtils.getTableDesc(viewDesc, cols, colTypes);
           } else if (qb.getIsQuery()) {
             Class<? extends Deserializer> serdeClass = LazySimpleSerDe.class;
@@ -7760,22 +7763,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         } else {
           destinationTable = db.getTranslateTableDryrun(tblDesc.toTable(conf).getTTable());
           if (tblDesc.isCTAS() && tblDesc.getStorageHandler() != null) {
-            String location;
-            if (destinationTable.getDataLocation() == null) {
-              // no metastore.metadata.transformer.class was set
-              location = getDatabase(destinationTable.getDbName()).getLocationUri();
-              if (location != null) {
-                location = String.format("%s/%s", location, destinationTable.getTableName());
-              } else {
-                location = new Warehouse(conf).getDefaultTablePath(
-                        destinationTable.getDbName(),
-                        destinationTable.getTableName(),
-                        Boolean.parseBoolean(destinationTable.getParameters().get("EXTERNAL"))).toString();
-              }
-            } else {
-              location =destinationTable.getDataLocation().toString();
-            }
-            tblDesc.setLocation(location);
+            tblDesc.setLocation(calculateLocation(destinationTable));
           }
           tableDescriptor = PlanUtils.getTableDesc(tblDesc, cols, colTypes);
         }
@@ -8007,6 +7995,25 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
     return output;
+  }
+
+  private String calculateLocation(Table destinationTable) throws SemanticException, MetaException {
+    String location;
+    if (destinationTable.getDataLocation() == null) {
+      // no metastore.metadata.transformer.class was set
+      location = getDatabase(destinationTable.getDbName()).getLocationUri();
+      if (location != null) {
+        location = String.format("%s/%s", location, destinationTable.getTableName());
+      } else {
+        location = new Warehouse(conf).getDefaultTablePath(
+                destinationTable.getDbName(),
+                destinationTable.getTableName(),
+                Boolean.parseBoolean(destinationTable.getParameters().get("EXTERNAL"))).toString();
+      }
+    } else {
+      location = destinationTable.getDataLocation().toString();
+    }
+    return location;
   }
 
   protected boolean enableColumnStatsCollecting() {
