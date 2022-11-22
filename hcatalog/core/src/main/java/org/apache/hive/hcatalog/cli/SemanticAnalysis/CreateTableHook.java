@@ -162,7 +162,7 @@ final class CreateTableHook extends HCatSemanticAnalyzerBase {
     }
 
     try {
-      Table table = context.getHive().newTable(desc.getDbTableName());
+      Table table = context.getHive().newTable(desc.getName());
       if (desc.getLocation() != null) {
         table.setDataLocation(new Path(desc.getLocation()));
       }

@@ -7592,7 +7592,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         fileSinkColInfos = new ArrayList<>();
         destTableIsTemporary = tblDesc.isTemporary();
         destTableIsMaterialization = tblDesc.isMaterialization();
-        tableName = TableName.fromString(tblDesc.getDbTableName(), null, tblDesc.getDatabaseName());
+        tableName = TableName.fromString(tblDesc.getName(), null, tblDesc.getDatabaseName());
         tblProps = tblDesc.getTblProps();
         // Add suffix only when required confs are present
         // and user has not specified a location to the table.
@@ -7612,7 +7612,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         distributeColInfos = new ArrayList<>();
         destTableIsTemporary = false;
         destTableIsMaterialization = false;
-        tableName = HiveTableName.ofNullableWithNoDefault(viewDesc.getViewName());
+        tableName = HiveTableName.ofNullableWithNoDefault(viewDesc.getName());
         tblProps = viewDesc.getTblProps();
         // Add suffix only when required confs are present
         // and user has not specified a location to the table.
@@ -7877,7 +7877,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         ctx.getLoadTableOutputMap().put(ltd, output);
       } else {
         // Create LFD even for MM CTAS - it's a no-op move, but it still seems to be used for stats.
-        LoadFileDesc loadFileDesc = new LoadFileDesc(tblDesc, viewDesc, queryTmpdir, destinationPath, isDfsDir, cols,
+        LoadFileDesc loadFileDesc = LoadFileDesc.with(tblDesc, viewDesc, queryTmpdir, destinationPath, isDfsDir, cols,
             colTypes,
             destTableIsFullAcid ?//there is a change here - prev version had 'transactional', one before 'acid'
                 Operation.INSERT : Operation.NOT_ACID,
@@ -8030,7 +8030,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     Table tbl;
     try {
       if (tblDesc != null) {
-        protoName = tblDesc.getDbTableName();
+        protoName = tblDesc.getName();
 
         // Handle table translation initially and if not present
         // use default table path.
@@ -8040,7 +8040,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tbl = tblDesc.toTable(conf);
         tbl = db.getTranslateTableDryrun(tbl.getTTable());
       } else {
-        protoName = viewDesc.getViewName();
+        protoName = viewDesc.getName();
         tbl = viewDesc.toTable(conf);
       }
       names = Utilities.getDbTableName(protoName);
@@ -8355,7 +8355,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     if (queryState.getCommandType().equals(HiveOperation.CREATETABLE_AS_SELECT.getOperationName())) {
 
       Path tlocation = null;
-      String tName = Utilities.getDbTableName(tableDesc.getDbTableName())[1];
+      String tName = Utilities.getDbTableName(tableDesc.getName())[1];
       try {
         String suffix = Utilities.getTableOrMVSuffix(ctx,
                 AcidUtils.isTableSoftDeleteEnabled(destinationTable, conf));
@@ -8375,7 +8375,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           .mapDirToOp(tlocation, output);
     } else if (queryState.getCommandType().equals(HiveOperation.CREATE_MATERIALIZED_VIEW.getOperationName())) {
       Path tlocation;
-      String [] dbTable = Utilities.getDbTableName(createVwDesc.getViewName());
+      String [] dbTable = Utilities.getDbTableName(createVwDesc.getName());
       try {
         Warehouse wh = new Warehouse(conf);
         Map<String, String> tblProps = createVwDesc.getTblProps();
@@ -12583,7 +12583,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
       viewSelect = child;
       // prevent view from referencing itself
-      viewsExpanded.add(createVwDesc.getViewName());
+      viewsExpanded.add(createVwDesc.getName());
     }
 
     if (forViewCreation) {
@@ -13075,7 +13075,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       sb.append(" FROM (");
       sb.append(expandedText);
       sb.append(") ");
-      sb.append(HiveUtils.unparseIdentifier(Utilities.getDbTableName(createVwDesc.getViewName())[1], conf));
+      sb.append(HiveUtils.unparseIdentifier(Utilities.getDbTableName(createVwDesc.getName())[1], conf));
       expandedText = sb.toString();
     }
 

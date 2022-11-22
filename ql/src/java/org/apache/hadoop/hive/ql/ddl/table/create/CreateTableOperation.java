@@ -95,7 +95,7 @@ public class CreateTableOperation extends DDLOperation<CreateTableDesc> {
             replDataLocationChanged = true;
           }
         } else {
-          LOG.debug("DDLTask: Create Table is skipped as table {} is newer than update", desc.getDbTableName());
+          LOG.debug("DDLTask: Create Table is skipped as table {} is newer than update", desc.getName());
           return 0; // no replacement, the existing table state is newer than our update.
         }
       }

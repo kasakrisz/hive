@@ -36,8 +36,7 @@ import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.ddl.DDLUtils;
-import org.apache.hadoop.hive.ql.ddl.table.create.CreateTableDesc;
-import org.apache.hadoop.hive.ql.ddl.view.create.CreateMaterializedViewDesc;
+import org.apache.hadoop.hive.ql.ddl.table.create.CreateDbObjectDesc;
 import org.apache.hadoop.hive.ql.exec.mr.MapRedTask;
 import org.apache.hadoop.hive.ql.exec.mr.MapredLocalTask;
 import org.apache.hadoop.hive.ql.exec.repl.util.ReplUtils;
@@ -1069,22 +1068,14 @@ public class MoveTask extends Task<MoveWork> implements Serializable {
       overwrite = moveWork.getLoadTableWork().isInsertOverwrite();
     } else if (moveWork.getLoadFileWork() != null) {
       // Get the info from the create table data
-      CreateTableDesc createTableDesc = moveWork.getLoadFileWork().getCtasCreateTableDesc();
-      String location = null;
-      if (createTableDesc != null) {
-        storageHandlerClass = createTableDesc.getStorageHandler();
+      CreateDbObjectDesc createDbObjectDesc = moveWork.getLoadFileWork().getCreateDbObjectDesc();
+      if (createDbObjectDesc != null) {
+        storageHandlerClass = createDbObjectDesc.getStorageHandler();
         commitProperties = new Properties();
-        commitProperties.put(hive_metastoreConstants.META_TABLE_NAME, createTableDesc.getDbTableName());
-        location = createTableDesc.getLocation();
-      } else if (moveWork.getLoadFileWork().getCreateViewDesc() != null) {
-        CreateMaterializedViewDesc createViewDesc = moveWork.getLoadFileWork().getCreateViewDesc();
-        storageHandlerClass = createViewDesc.getStorageHandler();
-        commitProperties = new Properties();
-        commitProperties.put(hive_metastoreConstants.META_TABLE_NAME, createViewDesc.getViewName());
-        location = createViewDesc.getLocation();
-      }
-      if (location != null) {
-        commitProperties.put(hive_metastoreConstants.META_TABLE_LOCATION, location);
+        commitProperties.put(hive_metastoreConstants.META_TABLE_NAME, createDbObjectDesc.getName());
+        if (createDbObjectDesc.getLocation() != null) {
+          commitProperties.put(hive_metastoreConstants.META_TABLE_LOCATION, createDbObjectDesc.getLocation());
+        }
       }
     }
 

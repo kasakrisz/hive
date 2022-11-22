@@ -32,9 +32,9 @@ import org.apache.hadoop.hive.conf.Constants;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.SourceTable;
 import org.apache.hadoop.hive.ql.ddl.DDLDesc;
 import org.apache.hadoop.hive.ql.ddl.DDLUtils;
+import org.apache.hadoop.hive.ql.ddl.table.create.CreateDbObjectDesc;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * DDL task description for CREATE VIEW commands.
  */
 @Explain(displayName = "Create Materialized View", explainLevels = { Level.USER, Level.DEFAULT, Level.EXTENDED })
-public class CreateMaterializedViewDesc implements DDLDesc, Serializable {
+public class CreateMaterializedViewDesc implements DDLDesc, CreateDbObjectDesc, Serializable {
   private static final long serialVersionUID = 1L;
   private static final Logger LOG = LoggerFactory.getLogger(CreateMaterializedViewDesc.class);
 
@@ -108,8 +108,9 @@ public class CreateMaterializedViewDesc implements DDLDesc, Serializable {
     this.serdeProps = serdeProps;
   }
 
+  @Override
   @Explain(displayName = "name", explainLevels = { Level.USER, Level.DEFAULT, Level.EXTENDED })
-  public String getViewName() {
+  public String getName() {
     return viewName;
   }
 
@@ -295,8 +296,9 @@ public class CreateMaterializedViewDesc implements DDLDesc, Serializable {
     return serdeProps;
   }
 
+  @Override
   public Table toTable(HiveConf conf) throws HiveException {
-    String[] names = Utilities.getDbTableName(getViewName());
+    String[] names = Utilities.getDbTableName(getName());
     String databaseName = names[0];
     String tableName = names[1];
 
@@ -355,10 +357,10 @@ public class CreateMaterializedViewDesc implements DDLDesc, Serializable {
     if (getSerde() == null) {
       if (storageHandler == null) {
         serDeClassName = PlanUtils.getDefaultSerDe().getName();
-        LOG.info("Default to {} for materialized view {}", serDeClassName, getViewName());
+        LOG.info("Default to {} for materialized view {}", serDeClassName, getName());
       } else {
         serDeClassName = storageHandler.getSerDeClass().getName();
-        LOG.info("Use StorageHandler-supplied {} for materialized view {}", serDeClassName, getViewName());
+        LOG.info("Use StorageHandler-supplied {} for materialized view {}", serDeClassName, getName());
       }
     } else {
       // let's validate that the serde exists

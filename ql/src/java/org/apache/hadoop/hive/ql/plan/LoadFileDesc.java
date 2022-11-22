@@ -21,8 +21,10 @@ package org.apache.hadoop.hive.ql.plan;
 import java.io.Serializable;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.ddl.table.create.CreateDbObjectDesc;
 import org.apache.hadoop.hive.ql.ddl.table.create.CreateTableDesc;
 import org.apache.hadoop.hive.ql.ddl.view.create.CreateMaterializedViewDesc;
+import org.apache.hadoop.hive.ql.ddl.view.create.CreateViewDesc;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 
@@ -31,14 +33,29 @@ import org.apache.hadoop.hive.ql.io.AcidUtils;
  *
  */
 public class LoadFileDesc extends LoadDesc implements Serializable {
+
+  public static LoadFileDesc with(final CreateTableDesc createTableDesc, CreateMaterializedViewDesc createViewDesc,
+    final Path sourcePath, final Path targetDir, final boolean isDfsDir,
+    final String columns, final String columnTypes, AcidUtils.Operation writeType, boolean isMmCtas) {
+
+    CreateDbObjectDesc createDbObjectDesc = null;
+    if (createTableDesc != null && createTableDesc.isCTAS()) {
+      createDbObjectDesc = createTableDesc;
+    } else if (createViewDesc != null) {
+      createDbObjectDesc = createViewDesc;
+    }
+
+    return new LoadFileDesc(
+        createDbObjectDesc, sourcePath, targetDir, isDfsDir, columns, columnTypes, writeType, isMmCtas);
+  }
+
   private static final long serialVersionUID = 1L;
   private transient Path targetDir;
   private boolean isDfsDir;
   // list of columns, comma separated
   private String columns;
   private String columnTypes;
-  private transient CreateTableDesc ctasCreateTableDesc;
-  private transient CreateMaterializedViewDesc createViewDesc;
+  private transient CreateDbObjectDesc createDbObjectDesc;
   private boolean isMmCtas;
   private String moveTaskId;
 
@@ -50,20 +67,14 @@ public class LoadFileDesc extends LoadDesc implements Serializable {
     this.columns = o.columns;
     this.columnTypes = o.columnTypes;
     this.isMmCtas = o.isMmCtas;
-    this.ctasCreateTableDesc = o.ctasCreateTableDesc;
-    this.createViewDesc = o.createViewDesc;
+    this.createDbObjectDesc = o.createDbObjectDesc;
   }
 
-  public LoadFileDesc(final CreateTableDesc createTableDesc, final CreateMaterializedViewDesc createViewDesc,
+  private LoadFileDesc(final CreateDbObjectDesc createDbObjectDesc,
       final Path sourcePath, final Path targetDir, final boolean isDfsDir,
       final String columns, final String columnTypes, AcidUtils.Operation writeType, boolean isMmCtas) {
     this(sourcePath, targetDir, isDfsDir, columns, columnTypes, writeType, isMmCtas);
-    if (createTableDesc != null && createTableDesc.isCTAS()) {
-      this.ctasCreateTableDesc = createTableDesc;
-    }
-    if (createViewDesc != null) {
-      this.createViewDesc = createViewDesc;
-    }
+    this.createDbObjectDesc = createDbObjectDesc;
   }
 
   public LoadFileDesc(final Path sourcePath, final Path targetDir,
@@ -133,12 +144,8 @@ public class LoadFileDesc extends LoadDesc implements Serializable {
     this.columnTypes = columnTypes;
   }
 
-  public CreateTableDesc getCtasCreateTableDesc() {
-    return ctasCreateTableDesc;
-  }
-
-  public CreateMaterializedViewDesc getCreateViewDesc() {
-    return createViewDesc;
+  public CreateDbObjectDesc getCreateDbObjectDesc() {
+    return createDbObjectDesc;
   }
 
   public boolean isMmCtas() {

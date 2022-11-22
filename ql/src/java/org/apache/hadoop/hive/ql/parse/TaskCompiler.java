@@ -545,12 +545,12 @@ public abstract class TaskCompiler {
               || HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_ACID_LOCKLESS_READS_ENABLED);
 
       if (pCtx.getQueryProperties().isCTAS()) {
-        protoName = pCtx.getCreateTable().getDbTableName();
+        protoName = pCtx.getCreateTable().getName();
         isExternal = pCtx.getCreateTable().isExternal();
         createTableOrMVUseSuffix &= AcidUtils.isTransactionalTable(pCtx.getCreateTable());
         suffix = Utilities.getTableOrMVSuffix(pCtx.getContext(), createTableOrMVUseSuffix);
       } else if (pCtx.getQueryProperties().isMaterializedView()) {
-        protoName = pCtx.getCreateViewDesc().getViewName();
+        protoName = pCtx.getCreateViewDesc().getName();
         createTableOrMVUseSuffix &= AcidUtils.isTransactionalView(pCtx.getCreateViewDesc());
         suffix = Utilities.getTableOrMVSuffix(pCtx.getContext(), createTableOrMVUseSuffix);
       }
@@ -624,7 +624,7 @@ public abstract class TaskCompiler {
       DDLDesc desc = work.getDDLDesc();
       if (desc instanceof CreateMaterializedViewDesc) {
         CreateMaterializedViewDesc createViewDesc = (CreateMaterializedViewDesc)desc;
-        String tableName = createViewDesc.getViewName();
+        String tableName = createViewDesc.getName();
         boolean retrieveAndInclude = createViewDesc.isRewriteEnabled();
         MaterializedViewUpdateDesc materializedViewUpdateDesc =
             new MaterializedViewUpdateDesc(tableName, retrieveAndInclude, false, false);

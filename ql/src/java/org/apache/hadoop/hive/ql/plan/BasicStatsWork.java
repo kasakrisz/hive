@@ -179,12 +179,7 @@ public class BasicStatsWork implements Serializable {
     }
 
     // CREATE TABLE ... AS
-    if (getLoadFileDesc() != null && getLoadFileDesc().getCtasCreateTableDesc() != null) {
-      return true;
-    }
-    // CREATE MV ... AS
-    // ALTER MV ... REBUILD
-    if (getLoadFileDesc() != null && getLoadFileDesc().getCreateViewDesc() != null) {
+    if (getLoadFileDesc() != null && getLoadFileDesc().getCreateDbObjectDesc() != null) {
       return true;
     }
     return false;
@@ -196,10 +191,8 @@ public class BasicStatsWork implements Serializable {
       return work.getLoadTableDesc().getTable().getTableName();
     } else if (work.getTableSpecs() != null) {
       return work.getTableSpecs().getTableName().getTable();
-    } else if (getLoadFileDesc().getCtasCreateTableDesc() != null) {
-      return getLoadFileDesc().getCtasCreateTableDesc().getDbTableName();
     } else {
-      return getLoadFileDesc().getCreateViewDesc().getViewName();
+      return getLoadFileDesc().getCreateDbObjectDesc().getName();
     }
   }
 

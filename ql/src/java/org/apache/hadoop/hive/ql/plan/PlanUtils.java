@@ -381,9 +381,9 @@ public final class PlanUtils {
               crtTblDesc.getNullFormat());
       }
 
-      if (crtTblDesc.getDbTableName() != null && crtTblDesc.getDatabaseName() != null) {
+      if (crtTblDesc.getName() != null && crtTblDesc.getDatabaseName() != null) {
         properties.setProperty(org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_NAME,
-            crtTblDesc.getDbTableName());
+            crtTblDesc.getName());
       }
 
       if (crtTblDesc.getTblProps() != null) {
@@ -454,9 +454,9 @@ public final class PlanUtils {
                 crtViewDesc.getStorageHandler());
       }
 
-      if (crtViewDesc.getViewName() != null) {
+      if (crtViewDesc.getName() != null) {
         properties.setProperty(org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_NAME,
-            crtViewDesc.getViewName());
+            crtViewDesc.getName());
       }
 
       if (crtViewDesc.getTblProps() != null) {

@@ -76,7 +76,7 @@ import org.slf4j.LoggerFactory;
  * DDL task description for CREATE TABLE commands.
  */
 @Explain(displayName = "Create Table", explainLevels = { Level.USER, Level.DEFAULT, Level.EXTENDED })
-public class CreateTableDesc implements DDLDesc, Serializable {
+public class CreateTableDesc implements DDLDesc, CreateDbObjectDesc, Serializable {
   private static final long serialVersionUID = 1L;
   private static final Logger LOG = LoggerFactory.getLogger(CreateTableDesc.class);
 
@@ -265,7 +265,7 @@ public class CreateTableDesc implements DDLDesc, Serializable {
   }
 
   @Explain(displayName = "name", explainLevels = { Level.USER, Level.DEFAULT, Level.EXTENDED })
-  public String getDbTableName() {
+  public String getName() {
     return tableName.getNotEmptyDbTable();
   }
 
@@ -752,6 +752,7 @@ public class CreateTableDesc implements DDLDesc, Serializable {
     return isCTAS;
   }
 
+  @Override
   public Table toTable(HiveConf conf) throws HiveException {
 
     Table tbl = new Table(tableName.getDb(), tableName.getTable());
