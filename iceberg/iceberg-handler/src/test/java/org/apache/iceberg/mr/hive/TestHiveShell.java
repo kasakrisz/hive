@@ -136,10 +136,24 @@ public class TestHiveShell {
   }
 
   public List<Object[]> executeStatement(String statement) {
+    return executeStatement(statement, true);
+  }
+  public List<Object[]> executeStatement(String statement, boolean block) {
     Preconditions.checkState(session != null,
             "You have to start TestHiveShell and open a session first, before running a query.");
     try {
-      OperationHandle handle = client.executeStatement(session.getSessionHandle(), statement, Collections.emptyMap());
+      OperationHandle handle;
+      if (block) {
+        handle = client.executeStatement(session.getSessionHandle(), statement, Collections.emptyMap());
+      } else {
+        handle = client.executeStatementAsync(session.getSessionHandle(), statement, Collections.emptyMap());
+        try {
+          Thread.sleep(3000);
+        } catch (InterruptedException e) {
+          // ignored
+        }
+        client.cancelOperation(handle);
+      }
       List<Object[]> resultSet = Lists.newArrayList();
       if (handle.hasResultSet()) {
         RowSet rowSet;

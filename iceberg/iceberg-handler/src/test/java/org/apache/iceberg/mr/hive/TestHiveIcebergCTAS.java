@@ -70,6 +70,25 @@ public class TestHiveIcebergCTAS extends HiveIcebergStorageHandlerWithEngineBase
   }
 
   @Test
+  public void testCancelCTAS() {
+    Assume.assumeTrue(HiveIcebergSerDe.CTAS_EXCEPTION_MSG, testTableType == TestTables.TestTableType.HIVE_CATALOG);
+
+    shell.executeStatement("CREATE TABLE source (id bigint, name string) PARTITIONED BY (dept string) STORED AS ORC");
+    shell.executeStatement(testTables.getInsertQuery(
+        HiveIcebergStorageHandlerTestUtils.CUSTOMER_RECORDS, TableIdentifier.of("default", "source"), false));
+
+    shell.executeStatement(String.format(
+        "CREATE TABLE target STORED BY ICEBERG %s %s AS SELECT * FROM source",
+        testTables.locationForCreateTableSQL(TableIdentifier.of("default", "target")),
+        testTables.propertiesForCreateTableSQL(
+            ImmutableMap.of(TableProperties.DEFAULT_FILE_FORMAT, fileFormat.toString()))), false);
+
+    List<Object[]> objects = shell.executeStatement("SELECT * FROM target ORDER BY id");
+    HiveIcebergTestUtils.validateData(HiveIcebergStorageHandlerTestUtils.CUSTOMER_RECORDS,
+        HiveIcebergTestUtils.valueForRow(HiveIcebergStorageHandlerTestUtils.CUSTOMER_SCHEMA, objects), 0);
+  }
+
+  @Test
   public void testCTASPartitionedFromHiveTable() throws TException, InterruptedException {
     Assume.assumeTrue(HiveIcebergSerDe.CTAS_EXCEPTION_MSG, testTableType == TestTables.TestTableType.HIVE_CATALOG);
 
