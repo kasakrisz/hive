@@ -468,8 +468,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       hive_metastoreConstants.TABLE_BUCKETING_VERSION
   };
 
-  private int subQueryExpressionAliasCounter = 0;
-
   static class Phase1Ctx {
     String dest;
     int nextNum;
@@ -2508,7 +2506,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             if (storageFormat.fillStorageFormat(child)) {
               directoryDesc.setInputFormat(storageFormat.getInputFormat());
               directoryDesc.setOutputFormat(storageFormat.getOutputFormat());
-              directoryDesc.setSerName(storageFormat.getSerde());
+              directoryDesc.setSerdeName(storageFormat.getSerde());
               directoryDescIsSet = true;
               continue;
             }
@@ -2526,7 +2524,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             case HiveParser.TOK_TABLESERIALIZER:
               ASTNode serdeChild = (ASTNode) child.getChild(0);
               storageFormat.setSerde(unescapeSQLString(serdeChild.getChild(0).getText()));
-              directoryDesc.setSerName(storageFormat.getSerde());
+              directoryDesc.setSerdeName(storageFormat.getSerde());
               if (serdeChild.getChildCount() > 1) {
                 directoryDesc.setSerdeProps(new HashMap<String, String>());
                 readProps((ASTNode) serdeChild.getChild(1).getChild(0), directoryDesc.getSerdeProps());
@@ -7595,7 +7593,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         distributeColInfos = new ArrayList<>();
         destTableIsTemporary = false;
         destTableIsMaterialization = false;
-        tableName = HiveTableName.ofNullableWithNoDefault(viewDesc.getViewName());
+        tableName = viewDesc.getObjectName();
         tblProps = viewDesc.getTblProps();
         // Add suffix only when required confs are present
         // and user has not specified a location to the table.
@@ -7715,7 +7713,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tblDesc.setCols(new ArrayList<>(fieldSchemas));
         tblDesc.setPartCols(new ArrayList<>(partitionColumns));
       } else if (viewDesc != null) {
-        viewDesc.setSchema(new ArrayList<>(fieldSchemas));
+        viewDesc.setCols(new ArrayList<>(fieldSchemas));
         viewDesc.setPartCols(new ArrayList<>(partitionColumns));
         if (viewDesc.isOrganized()) {
           viewDesc.setSortCols(new ArrayList<>(sortColumns));
@@ -7854,8 +7852,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         ctx.getLoadTableOutputMap().put(ltd, output);
       } else {
         // Create LFD even for MM CTAS - it's a no-op move, but it still seems to be used for stats.
-        LoadFileDesc loadFileDesc = new LoadFileDesc(tblDesc, viewDesc, queryTmpdir, destinationPath, isDfsDir, cols,
-            colTypes,
+        LoadFileDesc loadFileDesc = new LoadFileDesc(tblDesc != null ? tblDesc : viewDesc,
+                queryTmpdir, destinationPath, isDfsDir, cols, colTypes,
             destTableIsFullAcid ?//there is a change here - prev version had 'transactional', one before 'acid'
                 Operation.INSERT : Operation.NOT_ACID,
             isMmCreate);
@@ -8017,7 +8015,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         tbl = tblDesc.toTable(conf);
         tbl = db.getTranslateTableDryrun(tbl.getTTable());
       } else {
-        protoName = viewDesc.getViewName();
+        protoName = viewDesc.getObjectName().getNotEmptyDbTable();
         tbl = viewDesc.toTable(conf);
       }
       names = Utilities.getDbTableName(protoName);
@@ -8359,11 +8357,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           .mapDirToOp(tlocation, output);
     } else if (queryState.getCommandType().equals(HiveOperation.CREATE_MATERIALIZED_VIEW.getOperationName())) {
       Path tlocation;
-      String [] dbTable = Utilities.getDbTableName(createVwDesc.getViewName());
+      TableName viewName = createVwDesc.getObjectName();
       try {
         Warehouse wh = new Warehouse(conf);
         Map<String, String> tblProps = createVwDesc.getTblProps();
-        tlocation = wh.getDefaultTablePath(db.getDatabase(dbTable[0]), dbTable[1],
+        tlocation = wh.getDefaultTablePath(db.getDatabase(viewName.getDb()), viewName.getTable(),
           tblProps == null || !AcidUtils.isTablePropertyTransactional(tblProps));
       } catch (MetaException|HiveException e) {
         throw new SemanticException(e);
@@ -12587,7 +12585,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
       viewSelect = child;
       // prevent view from referencing itself
-      viewsExpanded.add(createVwDesc.getViewName());
+      viewsExpanded.add(createVwDesc.getObjectName().getNotEmptyDbTable());
     }
 
     if (forViewCreation) {
@@ -13032,7 +13030,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         new ArrayList<FieldSchema>(resultSchema);
     ParseUtils.validateColumnNameUniqueness(derivedSchema);
 
-    List<FieldSchema> imposedSchema = createVwDesc.getSchema();
+    List<FieldSchema> imposedSchema = createVwDesc.getCols();
     if (imposedSchema != null) {
       int explicitColCount = imposedSchema.size();
       int derivedColCount = derivedSchema.size();
@@ -13083,12 +13081,12 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       sb.append(" FROM (");
       sb.append(expandedText);
       sb.append(") ");
-      sb.append(HiveUtils.unparseIdentifier(Utilities.getDbTableName(createVwDesc.getViewName())[1], conf));
+      sb.append(HiveUtils.unparseIdentifier(createVwDesc.getObjectName().getTable(), conf));
       expandedText = sb.toString();
     }
 
     // Set schema and expanded text for the view
-    createVwDesc.setSchema(derivedSchema);
+    createVwDesc.setCols(derivedSchema);
     createVwDesc.setViewExpandedText(expandedText);
   }
 
@@ -14109,7 +14107,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   protected ASTNode analyzeCreateView(ASTNode ast, QB qb, PlannerContext plannerCtx) throws SemanticException {
     TableName qualTabName = getQualifiedTableName((ASTNode) ast.getChild(0));
-    final String dbDotTable = qualTabName.getNotEmptyDbTable();
     List<FieldSchema> cols = null;
     boolean ifNotExists = false;
     boolean rewriteEnabled = true;
@@ -14124,8 +14121,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     StorageFormat storageFormat = new StorageFormat(conf);
     boolean partitionTransformSpecExists = false;
 
-    LOG.info("Creating view " + dbDotTable + " position="
-        + ast.getCharPositionInLine());
+    LOG.info("Creating view {} position={}", qualTabName.getNotEmptyDbTable(), ast.getCharPositionInLine());
     int numCh = ast.getChildCount();
     for (int num = 1; num < numCh; num++) {
       ASTNode child = (ASTNode) ast.getChild(num);
@@ -14205,10 +14201,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // Verify that the table does not already exist
       // dumpTable is only used to check the conflict for non-temporary tables
       try {
-        Table dumpTable = db.newTable(dbDotTable);
+        Table dumpTable = db.newTable(qualTabName.getNotEmptyDbTable());
         if (null != db.getTable(dumpTable.getDbName(), dumpTable.getTableName(), false) &&
             !ctx.isExplainSkipExecution()) {
-          throw new SemanticException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(dbDotTable));
+          throw new SemanticException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(qualTabName.getNotEmptyDbTable()));
         }
       } catch (HiveException e) {
         throw new SemanticException(e);
@@ -14241,7 +14237,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       if (tblProps == null) {
         tblProps = new HashMap<>();
       }
-      tblProps = convertToAcidByDefault(storageFormat, dbDotTable, null, tblProps);
+      tblProps = convertToAcidByDefault(storageFormat, qualTabName.getNotEmptyDbTable(), null, tblProps);
     }
     if (tblProps == null) {
       tblProps = new HashMap<>();
@@ -14249,7 +14245,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     tblProps.put(hive_metastoreConstants.TABLE_IS_CTAS, "true");
 
     createVwDesc = new CreateMaterializedViewDesc(
-        dbDotTable, cols, comment, tblProps, partColNames, sortColNames, distributeColNames,
+        qualTabName, cols, comment, tblProps, partColNames, sortColNames, distributeColNames,
         ifNotExists, rewriteEnabled,
         storageFormat.getInputFormat(), storageFormat.getOutputFormat(),
         location, storageFormat.getSerde(), storageFormat.getStorageHandler(),

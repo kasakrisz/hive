@@ -1475,19 +1475,11 @@ public final class GenMapRedUtils {
       statsWork = new BasicStatsWork(mvWork.getLoadFileWork());
 
       truncate = true;
-      if (mvWork.getLoadFileWork().getCtasCreateTableDesc() != null) {
+      if (mvWork.getLoadFileWork().getCreateObjectDesc() != null) {
         try {
-          table = mvWork.getLoadFileWork().getCtasCreateTableDesc().toTable(hconf);
+          table = mvWork.getLoadFileWork().getCreateObjectDesc().toTable(hconf);
         } catch (HiveException e) {
           LOG.debug("can't pre-create table for CTAS", e);
-          table = null;
-        }
-      } else if (mvWork.getLoadFileWork().getCreateViewDesc() != null) {
-        // CREATE MATERIALIZED VIEW ...
-        try {
-          table = mvWork.getLoadFileWork().getCreateViewDesc().toTable(hconf);
-        } catch (HiveException e) {
-          LOG.debug("can't pre-create table for MV", e);
           table = null;
         }
       } else {

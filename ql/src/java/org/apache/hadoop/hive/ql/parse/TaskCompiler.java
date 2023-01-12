@@ -325,7 +325,10 @@ public abstract class TaskCompiler {
         CreateMaterializedViewDesc createMaterializedViewDesc = pCtx.getCreateViewDesc();
         Task<?> crtTask = TaskFactory.get(new DDLWork(inputs, outputs, createMaterializedViewDesc));
         MaterializedViewUpdateDesc materializedViewUpdateDesc = new MaterializedViewUpdateDesc(
-                createMaterializedViewDesc.getViewName(), createMaterializedViewDesc.isRewriteEnabled(), false, false);
+                createMaterializedViewDesc.getObjectName().getNotEmptyDbTable(),
+                createMaterializedViewDesc.isRewriteEnabled(),
+                false,
+                false);
         Task<?> updateTask = TaskFactory.get(new DDLWork(inputs, outputs, materializedViewUpdateDesc));
         crtTask.addDependentTask(updateTask);
         for (Task<?> rootTask : rootTasks) {
@@ -556,7 +559,7 @@ public abstract class TaskCompiler {
         createTableOrMVUseSuffix &= AcidUtils.isTransactionalTable(pCtx.getCreateTable());
         suffix = Utilities.getTableOrMVSuffix(pCtx.getContext(), createTableOrMVUseSuffix);
       } else if (pCtx.getQueryProperties().isMaterializedView()) {
-        protoName = pCtx.getCreateViewDesc().getViewName();
+        protoName = pCtx.getCreateViewDesc().getObjectName().getNotEmptyDbTable();
         createTableOrMVUseSuffix &= AcidUtils.isTransactionalView(pCtx.getCreateViewDesc());
         suffix = Utilities.getTableOrMVSuffix(pCtx.getContext(), createTableOrMVUseSuffix);
       }
@@ -630,7 +633,7 @@ public abstract class TaskCompiler {
       DDLDesc desc = work.getDDLDesc();
       if (desc instanceof CreateMaterializedViewDesc) {
         CreateMaterializedViewDesc createViewDesc = (CreateMaterializedViewDesc)desc;
-        String tableName = createViewDesc.getViewName();
+        String tableName = createViewDesc.getObjectName().getNotEmptyDbTable();
         boolean retrieveAndInclude = createViewDesc.isRewriteEnabled();
         MaterializedViewUpdateDesc materializedViewUpdateDesc =
             new MaterializedViewUpdateDesc(tableName, retrieveAndInclude, false, false);

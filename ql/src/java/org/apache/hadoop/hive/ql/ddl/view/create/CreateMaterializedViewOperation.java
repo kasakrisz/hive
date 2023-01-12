@@ -52,15 +52,15 @@ public class CreateMaterializedViewOperation extends DDLOperation<CreateMaterial
 
   @Override
   public int execute() throws HiveException {
-    Table oldview = context.getDb().getTable(desc.getViewName(), false);
-    if (oldview != null) {
+    Table oldView = context.getDb().getTable(desc.getObjectName().getDb(), desc.getObjectName().getTable(), false);
+    if (oldView != null) {
 
       if (desc.getIfNotExists()) {
         return 0;
       }
 
       // Materialized View already exists, thus we should be replacing
-      throw new HiveException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(desc.getViewName()));
+      throw new HiveException(ErrorMsg.TABLE_ALREADY_EXISTS.getMsg(desc.getObjectName().getNotEmptyDbTable()));
     } else {
       // We create new view
       Table tbl = desc.toTable(context.getConf());

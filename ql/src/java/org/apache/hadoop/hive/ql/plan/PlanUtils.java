@@ -443,8 +443,8 @@ public final class PlanUtils {
 
       if (storageHandler != null) {
         serdeClass = storageHandler.getSerDeClass();
-      } else if (crtViewDesc.getSerde() != null) {
-        serdeClass = JavaUtils.loadClass(crtViewDesc.getSerde());
+      } else if (crtViewDesc.getSerName() != null) {
+        serdeClass = JavaUtils.loadClass(crtViewDesc.getSerName());
       }
 
       ret = getTableDesc(serdeClass, separatorCode, columns, columnTypes, crtViewDesc.getPartCols(),
@@ -462,9 +462,9 @@ public final class PlanUtils {
         }
       }
 
-      if (crtViewDesc.getViewName() != null) {
+      if (crtViewDesc.getObjectName() != null) {
         properties.setProperty(org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_NAME,
-            crtViewDesc.getViewName());
+            crtViewDesc.getObjectName().getNotEmptyDbTable());
       }
 
       if (crtViewDesc.getTblProps() != null) {

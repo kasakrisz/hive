@@ -110,7 +110,7 @@ public class ImportTableDesc {
   }
 
   public String getTableName() throws SemanticException {
-    return createTblDesc.getTableName().getTable();
+    return createTblDesc.getObjectName().getTable();
   }
 
   public List<FieldSchema> getPartCols() {

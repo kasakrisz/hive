@@ -179,15 +179,9 @@ public class BasicStatsWork implements Serializable {
     }
 
     // CREATE TABLE ... AS
-    if (getLoadFileDesc() != null && getLoadFileDesc().getCtasCreateTableDesc() != null) {
-      return true;
-    }
     // CREATE MV ... AS
     // ALTER MV ... REBUILD
-    if (getLoadFileDesc() != null && getLoadFileDesc().getCreateViewDesc() != null) {
-      return true;
-    }
-    return false;
+    return getLoadFileDesc() != null && getLoadFileDesc().getCreateObjectDesc() != null;
   }
 
   public String getTableName() {
@@ -196,11 +190,9 @@ public class BasicStatsWork implements Serializable {
       return work.getLoadTableDesc().getTable().getTableName();
     } else if (work.getTableSpecs() != null) {
       return work.getTableSpecs().getTableName().getTable();
-    } else if (getLoadFileDesc().getCtasCreateTableDesc() != null) {
-      return getLoadFileDesc().getCtasCreateTableDesc().getDbTableName();
     } else {
-      return getLoadFileDesc().getCreateViewDesc().getViewName();
-    }
+      return getLoadFileDesc().getCreateObjectDesc().getDbTableName();
+    } 
   }
 
   public void setIsExplicitAnalyze(boolean b) {
