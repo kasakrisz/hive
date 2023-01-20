@@ -26,15 +26,14 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ControlFlowException;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
+import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.function.Function;
 
 /**
  * This class is a helper to check whether a materialized view rebuild
@@ -57,12 +56,19 @@ public class MaterializedViewRewritingRelVisitor extends RelVisitor {
   private boolean fullAcidView;
   private boolean rewritingAllowed;
   private int countIndex;
+  private final Function<Table, Boolean> acidUtils;
+  private static final Function<Table, Boolean> DEFAULT_ACID_UTILS = AcidUtils::isFullAcidTable;
 
   public MaterializedViewRewritingRelVisitor() {
+    this(DEFAULT_ACID_UTILS);
+  }
+
+  public MaterializedViewRewritingRelVisitor(Function<Table, Boolean> acidUtils) {
     this.containsAggregate = false;
     this.fullAcidView = false;
     this.rewritingAllowed = false;
     this.countIndex = -1;
+    this.acidUtils = acidUtils;
   }
 
   @Override
@@ -129,7 +135,7 @@ public class MaterializedViewRewritingRelVisitor extends RelVisitor {
             // If it is not a materialized view, we do not rewrite it
             throw new ReturnedValue(false);
           }
-          fullAcidView = AcidUtils.isFullAcidTable(hiveTable.getHiveTableMD());
+          fullAcidView = acidUtils.apply(hiveTable.getHiveTableMD());
           if (containsAggregate && !fullAcidView) {
             // If it contains an aggregate and it is not a full acid table,
             // we do not rewrite it (we need MERGE support)
