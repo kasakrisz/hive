@@ -356,6 +356,10 @@ public abstract class TestTables {
   }
 
   public String getInsertQuery(List<Record> records, TableIdentifier identifier, boolean isOverwrite) {
+    return getInsertQuery(records, identifier.toString(), isOverwrite);
+  }
+
+  public String getInsertQuery(List<Record> records, String identifier, boolean isOverwrite) {
     StringBuilder query = new StringBuilder(String.format("INSERT %s %s VALUES ",
         isOverwrite ? "OVERWRITE TABLE" : "INTO", identifier));
 

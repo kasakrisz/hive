@@ -23,9 +23,6 @@ import java.io.IOException;
 import java.util.List;
 import org.apache.iceberg.HistoryEntry;
 import org.apache.iceberg.Table;
-import org.apache.iceberg.catalog.TableIdentifier;
-import org.apache.iceberg.data.Record;
-import org.apache.iceberg.mr.TestHelper;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -97,26 +94,20 @@ public class TestHiveIcebergTimeTravel extends HiveIcebergStorageHandlerWithEngi
 
     Table orderTable = testTables.createTable(shell, "order", ORDER_SCHEMA, fileFormat, ORDER_RECORDS);
 
-    List<Record> newOrderRecords = TestHelper.RecordsBuilder.newInstance(ORDER_SCHEMA)
-        .add(100L, 3L, 10.11d, 1L)
-        .add(100L, 4L, 12.11d, 1L)
-        .build();
+//    shell.executeStatement("INSERT INTO order VALUES (100,3,10.11,1),(100,4,12.11,1)");
 
-    shell.executeStatement(
-        testTables.getInsertQuery(newOrderRecords, TableIdentifier.of("default", "order"), false));
-
-    List<Object[]> rows = shell.executeStatement(
-        "SELECT customers.*, order.* FROM customers FOR SYSTEM_VERSION START " +
-            customerTable.history().get(0).snapshotId() + " END " + customerTable.history().get(2).snapshotId() +
-            ", \norder FOR SYSTEM_VERSION AS OF " +
-            orderTable.history().get(1).snapshotId() +
-            " where customers.customerId = order.customerId");
+//    List<Object[]> rows = shell.executeStatement(
+//        "SELECT customers.*, order.* FROM customers FOR SYSTEM_VERSION START " +
+//            customerTable.history().get(0).snapshotId() + " END " + customerTable.history().get(2).snapshotId() +
+//            ", \norder FOR SYSTEM_VERSION AS OF " +
+//            orderTable.history().get(0).snapshotId() +
+//            " where customers.customerId = order.customerId");
 
     List<Object[]> rowst1 = shell.executeStatement(
         "SELECT * FROM customers FOR SYSTEM_VERSION START " +
             customerTable.history().get(0).snapshotId() + " END " + customerTable.history().get(2).snapshotId());
     List<Object[]> rowst2 = shell.executeStatement(
-        "SELECT * FROM order FOR SYSTEM_VERSION AS OF " + orderTable.history().get(1).snapshotId());
+        "SELECT * FROM order FOR SYSTEM_VERSION AS OF " + orderTable.history().get(0).snapshotId());
     System.out.println(rowst1);
     System.out.println(rowst2);
   }

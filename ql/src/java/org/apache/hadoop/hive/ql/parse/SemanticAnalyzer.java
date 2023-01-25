@@ -1114,6 +1114,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     int ssampleIndex = indexes[3];
     int asOfTimeIndex = indexes[4];
     int asOfVersionIndex = indexes[5];
+    int versionIntervalIndex = indexes[6];
 
     ASTNode tableTree = (ASTNode) (tabref.getChild(0));
 
@@ -1131,11 +1132,19 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       qb.setTabProps(alias, props);
     }
 
-    if (asOfTimeIndex != -1 || asOfVersionIndex != -1) {
+    if (asOfTimeIndex != -1 || asOfVersionIndex != -1 || versionIntervalIndex != -1) {
       String asOfVersion = asOfVersionIndex == -1 ? null : tabref.getChild(asOfVersionIndex).getChild(0).getText();
       String asOfTime = asOfTimeIndex == -1 ? null : tabref.getChild(asOfTimeIndex).getChild(0).getText();
-      Pair<String, String> asOf = Pair.of(asOfVersion, asOfTime);
-      qb.setAsOf(alias, asOf);
+      String versionStart = null;
+      String versionEnd = null;
+      if (versionIntervalIndex != -1) {
+        Tree versionIntervalNode = tabref.getChild(versionIntervalIndex);
+        versionStart = versionIntervalNode.getChild(0).getText();
+        if (versionIntervalNode.getChildCount() == 2) {
+          versionEnd = versionIntervalNode.getChild(1).getText();
+        }
+      }
+      qb.setAsOf(alias, new QBTemporal(asOfVersion, versionStart, versionEnd, asOfTime));
     }
 
     // If the alias is already there then we have a conflict
@@ -2259,7 +2268,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
       }
 
-      Pair<String, String> asOf = qb.getAsOfForAlias(alias);
+      Pair<String, String> asOf = qb.getTemporalForAlias(alias);
       if (asOf != null) {
         if (!Optional.ofNullable(tab.getStorageHandler()).map(HiveStorageHandler::isTimeTravelAllowed).orElse(false)) {
           throw new SemanticException(ErrorMsg.TIME_TRAVEL_NOT_ALLOWED, alias);
