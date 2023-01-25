@@ -222,6 +222,9 @@ asOfClause
     |
     (KW_FOR KW_SYSTEM_VERSION KW_AS KW_OF asOfVersion=Number)
     -> ^(TOK_AS_OF_VERSION $asOfVersion)
+    |
+    (KW_FOR KW_SYSTEM_VERSION KW_START versionStart=Number (KW_END versionEnd=Number)?)
+    -> ^(TOK_OPEN_CLOSE_VERSION_INTERVAL $versionStart $versionEnd?)
     ;
 
 uniqueJoinTableSource
