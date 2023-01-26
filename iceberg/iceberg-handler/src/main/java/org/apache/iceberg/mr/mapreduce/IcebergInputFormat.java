@@ -80,6 +80,7 @@ import org.apache.iceberg.mr.InputFormatConfig;
 import org.apache.iceberg.mr.hive.HiveIcebergInputFormat;
 import org.apache.iceberg.mr.hive.HiveIcebergStorageHandler;
 import org.apache.iceberg.mr.hive.IcebergAcidUtil;
+import org.apache.iceberg.mr.hive.IcebergTableUtil;
 import org.apache.iceberg.orc.ORC;
 import org.apache.iceberg.parquet.Parquet;
 import org.apache.iceberg.relocated.com.google.common.base.Preconditions;
@@ -119,6 +120,18 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
     long asOfTime = conf.getLong(InputFormatConfig.AS_OF_TIMESTAMP, -1);
     if (asOfTime != -1) {
       scan = scan.asOfTime(asOfTime);
+    }
+
+    long fromTime = conf.getLong(InputFormatConfig.FROM_TIMESTAMP, -1);
+    if (fromTime != -1) {
+      long toTime = conf.getLong(InputFormatConfig.TO_TIMESTAMP, -1);
+      scan = scanWithTimeRange(table, scan, fromTime, toTime);
+    }
+
+    long fromSnapshot = conf.getLong(InputFormatConfig.FROM_VERSION, -1);
+    if (fromSnapshot != -1) {
+      long toSnapshot = conf.getLong(InputFormatConfig.TO_VERSION, -1);
+      scan = scanWithVersionRange(scan, fromSnapshot, toSnapshot);
     }
 
     long splitSize = conf.getLong(InputFormatConfig.SPLIT_SIZE, 0);
@@ -210,6 +223,37 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
   @Override
   public RecordReader<Void, T> createRecordReader(InputSplit split, TaskAttemptContext context) {
     return new IcebergRecordReader<>();
+  }
+
+  private static TableScan scanWithTimeRange(Table table, TableScan scan, long startTime, long endTime) {
+    if (endTime != -1 && startTime >= endTime) {
+      throw new IllegalArgumentException(
+          "Provided START timestamp must precede the provided END timestamp.");
+    }
+    // let's find the corresponding snapshot ID - if the startTime is before the table creation happened, let's use
+    // the first snapshot of the table
+    long fromSnapshot = IcebergTableUtil.findSnapshotForTimestamp(table, startTime)
+        .orElseGet(() -> table.history().get(0).snapshotId());
+    if (fromSnapshot == table.currentSnapshot().snapshotId()) {
+      throw new IllegalArgumentException(
+          "Provided START timestamp must be earlier than the commit time of latest snapshot of the table.");
+    }
+    if (endTime != -1) {
+      long toSnapshot = IcebergTableUtil.findSnapshotForTimestamp(table, endTime)
+          .orElseThrow(() -> new IllegalArgumentException(
+              "Provided END timestamp must be after the commit time of the first snapshot of the table."));
+      return scan.appendsBetween(fromSnapshot, toSnapshot);
+    } else {
+      return scan.appendsAfter(fromSnapshot);
+    }
+  }
+
+  private static TableScan scanWithVersionRange(TableScan scan, long startSnapshot, long endSnapshot) {
+    if (endSnapshot != -1) {
+      return scan.appendsBetween(startSnapshot, endSnapshot);
+    } else {
+      return scan.appendsAfter(startSnapshot);
+    }
   }
 
   private static final class IcebergRecordReader<T> extends RecordReader<Void, T> {

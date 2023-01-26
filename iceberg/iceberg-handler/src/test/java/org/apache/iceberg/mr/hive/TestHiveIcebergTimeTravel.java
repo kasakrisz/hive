@@ -21,10 +21,12 @@ package org.apache.iceberg.mr.hive;
 
 import java.io.IOException;
 import java.util.List;
+import org.apache.iceberg.AssertHelpers;
 import org.apache.iceberg.HistoryEntry;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.types.Types;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import static org.apache.iceberg.mr.hive.HiveIcebergTestUtils.timestampAfterSnapshot;
@@ -174,5 +176,160 @@ public class TestHiveIcebergTimeTravel extends HiveIcebergStorageHandlerWithEngi
         "WHERE sv.first_name=tv.first_name");
 
     Assert.assertEquals(8, rows.size());
+  }
+
+  private Table prepareTableWithVersions(int versionCount) throws IOException, InterruptedException {
+    return testTables.createTableWithVersions(shell, "customers",
+            HiveIcebergStorageHandlerTestUtils.CUSTOMER_SCHEMA, fileFormat,
+            HiveIcebergStorageHandlerTestUtils.CUSTOMER_RECORDS, versionCount);
+  }
+
+  @Test
+  public void testStartEndTimeWithTimesInTheMiddle() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    String start = timestampAfterSnapshot(table, 1);
+    String end = timestampAfterSnapshot(table, 3);
+    List<Object[]> rows = shell.executeStatement("select * from customers for system_time start " +
+            "'" + start + "' end '" + end + "' ORDER BY last_name");
+    Assert.assertEquals(2, rows.size());
+    Assert.assertEquals("Green_1", rows.get(0)[2]);
+    Assert.assertEquals("Green_2", rows.get(1)[2]);
+  }
+
+  @Test
+  public void testStartEndTimeExpressions() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    String start = timestampAfterSnapshot(table, 1);
+    List<Object[]> rows = shell.executeStatement("select * from customers for system_time start " +
+            " cast('" + start + "' as timestamp) - interval '1' seconds end CURRENT_TIMESTAMP + interval '10' hours " +
+            "ORDER BY last_name");
+    Assert.assertEquals(4, rows.size());
+  }
+
+  @Test
+  public void testStartEndTimeWithStartTimeBeforeTableCreation() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    String end = timestampAfterSnapshot(table, 3);
+    List<Object[]> rows = shell.executeStatement("select * from customers for system_time start '1999-01-01 00:00:00'" +
+            " end '" + end + "' ORDER BY last_name");
+    // 1999-01-01 00:00:00 translates into the first snapshot of the table, however since fromSnapshotId is always
+    // exclusive in TableScan#appendsBetween, the first 3 records are excluded from the resultset
+    // this is not very intuitive, but sadly there is currently no API support for left-inclusive time travel ranges
+    Assert.assertEquals(3, rows.size());
+    Assert.assertEquals("Green_0", rows.get(0)[2]);
+    Assert.assertEquals("Green_1", rows.get(1)[2]);
+    Assert.assertEquals("Green_2", rows.get(2)[2]);
+  }
+
+  @Test
+  public void testStartEndTimeWithToTimeInTheFuture() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    String start = timestampAfterSnapshot(table, 1);
+    List<Object[]> rows = shell.executeStatement("select * from customers for system_time start " +
+            "'" + start + "' end '2060-01-01 00:00:00' ORDER BY last_name");
+    Assert.assertEquals(3, rows.size());
+    Assert.assertEquals("Green_1", rows.get(0)[2]);
+    Assert.assertEquals("Green_2", rows.get(1)[2]);
+    Assert.assertEquals("Green_3", rows.get(2)[2]);
+  }
+
+  @Test
+  public void testStartTimeWithoutEndClause() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    String start = timestampAfterSnapshot(table, 2);
+    List<Object[]> rows = shell.executeStatement("select * from customers for system_time start " +
+            "'" + start + "' ORDER BY last_name");
+    Assert.assertEquals(2, rows.size());
+    Assert.assertEquals("Green_2", rows.get(0)[2]);
+    Assert.assertEquals("Green_3", rows.get(1)[2]);
+  }
+
+  @Test
+  public void testCTASFromEndTime() throws IOException, InterruptedException {
+    Assume.assumeTrue(HiveIcebergSerDe.CTAS_EXCEPTION_MSG, testTableType == TestTables.TestTableType.HIVE_CATALOG);
+    Table table = prepareTableWithVersions(5);
+    String start = timestampAfterSnapshot(table, 1);
+    String end = timestampAfterSnapshot(table, 3);
+    shell.executeStatement(String.format("create table customers2 stored by iceberg stored as %s as select * " +
+            "from customers for system_time start '%s' end '%s' ORDER BY last_name", fileFormat, start, end));
+    List<Object[]> rows = shell.executeStatement("SELECT * FROM customers2 ORDER BY last_name");
+    Assert.assertEquals(2, rows.size());
+    Assert.assertEquals("Green_1", rows.get(0)[2]);
+    Assert.assertEquals("Green_2", rows.get(1)[2]);
+  }
+
+  @Test
+  public void testStartTimeInTheFuture() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    AssertHelpers.assertThrows("Should throw error for future date in FROM clause", IllegalArgumentException.class,
+            "Provided FROM timestamp must be earlier than the commit time of latest snapshot of the table.",
+        () -> shell.executeStatement("select * from customers for system_time start '2060-01-01 00:00:00'"));
+  }
+
+  @Test
+  public void testEndTimeInThePastBeforeTableCreation() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    AssertHelpers.assertThrows("Should throw error for future date in FROM clause", IllegalArgumentException.class,
+            "Provided TO timestamp must be after the commit time of the first snapshot of the table.",
+        () -> shell.executeStatement("select * from customers for system_time start '1981-01-01 00:00:00' end " +
+                    "'1993-01-01 00:00:00'"));
+  }
+
+  @Test
+  public void testEndTimeEarlierThanStartTime() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    AssertHelpers.assertThrows("Should throw error for future date in FROM clause", IllegalArgumentException.class,
+            "Provided FROM timestamp must precede the provided TO timestamp.",
+        () -> shell.executeStatement("select * from customers for system_time start '1999-01-01 00:00:00' end " +
+                    "'1993-01-01 00:00:00'"));
+  }
+
+  @Test
+  public void testStartEndVersionWithVersionsInTheMiddle() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    long start = table.history().get(1).snapshotId();
+    long end = table.history().get(3).snapshotId();
+    List<Object[]> rows = shell.executeStatement(
+            "select * from customers for system_version start " + start + " end " + end + " ORDER BY last_name");
+    Assert.assertEquals(2, rows.size());
+    Assert.assertEquals("Green_1", rows.get(0)[2]);
+    Assert.assertEquals("Green_2", rows.get(1)[2]);
+  }
+
+  @Test
+  public void testStartVersionWithoutEndClause() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    long start = table.history().get(0).snapshotId();
+    List<Object[]> rows = shell.executeStatement(
+            "select * from customers for system_version start " + start + " ORDER BY last_name");
+    Assert.assertEquals(4, rows.size());
+    Assert.assertEquals("Green_0", rows.get(0)[2]);
+    Assert.assertEquals("Green_1", rows.get(1)[2]);
+    Assert.assertEquals("Green_2", rows.get(2)[2]);
+    Assert.assertEquals("Green_3", rows.get(3)[2]);
+  }
+
+  @Test
+  public void testCTASStartEndVersion() throws IOException, InterruptedException {
+    Assume.assumeTrue(HiveIcebergSerDe.CTAS_EXCEPTION_MSG, testTableType == TestTables.TestTableType.HIVE_CATALOG);
+    Table table = prepareTableWithVersions(5);
+    long start = table.history().get(1).snapshotId();
+    long end = table.history().get(3).snapshotId();
+    shell.executeStatement(String.format("create table customers2 stored by iceberg stored as %s as select * " +
+            "from customers for system_version start %s end %s ORDER BY last_name", fileFormat, start, end));
+    List<Object[]> rows = shell.executeStatement("SELECT * FROM customers2 ORDER BY last_name");
+    Assert.assertEquals(2, rows.size());
+    Assert.assertEquals("Green_1", rows.get(0)[2]);
+    Assert.assertEquals("Green_2", rows.get(1)[2]);
+  }
+
+  @Test
+  public void testStartEndVersionWithInvalidVersion() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    long start = table.history().get(1).snapshotId();
+    AssertHelpers.assertThrows("Should throw an error for non-existent snapshotID",
+            IllegalArgumentException.class, "to snapshot 111222333444 does not exist",
+        () -> shell.executeStatement(
+                "select * from customers for system_version start " + start + " end 111222333444 ORDER BY last_name"));
   }
 }
