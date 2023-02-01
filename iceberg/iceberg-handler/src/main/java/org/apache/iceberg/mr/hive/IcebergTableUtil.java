@@ -20,6 +20,7 @@
 package org.apache.iceberg.mr.hive;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
 import org.apache.hadoop.conf.Configuration;
@@ -31,6 +32,7 @@ import org.apache.hadoop.hive.ql.session.SessionStateUtil;
 import org.apache.iceberg.ManageSnapshots;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
+import org.apache.iceberg.Snapshot;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.UpdatePartitionSpec;
 import org.apache.iceberg.catalog.TableIdentifier;
@@ -241,5 +243,33 @@ public class IcebergTableUtil {
         table.currentSnapshot().snapshotId(), value);
     manageSnapshots.setCurrentSnapshot(value);
     manageSnapshots.commit();
+  }
+
+  /**
+   * Returns the snapshot ID which is immediately before (or exactly at) the timestamp provided in millis.
+   * If the timestamp provided is before the first snapshot of the table, we return an empty optional.
+   * If the timestamp provided is in the future compared to the latest snapshot, we return the latest snapshot ID.
+   *
+   * E.g.: if we have snapshots S1, S2, S3 committed at times T3, T6, T9 respectively (T0 = start of epoch), then:
+   * - from T0 to T2 -> returns empty
+   * - from T3 to T5 -> returns S1
+   * - from T6 to T8 -> returns S2
+   * - from T9 to T∞ -> returns S3
+   *
+   * @param table the table whose snapshot ID we are trying to find
+   * @param time the timestamp provided in milliseconds
+   * @return the snapshot ID corresponding to the time
+   */
+  public static Optional<Long> findSnapshotForTimestamp(Table table, long time) {
+    if (table.history().get(0).timestampMillis() > time) {
+      return Optional.empty();
+    }
+
+    for (Snapshot snapshot : table.snapshots()) {
+      if (snapshot.timestampMillis() > time) {
+        return Optional.of(snapshot.parentId());
+      }
+    }
+    return Optional.of(table.currentSnapshot().snapshotId());
   }
 }

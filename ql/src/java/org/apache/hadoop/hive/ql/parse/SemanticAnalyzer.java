@@ -1111,7 +1111,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     int tsampleIndex = indexes[2];
     int ssampleIndex = indexes[3];
     int asOfTimeIndex = indexes[4];
-    int asOfVersionIndex = indexes[5];
+    int fromTimeIndex = indexes[5];
+    int toTimeIndex = indexes[6];
+    int asOfVersionIndex = indexes[7];
+    int fromVersionIndex = indexes[8];
+    int toVersionIndex = indexes[9];
 
     ASTNode tableTree = (ASTNode) (tabref.getChild(0));
 
@@ -1131,20 +1135,21 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     if (asOfTimeIndex != -1 || asOfVersionIndex != -1) {
       String asOfVersion = asOfVersionIndex == -1 ? null : tabref.getChild(asOfVersionIndex).getChild(0).getText();
-      String asOfTime = null;
-      
-      if (asOfTimeIndex != -1) {
-        ASTNode expr = (ASTNode) tabref.getChild(asOfTimeIndex).getChild(0);
-        if (expr.getChildCount() > 0) {
-          ExprNodeDesc desc = genExprNodeDesc(expr, new RowResolver(), false, true);
-          ExprNodeConstantDesc c = (ExprNodeConstantDesc) desc;
-          asOfTime = String.valueOf(c.getValue());
-        } else {
-          asOfTime = stripQuotes(expr.getText());
-        }
-      }
+      String asOfTime = getTime(tabref, asOfTimeIndex);
       Pair<String, String> asOf = Pair.of(asOfVersion, asOfTime);
       qb.setAsOf(alias, asOf);
+    }
+
+    if (fromTimeIndex != -1) {
+      String fromTime = getTime(tabref, fromTimeIndex);
+      String toTime = getTime(tabref, toTimeIndex);
+      qb.setAliasToFromToTime(alias, Pair.of(fromTime, toTime));
+    }
+
+    if (fromVersionIndex != -1) {
+      String fromVersion = tabref.getChild(fromVersionIndex).getChild(0).getText();
+      String toVersion = toVersionIndex != -1 ? tabref.getChild(toVersionIndex).getChild(0).getText() : null;
+      qb.setAliasToFromToVersion(alias, Pair.of(fromVersion, toVersion));
     }
 
     // If the alias is already there then we have a conflict
@@ -1236,6 +1241,20 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     return alias;
+  }
+
+  private String getTime(ASTNode tabref, int index) throws SemanticException {
+    if (index == -1) {
+      return null;
+    }
+    ASTNode expr = (ASTNode) tabref.getChild(index).getChild(0);
+    if (expr.getChildCount() > 0) {
+      ExprNodeDesc desc = genExprNodeDesc(expr, new RowResolver(), false, true);
+      ExprNodeConstantDesc c = (ExprNodeConstantDesc) desc;
+      return String.valueOf(c.getValue());
+    } else {
+      return stripQuotes(expr.getText());
+    }
   }
 
   Map<String, SplitSample> getNameToSplitSampleMap() {
@@ -2275,6 +2294,24 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         }
         tab.setAsOfVersion(asOf.getLeft());
         tab.setAsOfTimestamp(asOf.getRight());
+      }
+
+      Pair<String, String> fromToTime = qb.getAliasToFromToTime(alias);
+      if (fromToTime != null) {
+        if (!Optional.ofNullable(tab.getStorageHandler()).map(HiveStorageHandler::isTimeTravelAllowed).orElse(false)) {
+          throw new SemanticException(ErrorMsg.TIME_TRAVEL_NOT_ALLOWED, alias);
+        }
+        tab.setFromTimestamp(fromToTime.getLeft());
+        tab.setToTimestamp(fromToTime.getRight());
+      }
+
+      Pair<String, String> fromToVersion = qb.getAliasToFromToVersion(alias);
+      if (fromToVersion != null) {
+        if (!Optional.ofNullable(tab.getStorageHandler()).map(HiveStorageHandler::isTimeTravelAllowed).orElse(false)) {
+          throw new SemanticException(ErrorMsg.TIME_TRAVEL_NOT_ALLOWED, alias);
+        }
+        tab.setFromVersion(fromToVersion.getLeft());
+        tab.setToVersion(fromToVersion.getRight());
       }
 
       if (tab.isView()) {
