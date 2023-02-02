@@ -21,6 +21,7 @@ package org.apache.iceberg.mr.mapreduce;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -47,9 +48,11 @@ import org.apache.iceberg.DataTableScan;
 import org.apache.iceberg.DataTask;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.FileScanTask;
+import org.apache.iceberg.IncrementalAppendScan;
 import org.apache.iceberg.MetadataColumns;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Partitioning;
+import org.apache.iceberg.Scan;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.SchemaParser;
 import org.apache.iceberg.SerializableTable;
@@ -110,8 +113,7 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
   }
 
   private static TableScan createTableScan(Table table, Configuration conf) {
-    TableScan scan = table.newScan()
-        .caseSensitive(conf.getBoolean(InputFormatConfig.CASE_SENSITIVE, InputFormatConfig.CASE_SENSITIVE_DEFAULT));
+    TableScan scan = table.newScan();
     long snapshotId = conf.getLong(InputFormatConfig.SNAPSHOT_ID, -1);
     if (snapshotId != -1) {
       scan = scan.useSnapshot(snapshotId);
@@ -122,17 +124,67 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
       scan = scan.asOfTime(asOfTime);
     }
 
+    long splitSize = conf.getLong(InputFormatConfig.SPLIT_SIZE, 0);
+    if (splitSize > 0) {
+      scan = scan.option(TableProperties.SPLIT_SIZE, String.valueOf(splitSize));
+    }
+
+    return scan;
+  }
+
+  private static IncrementalAppendScan createIncrementalAppendScan(Table table, Configuration conf) {
     long fromTime = conf.getLong(InputFormatConfig.FROM_TIMESTAMP, -1);
     if (fromTime != -1) {
       long toTime = conf.getLong(InputFormatConfig.TO_TIMESTAMP, -1);
-      scan = scanWithTimeRange(table, scan, fromTime, toTime);
+      return scanWithTimeRange(table, fromTime, toTime);
     }
 
     long fromSnapshot = conf.getLong(InputFormatConfig.FROM_VERSION, -1);
-    if (fromSnapshot != -1) {
-      long toSnapshot = conf.getLong(InputFormatConfig.TO_VERSION, -1);
-      scan = scanWithVersionRange(scan, fromSnapshot, toSnapshot);
+    IncrementalAppendScan scan = table.newIncrementalAppendScan().fromSnapshotExclusive(fromSnapshot);
+    long toSnapshot = conf.getLong(InputFormatConfig.TO_VERSION, -1);
+    if (toSnapshot != -1) {
+      scan = scan.toSnapshot(toSnapshot);
     }
+
+    return scan;
+  }
+
+  private static IncrementalAppendScan scanWithTimeRange(
+      Table table, long fromTime, long toTime) {
+    if (toTime != -1 && fromTime >= toTime) {
+      throw new IllegalArgumentException(
+          "Provided FROM timestamp must precede the provided TO timestamp.");
+    }
+    // let's find the corresponding snapshot ID - if the fromTime is before the table creation happened, let's use
+    // the first snapshot of the table
+    long fromSnapshot = IcebergTableUtil.findSnapshotForTimestamp(table, fromTime)
+        .orElseGet(() -> table.history().get(0).snapshotId());
+    if (fromSnapshot == table.currentSnapshot().snapshotId()) {
+      throw new IllegalArgumentException(
+          "Provided FROM timestamp must be earlier than the commit time of latest snapshot of the table.");
+    }
+
+    IncrementalAppendScan scan = table.newIncrementalAppendScan()
+        .fromSnapshotExclusive(fromSnapshot);
+
+    if (toTime != -1) {
+      long toSnapshot = IcebergTableUtil.findSnapshotForTimestamp(table, toTime)
+          .orElseThrow(() -> new IllegalArgumentException(
+              "Provided TO timestamp must be after the commit time of the first snapshot of the table."));
+      return scan.toSnapshot(toSnapshot);
+    } else {
+      return scan;
+    }
+  }
+
+  private static <
+      T extends Scan<T, FileScanTask, CombinedScanTask>> Scan<T,
+      FileScanTask,
+      CombinedScanTask> applyConfig(
+          Configuration conf, Scan<T, FileScanTask, CombinedScanTask> scanToConfigure) {
+
+    Scan<T, FileScanTask, CombinedScanTask> scan = scanToConfigure
+        .caseSensitive(conf.getBoolean(InputFormatConfig.CASE_SENSITIVE, InputFormatConfig.CASE_SENSITIVE_DEFAULT));
 
     long splitSize = conf.getLong(InputFormatConfig.SPLIT_SIZE, 0);
     if (splitSize > 0) {
@@ -156,7 +208,7 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
 
     String[] selectedColumns = conf.getStrings(InputFormatConfig.SELECTED_COLUMNS);
     if (selectedColumns != null) {
-      scan.select(selectedColumns);
+      scan.select(Arrays.asList(selectedColumns));
     }
 
     // TODO add a filter parser to get rid of Serialization
@@ -178,12 +230,20 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
         .ofNullable(HiveIcebergStorageHandler.table(conf, conf.get(InputFormatConfig.TABLE_IDENTIFIER)))
         .orElseGet(() -> Catalogs.loadTable(conf));
 
-    TableScan scan = createTableScan(table, conf);
-
     List<InputSplit> splits = Lists.newArrayList();
     boolean applyResidual = !conf.getBoolean(InputFormatConfig.SKIP_RESIDUAL_FILTERING, false);
     InputFormatConfig.InMemoryDataModel model = conf.getEnum(InputFormatConfig.IN_MEMORY_DATA_MODEL,
         InputFormatConfig.InMemoryDataModel.GENERIC);
+
+    long fromTime = conf.getLong(InputFormatConfig.FROM_TIMESTAMP, -1);
+    long fromSnapshot = conf.getLong(InputFormatConfig.FROM_VERSION, -1);
+    Scan<?, FileScanTask, CombinedScanTask> scan;
+    if (fromTime != -1 || fromSnapshot != -1) {
+      scan = applyConfig(conf, createIncrementalAppendScan(table, conf));
+    } else {
+      scan = applyConfig(conf, createTableScan(table, conf));
+    }
+
     try (CloseableIterable<CombinedScanTask> tasksIterable = scan.planTasks()) {
       Table serializableTable = SerializableTable.copyOf(table);
       tasksIterable.forEach(task -> {
@@ -223,29 +283,6 @@ public class IcebergInputFormat<T> extends InputFormat<Void, T> {
   @Override
   public RecordReader<Void, T> createRecordReader(InputSplit split, TaskAttemptContext context) {
     return new IcebergRecordReader<>();
-  }
-
-  private static TableScan scanWithTimeRange(Table table, TableScan scan, long fromTime, long toTime) {
-    if (toTime != -1 && fromTime >= toTime) {
-      throw new IllegalArgumentException(
-          "Provided FROM timestamp must precede the provided TO timestamp.");
-    }
-    // let's find the corresponding snapshot ID - if the fromTime is before the table creation happened, let's use
-    // the first snapshot of the table
-    long fromSnapshot = IcebergTableUtil.findSnapshotForTimestamp(table, fromTime)
-        .orElseGet(() -> table.history().get(0).snapshotId());
-    if (fromSnapshot == table.currentSnapshot().snapshotId()) {
-      throw new IllegalArgumentException(
-          "Provided FROM timestamp must be earlier than the commit time of latest snapshot of the table.");
-    }
-    if (toTime != -1) {
-      long toSnapshot = IcebergTableUtil.findSnapshotForTimestamp(table, toTime)
-          .orElseThrow(() -> new IllegalArgumentException(
-              "Provided TO timestamp must be after the commit time of the first snapshot of the table."));
-      return scan.appendsBetween(fromSnapshot, toSnapshot);
-    } else {
-      return scan.appendsAfter(fromSnapshot);
-    }
   }
 
   private static TableScan scanWithVersionRange(TableScan scan, long fromSnapshot, long toSnapshot) {
