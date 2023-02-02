@@ -115,9 +115,13 @@
     <avatica.version>1.22.0</avatica.version>
 =======
     <avatica.version>1.23.0</avatica.version>
+<<<<<<< HEAD
 >>>>>>> db15525419 (Bump Calcite version to 1.33.0 and Avatica to 1.23.0)
     <avro.version>1.8.2</avro.version>
 >>>>>>> b84a2d0d9e (NoSuchFieldError: BACK_TICK_BACKSLASH when running TestMiniLlapLocalCliDriver)
+=======
+    <avro.version>1.11.1</avro.version>
+>>>>>>> 1642388b7e (HIVE-26954: Upgrade Avro to 1.11.1 (Akshat Mathur reviewed by Ayush Saxena, Stamatis Zampetakis, Chris Nauroth))
     <bcprov-jdk15on.version>1.64</bcprov-jdk15on.version>
     <calcite.version>1.33.0</calcite.version>
     <datanucleus-api-jdo.version>5.2.8</datanucleus-api-jdo.version>
