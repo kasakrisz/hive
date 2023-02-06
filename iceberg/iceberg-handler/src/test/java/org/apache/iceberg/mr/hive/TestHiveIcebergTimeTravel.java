@@ -281,6 +281,18 @@ public class TestHiveIcebergTimeTravel extends HiveIcebergStorageHandlerWithEngi
   }
 
   @Test
+  public void testFromExclusiveToVersionWithVersionsInTheMiddle() throws IOException, InterruptedException {
+    Table table = prepareTableWithVersions(5);
+    long start = table.history().get(1).snapshotId();
+    long end = table.history().get(3).snapshotId();
+    List<Object[]> rows = shell.executeStatement(
+        "select * from customers for system_version from exclusive " + start + " to " + end + " ORDER BY last_name");
+    Assert.assertEquals(2, rows.size());
+    Assert.assertEquals("Green_1", rows.get(0)[2]);
+    Assert.assertEquals("Green_2", rows.get(1)[2]);
+  }
+
+  @Test
   public void testFromVersionWithoutToClause() throws IOException, InterruptedException {
     Table table = prepareTableWithVersions(5);
     long start = table.history().get(0).snapshotId();

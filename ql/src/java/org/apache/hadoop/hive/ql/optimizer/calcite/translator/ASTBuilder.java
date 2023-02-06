@@ -113,6 +113,9 @@ public class ASTBuilder {
     if (hTbl.getHiveTableMD().getFromVersion() != null) {
       ASTBuilder fromBuilder = ASTBuilder.construct(HiveParser.TOK_FROM_VERSION, "TOK_FROM_VERSION")
           .add(HiveParser.StringLiteral, hTbl.getHiveTableMD().getFromVersion());
+      if (hTbl.getHiveTableMD().isExclusiveFromVersion()) {
+        fromBuilder.add(HiveParser.TOK_EXCLUSIVE, "TOK_EXCLUSIVE");
+      }
       b.add(fromBuilder);
       if (hTbl.getHiveTableMD().getToVersion() != null) {
         ASTBuilder toBuilder = ASTBuilder.construct(HiveParser.TOK_TO_VERSION, "TOK_TO_VERSION")

@@ -54,6 +54,7 @@ public class QB {
   private HashMap<String, Pair<String, String>> aliasToAsOf;
   private HashMap<String, Pair<String, String>> aliasToFromToTime;
   private HashMap<String, Pair<String, String>> aliasToFromToVersion;
+  private HashSet<String> aliasToExclusiveFromVersion;
   private List<String> aliases;
   private QBParseInfo qbp;
   private QBMetaData qbm;
@@ -139,6 +140,7 @@ public class QB {
     aliasToAsOf = new LinkedHashMap<>();
     aliasToFromToTime = new LinkedHashMap<>();
     aliasToFromToVersion = new LinkedHashMap<>();
+    aliasToExclusiveFromVersion = new HashSet<>();
   }
 
   // For sub-queries, the id. and alias should be appended since same aliases can be re-used
@@ -207,8 +209,11 @@ public class QB {
     this.aliasToFromToTime.put(alias.toLowerCase(), fromToTime);
   }
 
-  public void setAliasToFromToVersion(String alias, Pair<String, String> fromToVersion) {
+  public void setAliasToFromToVersion(String alias, Pair<String, String> fromToVersion, boolean exclusiveFrom) {
     this.aliasToFromToVersion.put(alias.toLowerCase(), fromToVersion);
+    if (exclusiveFrom) {
+      this.aliasToExclusiveFromVersion.add(alias);
+    }
   }
 
   public void addAlias(String alias) {
@@ -279,6 +284,10 @@ public class QB {
 
   public Pair<String, String> getAliasToFromToVersion(String alias) {
     return aliasToFromToVersion.get(alias);
+  }
+
+  public boolean isExclusiveFromVersion(String alias) {
+    return aliasToExclusiveFromVersion.contains(alias);
   }
 
   public void rewriteViewToSubq(String alias, String viewName, QBExpr qbexpr, Table tab) {

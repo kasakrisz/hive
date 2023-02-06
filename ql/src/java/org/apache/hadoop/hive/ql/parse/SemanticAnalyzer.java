@@ -1147,9 +1147,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     }
 
     if (fromVersionIndex != -1) {
-      String fromVersion = tabref.getChild(fromVersionIndex).getChild(0).getText();
+      Tree fromNode = tabref.getChild(fromVersionIndex);
+      String fromVersion = fromNode.getChild(0).getText();
       String toVersion = toVersionIndex != -1 ? tabref.getChild(toVersionIndex).getChild(0).getText() : null;
-      qb.setAliasToFromToVersion(alias, Pair.of(fromVersion, toVersion));
+      qb.setAliasToFromToVersion(alias, Pair.of(fromVersion, toVersion),
+          fromNode.getChildCount() > 1 && fromNode.getChild(1).getType() == HiveParser.TOK_EXCLUSIVE);
     }
 
     // If the alias is already there then we have a conflict
@@ -2310,7 +2312,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         if (!Optional.ofNullable(tab.getStorageHandler()).map(HiveStorageHandler::isTimeTravelAllowed).orElse(false)) {
           throw new SemanticException(ErrorMsg.TIME_TRAVEL_NOT_ALLOWED, alias);
         }
-        tab.setFromVersion(fromToVersion.getLeft());
+        tab.setFromVersion(fromToVersion.getLeft(), qb.isExclusiveFromVersion(alias));
         tab.setToVersion(fromToVersion.getRight());
       }
 

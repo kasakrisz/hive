@@ -135,6 +135,7 @@ public class Table implements Serializable {
    */
   private String asOfVersion = null;
   private String fromVersion = null;
+  private boolean exclusiveFromVersion = false;
   private String toVersion = null;
 
   /**
@@ -1359,8 +1360,13 @@ public class Table implements Serializable {
     return fromVersion;
   }
 
-  public void setFromVersion(String fromVersion) {
+  public boolean isExclusiveFromVersion() {
+    return exclusiveFromVersion;
+  }
+
+  public void setFromVersion(String fromVersion, boolean exclusive) {
     this.fromVersion = fromVersion;
+    this.exclusiveFromVersion = exclusive;
   }
 
   public String getToVersion() {

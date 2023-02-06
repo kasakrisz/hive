@@ -154,6 +154,7 @@ public class TableScanDesc extends AbstractOperatorDesc implements IStatsGatherD
   private String asOfVersion = null;
 
   private String fromVersion = null;
+  private boolean exclusiveFromVersion = false;
 
   private String toVersion = null;
 
@@ -195,6 +196,7 @@ public class TableScanDesc extends AbstractOperatorDesc implements IStatsGatherD
       toTimestamp = tblMetadata.getToTimestamp();
       asOfVersion = tblMetadata.getAsOfVersion();
       fromVersion = tblMetadata.getFromVersion();
+      exclusiveFromVersion = tblMetadata.isExclusiveFromVersion();
       toVersion = tblMetadata.getToVersion();
     }
     isTranscationalTable = AcidUtils.isTransactionalTable(this.tableMetadata);
