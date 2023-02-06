@@ -318,7 +318,7 @@ public class BasicStats {
   }
 
   private long parseLong(String fieldName) {
-    Map<String, String> params = partish.getPartParameters();
+    Map<String, String> params = getBasicStatistics();
     long result = -1;
 
     if (params != null) {
@@ -334,6 +334,13 @@ public class BasicStats {
       }
     }
     return result;
+  }
+
+  private Map<String, String> getBasicStatistics() {
+    if (partish.getTable().isNonNative() && partish.getTable().getStorageHandler().canProvideBasicStatistics()) {
+      partish.getTable().getStorageHandler().getBasicStatistics(partish);
+    }
+    return partish.getPartParameters();
   }
 
   public static BasicStats buildFrom(List<BasicStats> partStats) {
