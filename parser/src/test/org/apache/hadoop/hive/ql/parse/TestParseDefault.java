@@ -122,4 +122,17 @@ public class TestParseDefault {
     assertTrue(tree.dump(), tree.toStringTree().contains("tok_compact_pool 'pool'"));
   }
 
+  @Test
+  public void test() throws ParseException {
+    ASTNode tree = parseDriver.parse(
+        "select * from customers for system_version from exclusive 12345 to 43211", null).getTree();
+    System.out.println(tree.dump());
+  }
+
+  @Test
+  public void test2() throws ParseException {
+    ASTNode tree = parseDriver.parse(
+        "select * from customers for system_version from 12345 to 43211", null).getTree();
+    System.out.println(tree.dump());
+  }
 }

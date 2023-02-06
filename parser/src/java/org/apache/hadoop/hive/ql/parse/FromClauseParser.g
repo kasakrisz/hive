@@ -231,8 +231,15 @@ fromToClause
     (KW_FOR KW_SYSTEM_TIME KW_FROM startTime=StringLiteral (KW_TO endTime=StringLiteral)?)
     -> ^(TOK_FROM_TIME $startTime) ^(TOK_TO_TIME $endTime)?
     |
-    (KW_FOR KW_SYSTEM_VERSION KW_FROM startVersion=Number (KW_TO endVersion=Number)?)
-    -> ^(TOK_FROM_VERSION $startVersion) ^(TOK_TO_VERSION $endVersion)?
+    (KW_FOR KW_SYSTEM_VERSION KW_FROM (excl=exclusive)? startVersion=Number (KW_TO endVersion=Number)?)
+    -> ^(TOK_FROM_VERSION $startVersion $excl?) ^(TOK_TO_VERSION $endVersion)?
+    ;
+
+exclusive
+@init { gParent.pushMsg("exclusive", state); }
+@after { gParent.popMsg(state); }
+    : KW_EXCLUSIVE
+    -> ^(TOK_EXCLUSIVE)
     ;
 
 uniqueJoinTableSource
