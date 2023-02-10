@@ -71,7 +71,7 @@ Table Parameters:
 	previous_metadata_location	hdfs://### HDFS PATH ###
 	storage_handler     	org.apache.iceberg.mr.hive.HiveIcebergStorageHandler
 	table_type          	ICEBERG             
-	totalSize           	1282                
+	totalSize           	#Masked#                
 #### A masked pattern was here ####
 	uuid                	#Masked#
 	 	 
@@ -150,7 +150,7 @@ Table Parameters:
 	previous_metadata_location	hdfs://### HDFS PATH ###
 	storage_handler     	org.apache.iceberg.mr.hive.HiveIcebergStorageHandler
 	table_type          	ICEBERG             
-	totalSize           	1282                
+	totalSize           	#Masked#                
 #### A masked pattern was here ####
 	uuid                	#Masked#
 	write.delete.mode   	merge-on-read       

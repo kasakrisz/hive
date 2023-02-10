@@ -1,5 +1,6 @@
 -- MV data is stored by partitioned iceberg testing the existing Hive syntax (also used by native mv) to specify partition cols.
 --! qt:replace:/(\s+uuid\s+)\S+(\s*)/$1#Masked#$2/
+--! qt:replace:/(\s+totalSize\s+)\S+(\s+)/$1#Masked#$2/
 -- Mask random snapshot id
 --! qt:replace:/(\s+current-snapshot-id\s+)\d+(\s*)/$1#SnapshotId#/
 -- SORT_QUERY_RESULTS
