@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.RelBuilder;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.LockState;
@@ -60,7 +61,9 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializati
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HivePushdownSnapshotFilterRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveUnionRewriteRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.MaterializedViewRewritingRelVisitor;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.UnionRewriter;
 import org.apache.hadoop.hive.ql.optimizer.calcite.stats.HiveIncrementalRelMdRowCount;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.CalcitePlanner;
@@ -82,6 +85,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singletonList;
+import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_MATERIALIZED_VIEW_UNION_REWRITER;
 
 /**
  * Analyzer for alter materialized view rebuild commands.
@@ -191,6 +195,18 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
   }
 
   protected class MVRebuildCalcitePlannerAction extends CalcitePlannerAction {
+
+    private UnionRewriter NEW = (basePlan, materialization, mdProvider, executorProvider) -> {
+      final RelOptCluster optCluster = basePlan.getCluster();
+      final RelBuilder relBuilder = HiveRelFactories.HIVE_BUILDER.create(optCluster, null);
+
+      return relBuilder
+          .push(materialization.queryRel)
+          .push(materialization.tableRel)
+          .union(true)
+          .build();
+    };
+
     public MVRebuildCalcitePlannerAction(Map<String, PrunedPartitionList> partitionCache,
                                          StatsSource statsSource,
                                          ColumnAccessInfo columnAccessInfo) {
@@ -227,27 +243,34 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
 
       perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.OPTIMIZER);
 
-      // We need to expand IN/BETWEEN expressions when materialized view rewriting
-      // is triggered since otherwise this may prevent some rewritings from happening
-      HepProgramBuilder program = new HepProgramBuilder();
-      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
-              HiveInBetweenExpandRule.FILTER_INSTANCE,
-              HiveInBetweenExpandRule.JOIN_INSTANCE,
-              HiveInBetweenExpandRule.PROJECT_INSTANCE);
-      basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
+      if (HiveConf.getBoolVar(conf, HIVE_MATERIALIZED_VIEW_UNION_REWRITER)) {
+        HepProgramBuilder program = new HepProgramBuilder();
+        generatePartialProgram(program, true, HepMatchOrder.TOP_DOWN, new HiveUnionRewriteRule(materialization));
+        basePlan = executeProgram(
+            basePlan, program.build(), mdProvider, executorProvider, singletonList(materialization));
+      } else {
+        // We need to expand IN/BETWEEN expressions when materialized view rewriting
+        // is triggered since otherwise this may prevent some rewritings from happening
+        HepProgramBuilder program = new HepProgramBuilder();
+        generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST,
+            HiveInBetweenExpandRule.FILTER_INSTANCE,
+            HiveInBetweenExpandRule.JOIN_INSTANCE,
+            HiveInBetweenExpandRule.PROJECT_INSTANCE);
+        basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
 
-      // If it is a materialized view rebuild, we use the HepPlanner, since we only have
-      // one MV and we would like to use it to create incremental maintenance plans
-      program = new HepProgramBuilder();
-      generatePartialProgram(program, true, HepMatchOrder.TOP_DOWN,
-              HiveMaterializedViewRule.MATERIALIZED_VIEW_REWRITING_RULES);
-      // Add materialization for rebuild to planner
-      // Optimize plan
-      basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider, singletonList(materialization));
+        // If it is a materialized view rebuild, we use the HepPlanner, since we only have
+        // one MV and we would like to use it to create incremental maintenance plans
+        program = new HepProgramBuilder();
+        generatePartialProgram(program, true, HepMatchOrder.TOP_DOWN,
+            HiveMaterializedViewRule.MATERIALIZED_VIEW_REWRITING_RULES);
+        // Add materialization for rebuild to planner
+        // Optimize plan
+        basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider, singletonList(materialization));
 
-      program = new HepProgramBuilder();
-      generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST, new HivePushdownSnapshotFilterRule());
-      basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
+        program = new HepProgramBuilder();
+        generatePartialProgram(program, false, HepMatchOrder.DEPTH_FIRST, new HivePushdownSnapshotFilterRule());
+        basePlan = executeProgram(basePlan, program.build(), mdProvider, executorProvider);
+      }
 
       perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.OPTIMIZER, "Calcite: View-based rewriting");
 

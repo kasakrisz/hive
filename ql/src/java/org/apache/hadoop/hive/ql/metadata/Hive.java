@@ -1973,7 +1973,8 @@ public class Hive {
           // if rewriting with outdated materialized views is enabled (currently
           // disabled by default).
           materialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
-              materialization, validTxnsList, materializedViewTable.getMVMetadata().getSnapshot());
+              materialization, validTxnsList, materializedViewTable.getMVMetadata().getSnapshot(),
+              !HiveConf.getBoolVar(conf, ConfVars.HIVE_MATERIALIZED_VIEW_UNION_REWRITER));
         }
         result.addAll(HiveMaterializedViewUtils.deriveGroupingSetsMaterializedViews(materialization));
       }
@@ -2234,7 +2235,8 @@ public class Hive {
               // We will rewrite it to include the filters on transaction list
               // so we can produce partial rewritings
               relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
-                  relOptMaterialization, validTxnsList, metadata.getSnapshot());
+                  relOptMaterialization, validTxnsList, metadata.getSnapshot(),
+                  !HiveConf.getBoolVar(conf, ConfVars.HIVE_MATERIALIZED_VIEW_UNION_REWRITER));
             }
             addToMaterializationList(expandGroupingSets, invalidationInfo, relOptMaterialization, result);
             continue;
@@ -2256,7 +2258,8 @@ public class Hive {
             // We will rewrite it to include the filters on transaction list
             // so we can produce partial rewritings
             relOptMaterialization = HiveMaterializedViewUtils.augmentMaterializationWithTimeInformation(
-                    hiveRelOptMaterialization, validTxnsList, metadata.getSnapshot());
+                    hiveRelOptMaterialization, validTxnsList, metadata.getSnapshot(),
+                !HiveConf.getBoolVar(conf, ConfVars.HIVE_MATERIALIZED_VIEW_UNION_REWRITER));
           }
           addToMaterializationList(expandGroupingSets, invalidationInfo, relOptMaterialization, result);
         }

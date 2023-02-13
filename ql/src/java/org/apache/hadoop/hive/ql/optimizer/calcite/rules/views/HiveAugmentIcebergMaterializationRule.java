@@ -74,13 +74,16 @@ public class HiveAugmentIcebergMaterializationRule extends RelOptRule {
   private final Set<RelNode> visited;
   private final Map<String, SnapshotContext> storedSnapshot;
 
+  private final boolean legacyMode;
+
   public HiveAugmentIcebergMaterializationRule(
-          RexBuilder rexBuilder, Map<String, SnapshotContext> storedSnapshot) {
+      RexBuilder rexBuilder, Map<String, SnapshotContext> storedSnapshot, boolean legacyMode) {
     super(operand(TableScan.class, any()),
         HiveRelFactories.HIVE_BUILDER, "HiveAugmentMaterializationRule");
     this.rexBuilder = rexBuilder;
     this.storedSnapshot = storedSnapshot;
     this.visited = new HashSet<>();
+    this.legacyMode = legacyMode;
   }
 
   @Override
@@ -96,6 +99,10 @@ public class HiveAugmentIcebergMaterializationRule extends RelOptRule {
 
     SnapshotContext tableSnapshot = storedSnapshot.get(table.getFullyQualifiedName());
     if (tableSnapshot.equals(table.getStorageHandler().getCurrentSnapshotContext(table))) {
+      return;
+    }
+    if (!legacyMode) {
+      table.setVersionIntervalFrom(Long.toString(tableSnapshot.getSnapshotId()));
       return;
     }
 
