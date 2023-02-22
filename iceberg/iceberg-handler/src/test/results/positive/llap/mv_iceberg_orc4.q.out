@@ -1,0 +1,112 @@
+PREHOOK: query: drop table if exists tbl_ice
+PREHOOK: type: DROPTABLE
+POSTHOOK: query: drop table if exists tbl_ice
+POSTHOOK: type: DROPTABLE
+PREHOOK: query: create external table tbl_ice(a int, b string, c int) stored by iceberg stored as orc tblproperties ('format-version'='1')
+PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@tbl_ice
+POSTHOOK: query: create external table tbl_ice(a int, b string, c int) stored by iceberg stored as orc tblproperties ('format-version'='1')
+POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@tbl_ice
+PREHOOK: query: insert into tbl_ice values (1, 'one v2', 50), (4, 'four v2', 53), (5, 'five v2', 54)
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@tbl_ice
+POSTHOOK: query: insert into tbl_ice values (1, 'one v2', 50), (4, 'four v2', 53), (5, 'five v2', 54)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Output: default@tbl_ice
+PREHOOK: query: create materialized view mat1  as
+select tbl_ice.b, tbl_ice.c from tbl_ice where tbl_ice.c > 52
+PREHOOK: type: CREATE_MATERIALIZED_VIEW
+PREHOOK: Input: default@tbl_ice
+PREHOOK: Output: database:default
+PREHOOK: Output: default@mat1
+POSTHOOK: query: create materialized view mat1  as
+select tbl_ice.b, tbl_ice.c from tbl_ice where tbl_ice.c > 52
+POSTHOOK: type: CREATE_MATERIALIZED_VIEW
+POSTHOOK: Input: default@tbl_ice
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@mat1
+POSTHOOK: Lineage: mat1.b SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:b, type:string, comment:null), ]
+POSTHOOK: Lineage: mat1.c SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), ]
+PREHOOK: query: create materialized view mat2  as
+select tbl_ice.b, tbl_ice.c, sum(tbl_ice.c) from tbl_ice where tbl_ice.c > 52 group by tbl_ice.b, tbl_ice.c
+PREHOOK: type: CREATE_MATERIALIZED_VIEW
+PREHOOK: Input: default@tbl_ice
+PREHOOK: Output: database:default
+PREHOOK: Output: default@mat2
+POSTHOOK: query: create materialized view mat2  as
+select tbl_ice.b, tbl_ice.c, sum(tbl_ice.c) from tbl_ice where tbl_ice.c > 52 group by tbl_ice.b, tbl_ice.c
+POSTHOOK: type: CREATE_MATERIALIZED_VIEW
+POSTHOOK: Input: default@tbl_ice
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@mat2
+POSTHOOK: Lineage: mat2._c2 EXPRESSION [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), ]
+POSTHOOK: Lineage: mat2.b SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:b, type:string, comment:null), ]
+POSTHOOK: Lineage: mat2.c SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), ]
+PREHOOK: query: create materialized view mat3  as
+select tbl_ice.b, tbl_ice.c, sum(tbl_ice.c), avg(b) from tbl_ice where tbl_ice.c > 52 group by tbl_ice.b, tbl_ice.c
+PREHOOK: type: CREATE_MATERIALIZED_VIEW
+PREHOOK: Input: default@tbl_ice
+PREHOOK: Output: database:default
+PREHOOK: Output: default@mat3
+POSTHOOK: query: create materialized view mat3  as
+select tbl_ice.b, tbl_ice.c, sum(tbl_ice.c), avg(b) from tbl_ice where tbl_ice.c > 52 group by tbl_ice.b, tbl_ice.c
+POSTHOOK: type: CREATE_MATERIALIZED_VIEW
+POSTHOOK: Input: default@tbl_ice
+POSTHOOK: Output: database:default
+POSTHOOK: Output: default@mat3
+POSTHOOK: Lineage: mat3._c2 EXPRESSION [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), ]
+POSTHOOK: Lineage: mat3._c3 EXPRESSION [(tbl_ice)tbl_ice.FieldSchema(name:b, type:string, comment:null), ]
+POSTHOOK: Lineage: mat3.b SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:b, type:string, comment:null), ]
+POSTHOOK: Lineage: mat3.c SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), ]
+PREHOOK: query: insert into tbl_ice values (1, 'one', 50), (2, 'two', 51), (3, 'three', 52), (4, 'four', 53), (5, 'five', 54)
+PREHOOK: type: QUERY
+PREHOOK: Input: _dummy_database@_dummy_table
+PREHOOK: Output: default@tbl_ice
+POSTHOOK: query: insert into tbl_ice values (1, 'one', 50), (2, 'two', 51), (3, 'three', 52), (4, 'four', 53), (5, 'five', 54)
+POSTHOOK: type: QUERY
+POSTHOOK: Input: _dummy_database@_dummy_table
+POSTHOOK: Output: default@tbl_ice
+PREHOOK: query: explain cbo
+alter materialized view mat2 rebuild
+PREHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
+PREHOOK: Input: default@mat2
+PREHOOK: Input: default@tbl_ice
+PREHOOK: Output: default@mat2
+POSTHOOK: query: explain cbo
+alter materialized view mat2 rebuild
+POSTHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
+POSTHOOK: Input: default@mat2
+POSTHOOK: Input: default@tbl_ice
+POSTHOOK: Output: default@mat2
+CBO PLAN:
+HiveAggregate(group=[{0, 1}], agg#0=[sum($2)])
+  HiveProject(b=[$0], c=[$1], $f2=[$2])
+    HiveUnion(all=[true])
+      HiveProject(b=[$0], c=[$1], $f2=[$2])
+        HiveAggregate(group=[{1, 2}], agg#0=[sum($2)])
+          HiveFilter(condition=[>($2, 52)])
+            HiveTableScan(table=[[default, tbl_ice]], versionFrom=[9041035147143849536], table:alias=[tbl_ice])
+      HiveProject(b=[$0], c=[$1], _c2=[$2])
+        HiveTableScan(table=[[default, mat2]], versionFrom=[null], table:alias=[default.mat2])
+
+PREHOOK: query: explain cbo
+alter materialized view mat3 rebuild
+PREHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
+PREHOOK: Input: default@tbl_ice
+PREHOOK: Output: default@mat3
+POSTHOOK: query: explain cbo
+alter materialized view mat3 rebuild
+POSTHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
+POSTHOOK: Input: default@tbl_ice
+POSTHOOK: Output: default@mat3
+CBO PLAN:
+HiveProject(b=[$0], c=[$1], _o__c2=[$2], _o__c3=[/($3, $4)])
+  HiveAggregate(group=[{1, 2}], agg#0=[sum($2)], agg#1=[sum($1)], agg#2=[count($1)])
+    HiveFilter(condition=[>($2, 52)])
+      HiveTableScan(table=[[default, tbl_ice]], versionFrom=[null], table:alias=[tbl_ice])
+

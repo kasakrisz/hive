@@ -3,6 +3,7 @@
 set hive.support.concurrency=true;
 set hive.txn.manager=org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
 set hive.materializedview.rewriting.sql=false;
+set hive.materializedview.union.rewriter=false;
 
 create table t1(a char(15), b int, c int) stored as orc TBLPROPERTIES ('transactional'='true');
 create table t2(a char(15), b int) stored as orc TBLPROPERTIES ('transactional'='true');

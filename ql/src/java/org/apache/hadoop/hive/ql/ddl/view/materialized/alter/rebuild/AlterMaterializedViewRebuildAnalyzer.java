@@ -18,19 +18,29 @@
 
 package org.apache.hadoop.hive.ql.ddl.view.materialized.alter.rebuild;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.hep.HepMatchOrder;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutor;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.LockState;
@@ -46,9 +56,12 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveRelOptMaterialization;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelBuilder;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveTezModelRelMetadataProvider;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveAggregate;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveInBetweenExpandRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.ColumnPropagationException;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertDeleteIncrementalRewritingRule;
@@ -61,6 +74,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializati
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HivePushdownSnapshotFilterRule;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveUnionAggregateRewriteRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveUnionRewriteRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.MaterializedViewRewritingRelVisitor;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.UnionRewriter;
@@ -79,6 +93,7 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -244,10 +259,10 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
       perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.OPTIMIZER);
 
       if (HiveConf.getBoolVar(conf, HIVE_MATERIALIZED_VIEW_UNION_REWRITER)) {
-        HepProgramBuilder program = new HepProgramBuilder();
-        generatePartialProgram(program, true, HepMatchOrder.TOP_DOWN, new HiveUnionRewriteRule(materialization));
-        basePlan = executeProgram(
-            basePlan, program.build(), mdProvider, executorProvider, singletonList(materialization));
+        basePlan = applyUnionRewrite(materialization);
+        if (basePlan == null) {
+          return calcitePreMVRewritingPlan;
+        }
       } else {
         // We need to expand IN/BETWEEN expressions when materialized view rewriting
         // is triggered since otherwise this may prevent some rewritings from happening
@@ -310,6 +325,82 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
 
       // Now we trigger some needed optimization rules again
       return applyPreJoinOrderingTransforms(basePlan, mdProvider, executorProvider);
+    }
+
+    protected RelNode applyUnionRewrite(HiveRelOptMaterialization materialization) {
+      final RelOptCluster optCluster = materialization.queryRel.getCluster();
+      RelBuilder relBuilder = HiveRelFactories.HIVE_BUILDER.create(optCluster, null);
+
+      relBuilder = relBuilder
+              .push(materialization.queryRel)
+              .push(materialization.tableRel)
+              .union(true);
+
+      if (materialization.queryRel instanceof HiveProject &&
+        materialization.queryRel.getInput(0) instanceof HiveAggregate) {
+        HiveProject topProject = (HiveProject) materialization.queryRel;
+        HiveAggregate aggregate = (HiveAggregate) materialization.queryRel.getInput(0);
+        RelNode rewritten = createAggregate(relBuilder, aggregate);
+        return topProject.copy(topProject.getTraitSet(), ImmutableList.of(rewritten));
+      } else if (materialization.queryRel instanceof HiveAggregate) {
+        HiveAggregate aggregate = (HiveAggregate) materialization.queryRel;
+        return createAggregate(relBuilder, aggregate);
+      }
+
+      return relBuilder.build();
+    }
+
+    private RelNode createAggregate(RelBuilder relBuilder, Aggregate aggregate) {
+      List<RexNode> exprList = new ArrayList<>(relBuilder.peek().getRowType().getFieldCount());
+      List<String> nameList = new ArrayList<>(relBuilder.peek().getRowType().getFieldCount());
+      RexBuilder rexBuilder = relBuilder.getRexBuilder();
+      for (int i = 0; i < relBuilder.peek().getRowType().getFieldCount(); i++) {
+        // We can take unionInputQuery as it is query based.
+        RelDataTypeField field = aggregate.getRowType().getFieldList().get(i);
+        exprList.add(
+                rexBuilder.ensureType(
+                        field.getType(),
+                        rexBuilder.makeInputRef(relBuilder.peek(), i),
+                        true));
+        nameList.add(field.getName());
+      }
+      relBuilder.project(exprList, nameList);
+      // Rollup aggregate
+      final ImmutableBitSet groupSet = ImmutableBitSet.range(aggregate.getGroupCount());
+      final List<RelBuilder.AggCall> aggregateCalls = new ArrayList<>();
+      for (int i = 0; i < aggregate.getAggCallList().size(); i++) {
+        AggregateCall aggCall = aggregate.getAggCallList().get(i);
+        if (aggCall.isDistinct()) {
+          // Cannot ROLLUP distinct
+          return null;
+        }
+        SqlAggFunction rollupAgg =
+                HiveRelBuilder.getRollup(aggCall.getAggregation());
+        if (rollupAgg == null) {
+          // Cannot rollup this aggregate, bail out
+          return null;
+        }
+        final RexInputRef operand =
+                rexBuilder.makeInputRef(relBuilder.peek(),
+                        aggregate.getGroupCount() + i);
+        aggregateCalls.add(
+                relBuilder.aggregateCall(rollupAgg, operand)
+                        .distinct(aggCall.isDistinct())
+                        .approximate(aggCall.isApproximate())
+                        .as(aggCall.name));
+      }
+      RelNode prevNode = relBuilder.peek();
+      RelNode result = relBuilder
+              .aggregate(relBuilder.groupKey(groupSet), aggregateCalls)
+              .build();
+      if (prevNode == result && groupSet.cardinality() != result.getRowType().getFieldCount()) {
+        // Aggregate was not inserted but we need to prune columns
+        relBuilder
+                .push(result)
+                .project(relBuilder.fields(groupSet))
+                .build();
+      }
+      return result;
     }
 
     private RelNode applyRecordIncrementalRebuildPlan(
