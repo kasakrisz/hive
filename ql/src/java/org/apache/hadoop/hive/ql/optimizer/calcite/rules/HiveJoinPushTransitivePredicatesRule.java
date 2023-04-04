@@ -124,8 +124,7 @@ public class HiveJoinPushTransitivePredicatesRule extends RelOptRule {
     List<RexNode> valids = new ArrayList<>(rexs.size());
     for (RexNode rex : rexs) {
       try {
-        rex.accept(validator);
-        valids.add(rex);
+        valids.add(rex.accept(validator));
       } catch (Util.FoundOne e) {
         Util.swallow(e, null);
       }
@@ -172,7 +171,23 @@ public class HiveJoinPushTransitivePredicatesRule extends RelOptRule {
           throw new Util.FoundOne(call);
         }
       }
-      return super.visitCall(call);
+
+      boolean[] update = {false};
+      List<RexNode> clonedOperands = visitList(call.operands, update);
+      if (update[0]) {
+        if (!clonedOperands.get(0).getType().equals(call.operands.get(0).getType())) {
+          List<RexNode> castedOperands = new ArrayList<>(clonedOperands.size());
+          castedOperands.add(clonedOperands.get(0));
+          for (int i = 1; i < clonedOperands.size(); ++i) {
+            castedOperands.add(rexBuilder.makeCast(clonedOperands.get(0).getType(), clonedOperands.get(i)));
+          }
+          clonedOperands = castedOperands;
+        }
+
+        return call.clone(call.getType(), clonedOperands);
+      } else {
+        return call;
+      }
     }
 
     @Override
