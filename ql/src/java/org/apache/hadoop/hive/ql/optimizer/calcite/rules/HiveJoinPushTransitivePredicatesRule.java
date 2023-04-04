@@ -82,10 +82,10 @@ public class HiveJoinPushTransitivePredicatesRule extends RelOptRule {
 
     Set<String> leftPushedPredicates = Sets.newHashSet(registry.getPushedPredicates(join, 0));
     List<RexNode> leftPreds =
-        getValidPreds(lChild, leftPushedPredicates, preds.leftInferredPredicates, lChild.getRowType());
+        getValidPreds(lChild, leftPushedPredicates, preds.leftInferredPredicates, lChild.getRowType(), rB);
     Set<String> rightPushedPredicates = Sets.newHashSet(registry.getPushedPredicates(join, 1));
     List<RexNode> rightPreds =
-        getValidPreds(rChild, rightPushedPredicates, preds.rightInferredPredicates, rChild.getRowType());
+        getValidPreds(rChild, rightPushedPredicates, preds.rightInferredPredicates, rChild.getRowType(), rB);
 
     RexNode newLeftPredicate = RexUtil.composeConjunction(rB, leftPreds, false);
     RexNode newRightPredicate = RexUtil.composeConjunction(rB, rightPreds, false);
@@ -119,8 +119,8 @@ public class HiveJoinPushTransitivePredicatesRule extends RelOptRule {
   }
 
   private ImmutableList<RexNode> getValidPreds(RelNode child, Set<String> predicatesToExclude,
-      List<RexNode> rexs, RelDataType rType) {
-    InputRefValidator validator = new InputRefValidator(rType.getFieldList());
+      List<RexNode> rexs, RelDataType rType, RexBuilder rexBuilder) {
+    InputRefValidator validator = new InputRefValidator(rType.getFieldList(), rexBuilder);
     List<RexNode> valids = new ArrayList<>(rexs.size());
     for (RexNode rex : rexs) {
       try {
@@ -152,16 +152,17 @@ public class HiveJoinPushTransitivePredicatesRule extends RelOptRule {
 
   //~ Inner Classes ----------------------------------------------------------
 
-  private static class InputRefValidator extends RexVisitorImpl<Void> {
+  private static class InputRefValidator extends RexShuttle {
 
     private final List<RelDataTypeField> types;
-    protected InputRefValidator(List<RelDataTypeField> types) {
-      super(true);
+    private final RexBuilder rexBuilder;
+    protected InputRefValidator(List<RelDataTypeField> types, RexBuilder rexBuilder) {
       this.types = types;
+      this.rexBuilder = rexBuilder;
     }
 
     @Override
-    public Void visitCall(RexCall call) {
+    public RexNode visitCall(RexCall call) {
 
       if(AnnotationUtils.getAnnotation(
           GenericUDFOPNotNull.class, Description.class).name().equals(call.getOperator().getName())) {
@@ -175,11 +176,16 @@ public class HiveJoinPushTransitivePredicatesRule extends RelOptRule {
     }
 
     @Override
-    public Void visitInputRef(RexInputRef inputRef) {
-      if (!areTypesCompatible(inputRef.getType(), types.get(inputRef.getIndex()).getType())) {
-        throw new Util.FoundOne(inputRef);
+    public RexNode visitInputRef(RexInputRef inputRef) {
+      RelDataType inputRefType = inputRef.getType();
+      RelDataType typeInSchema = types.get(inputRef.getIndex()).getType();
+      if (inputRefType.equals(typeInSchema)) {
+        return super.visitInputRef(inputRef);
       }
-      return super.visitInputRef(inputRef);
+      if (areTypesCompatible(inputRefType, typeInSchema)) {
+        return rexBuilder.makeCast(typeInSchema, inputRef);
+      }
+      throw new Util.FoundOne(inputRef);
     }
 
     private boolean areTypesCompatible(RelDataType type1, RelDataType type2) {
