@@ -1859,10 +1859,10 @@ public class CalcitePlanner extends SemanticAnalyzer {
       rules.add(HiveAggregateReduceFunctionsRule.INSTANCE);
       rules.add(HiveAggregateReduceRule.INSTANCE);
       if (conf.getBoolVar(HiveConf.ConfVars.HIVEPOINTLOOKUPOPTIMIZER)) {
-        rules.add(new HiveSearchExpandRule.HiveSearchExpandRuleConfig().withOperandSupplier(
-            o -> o.operand(Filter.class).anyInputs()).toRule());
-        rules.add(new HiveSearchExpandRule.HiveSearchExpandRuleConfig().withOperandSupplier(
-            o -> o.operand(Project.class).anyInputs()).toRule());
+//        rules.add(new HiveSearchExpandRule.HiveSearchExpandRuleConfig().withOperandSupplier(
+//            o -> o.operand(Filter.class).anyInputs()).toRule());
+//        rules.add(new HiveSearchExpandRule.HiveSearchExpandRuleConfig().withOperandSupplier(
+//            o -> o.operand(Project.class).anyInputs()).toRule());
         
         rules.add(new HivePointLookupOptimizerRule.FilterCondition(minNumORClauses));
         rules.add(new HivePointLookupOptimizerRule.JoinCondition(minNumORClauses));
