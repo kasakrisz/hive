@@ -240,7 +240,8 @@ public class HiveMaterializedViewUtils {
 
     RelNode modifiedQueryRel;
     if (snapshot != null && snapshot.getTableSnapshots() != null && !snapshot.getTableSnapshots().isEmpty()) {
-      modifiedQueryRel = materialization.queryRel;
+      modifiedQueryRel = applyRule(
+              materialization.queryRel, HiveAugmentSnapshotMaterializationRule.with(snapshot.getTableSnapshots()));
     } else {
       String materializationTxnList = snapshot != null ? snapshot.getValidTxnList() : null;
       modifiedQueryRel = augmentMaterializationWithTimeInformation(
