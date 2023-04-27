@@ -107,21 +107,8 @@
     <apache-directory-server.version>1.5.7</apache-directory-server.version>
     <!-- Include arrow for LlapOutputFormatService -->
     <arrow.version>2.0.0</arrow.version>
-<<<<<<< HEAD
-<<<<<<< HEAD
-    <avatica.version>1.12.0</avatica.version>
     <avro.version>1.11.1</avro.version>
-=======
-    <avatica.version>1.22.0</avatica.version>
-=======
     <avatica.version>1.23.0</avatica.version>
-<<<<<<< HEAD
->>>>>>> db15525419 (Bump Calcite version to 1.33.0 and Avatica to 1.23.0)
-    <avro.version>1.8.2</avro.version>
->>>>>>> b84a2d0d9e (NoSuchFieldError: BACK_TICK_BACKSLASH when running TestMiniLlapLocalCliDriver)
-=======
-    <avro.version>1.11.1</avro.version>
->>>>>>> 1642388b7e (HIVE-26954: Upgrade Avro to 1.11.1 (Akshat Mathur reviewed by Ayush Saxena, Stamatis Zampetakis, Chris Nauroth))
     <bcprov-jdk15on.version>1.64</bcprov-jdk15on.version>
     <calcite.version>1.33.0</calcite.version>
     <datanucleus-api-jdo.version>5.2.8</datanucleus-api-jdo.version>
@@ -228,12 +215,17 @@
     <re2j.version>1.2</re2j.version>
     <rs-api.version>2.0.1</rs-api.version>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <json-path.version>2.8.0</json-path.version>
     <janino.version>3.0.11</janino.version>
 =======
     <json-path.version>2.7.0</json-path.version>
     <janino.version>3.1.8</janino.version>
 >>>>>>> a734d6e62a (NoSuchMethodError: CompilerFactoryFactory.getDefaultCompilerFactory when running TestMiniLlapLocalCliDriver)
+=======
+    <janino.version>3.1.8</janino.version>
+    <janino.version>3.0.11</janino.version>
+>>>>>>> 854d03af7a (HIVE-27290 : Upgrade json-path to 2.8.0 (Reshma Fegade, reviewed by Laszlo Vegh))
     <datasketches.version>1.1.0-incubating</datasketches.version>
     <spotbugs.version>4.0.3</spotbugs.version>
     <validation-api.version>1.1.0.Final</validation-api.version>
