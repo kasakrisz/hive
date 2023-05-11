@@ -271,10 +271,6 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
       // A rewriting was produced, we will check whether it was part of an incremental rebuild
       // to try to replace INSERT OVERWRITE by INSERT or MERGE
       if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_MATERIALIZED_VIEW_REBUILD_INCREMENTAL)) {
-        if (materialization.isSourceTablesCompacted()) {
-          return calcitePreMVRewritingPlan;
-        }
-
         RelNode incrementalRebuildPlan = applyRecordIncrementalRebuildPlan(
                 basePlan, mdProvider, executorProvider, optCluster, calcitePreMVRewritingPlan, materialization);
 
@@ -313,7 +309,10 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
             return applyJoinInsertIncremental(basePlan, mdProvider, executorProvider);
           }
         } else {
-          if (acidView) {
+          // Can not perform incremental rebuild when
+          // * MV is not acid - since we can not delete from an insert only MV
+          // * any source tables was compacted since last rebuild - compaction removes delete deltas
+          if (acidView && !materialization.isSourceTablesCompacted()) {
             if (visitor.isContainsAggregate()) {
               if (visitor.getCountIndex() < 0) {
                 // count(*) is necessary for determine which rows should be deleted from the view

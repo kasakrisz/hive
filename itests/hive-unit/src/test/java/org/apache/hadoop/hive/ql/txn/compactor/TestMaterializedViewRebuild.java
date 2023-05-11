@@ -45,13 +45,21 @@ public class TestMaterializedViewRebuild extends CompactorOnTezTest {
           ""
   );
 
-  private static final List<String> INCREMENTAL_REBUILD_PLAN = Arrays.asList(
+  private static final List<String> INCREMENTAL_REBUILD_PLAN_TEMPLATE = Arrays.asList(
           "CBO PLAN:",
           "HiveProject(a=[$0], b=[$1], c=[$2])",
-          "  HiveFilter(condition=[AND(<(2, $5.writeid), OR(>($0, 0), IS NULL($0)))])",
+          "  HiveFilter(condition=[AND(<(%d, $5.writeid), OR(>($0, 0), IS NULL($0)))])",
           "    HiveTableScan(table=[[default, t1]], table:alias=[t1])",
           ""
   );
+
+  private static List<String> getIncrementalRebuildPlan(int writeId) {
+    List<String> result = new ArrayList<>(INCREMENTAL_REBUILD_PLAN_TEMPLATE);
+    String filterLine = result.get(2);
+    result.remove(2);
+    result.add(2, String.format(filterLine, writeId));
+    return result;
+  }
 
   private static final List<String> EXPECTED_RESULT = Arrays.asList(
           "1\tone\t1.1",
@@ -80,7 +88,7 @@ public class TestMaterializedViewRebuild extends CompactorOnTezTest {
   }
 
   @Test
-  public void testWhenMajorCompactionThenIncrementalMVRebuildNotUsed() throws Exception {
+  public void testWhenMajorCompactionThenIncrementalMVRebuildIsUsed() throws Exception {
 
     executeStatementOnDriver("insert into " + TABLE1 + "(a,b,c) values (3, 'three', 3.3)", driver);
 
@@ -91,7 +99,7 @@ public class TestMaterializedViewRebuild extends CompactorOnTezTest {
     txnHandler.cleanTxnToWriteIdTable();
 
     List<String> result = execSelectAndDumpData("explain cbo alter materialized view " + MV1 + " rebuild", driver, "");
-    Assert.assertEquals(FULL_REBUILD_PLAN, result);
+    Assert.assertEquals(getIncrementalRebuildPlan(1), result);
     executeStatementOnDriver("alter materialized view " + MV1 + " rebuild", driver);
 
     result = execSelectAndDumpData("select * from " + MV1 , driver, "");
@@ -102,42 +110,13 @@ public class TestMaterializedViewRebuild extends CompactorOnTezTest {
   }
 
   @Test
-  public void testSecondRebuildCanBeIncrementalAfterMajorCompaction() throws Exception {
-
-    executeStatementOnDriver("insert into " + TABLE1 + "(a,b,c) values (3, 'three', 3.3)", driver);
-
-    CompactorTestUtil.runCompaction(conf, "default",  TABLE1 , CompactionType.MAJOR, true);
-    CompactorTestUtil.runCleaner(conf);
-    verifySuccessfulCompaction(1);
-    TxnStore txnHandler = TxnUtils.getTxnStore(conf);
-    txnHandler.cleanTxnToWriteIdTable();
-
-    executeStatementOnDriver("alter materialized view " + MV1 + " rebuild", driver);
-
-    // Insert after first rebuild.
-    executeStatementOnDriver("insert into " + TABLE1 + "(a,b,c) values (4, 'four', 4.4)", driver);
-
-    List<String> result = execSelectAndDumpData("explain cbo alter materialized view " + MV1 + " rebuild", driver, "");
-    Assert.assertEquals(INCREMENTAL_REBUILD_PLAN, result);
-    executeStatementOnDriver("alter materialized view " + MV1 + " rebuild", driver);
-
-    result = execSelectAndDumpData("select * from " + MV1 , driver, "");
-    List<String> expected = new ArrayList(EXPECTED_RESULT);
-    expected.add("4\tfour\t4.4");
-    assertResult(expected, result);
-
-    result = execSelectAndDumpData("explain cbo select a,b,c from " + TABLE1 + " where a > 0 or a is null", driver, "");
-    Assert.assertEquals(Arrays.asList("CBO PLAN:", "HiveTableScan(table=[[default, " + MV1 + "]], table:alias=[default." + MV1 + "])", ""), result);
-  }
-
-  @Test
-  public void testWhenCleanUpOfMajorCompactionHasNotFinishedIncrementalMVRebuildNotUsed() throws Exception {
+  public void testWhenCleanUpOfMajorCompactionHasNotFinishedIncrementalMVRebuildIsUsed() throws Exception {
     executeStatementOnDriver("insert into " + TABLE1 + "(a,b,c) values (3, 'three', 3.3)", driver);
 
     CompactorTestUtil.runCompaction(conf, "default",  TABLE1 , CompactionType.MAJOR, true);
 
     List<String> result = execSelectAndDumpData("explain cbo alter materialized view " + MV1 + " rebuild", driver, "");
-    Assert.assertEquals(FULL_REBUILD_PLAN, result);
+    Assert.assertEquals(getIncrementalRebuildPlan(1), result);
     executeStatementOnDriver("alter materialized view " + MV1 + " rebuild", driver);
 
     result = execSelectAndDumpData("select * from " + MV1 , driver, "");
@@ -169,6 +148,38 @@ public class TestMaterializedViewRebuild extends CompactorOnTezTest {
 
     result = execSelectAndDumpData("select * from " + MV1 , driver, "");
     assertResult(EXPECTED_RESULT_AFTER_UPDATE, result);
+
+    result = execSelectAndDumpData("explain cbo select a,b,c from " + TABLE1 + " where a > 0 or a is null", driver, "");
+    Assert.assertEquals(Arrays.asList("CBO PLAN:", "HiveTableScan(table=[[default, " + MV1 + "]], table:alias=[default." + MV1 + "])", ""), result);
+  }
+
+  @Test
+  public void testSecondRebuildCanBeIncrementalAfterMajorCompaction() throws Exception {
+    executeStatementOnDriver("update " + TABLE1 + " set b = 'Changed' where a = 1", driver);
+
+    CompactorTestUtil.runCompaction(conf, "default",  TABLE1 , CompactionType.MAJOR, true);
+    CompactorTestUtil.runCleaner(conf);
+    verifySuccessfulCompaction(1);
+    TxnStore txnHandler = TxnUtils.getTxnStore(conf);
+    txnHandler.cleanTxnToWriteIdTable();
+
+    executeStatementOnDriver("alter materialized view " + MV1 + " rebuild", driver);
+
+    // Insert after first rebuild.
+    executeStatementOnDriver("insert into " + TABLE1 + "(a,b,c) values (4, 'four', 4.4)", driver);
+
+    List<String> result = execSelectAndDumpData("explain cbo alter materialized view " + MV1 + " rebuild", driver, "");
+    Assert.assertEquals(getIncrementalRebuildPlan(2), result);
+    executeStatementOnDriver("alter materialized view " + MV1 + " rebuild", driver);
+
+    result = execSelectAndDumpData("select * from " + MV1 , driver, "");
+    List<String> expected = Arrays.asList(
+            "1\tChanged\t1.1",
+            "2\ttwo\t2.2",
+            "4\tfour\t4.4",
+            "NULL\tNULL\tNULL"
+    );
+    assertResult(expected, result);
 
     result = execSelectAndDumpData("explain cbo select a,b,c from " + TABLE1 + " where a > 0 or a is null", driver, "");
     Assert.assertEquals(Arrays.asList("CBO PLAN:", "HiveTableScan(table=[[default, " + MV1 + "]], table:alias=[default." + MV1 + "])", ""), result);

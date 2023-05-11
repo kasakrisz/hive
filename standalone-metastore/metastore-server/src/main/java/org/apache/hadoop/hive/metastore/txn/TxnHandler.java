@@ -84,68 +84,7 @@ import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.MetaStoreListenerNotifier;
 import org.apache.hadoop.hive.metastore.TransactionalMetaStoreEventListener;
 import org.apache.hadoop.hive.metastore.LockTypeComparator;
-import org.apache.hadoop.hive.metastore.api.AbortCompactResponse;
-import org.apache.hadoop.hive.metastore.api.AbortCompactionRequest;
-import org.apache.hadoop.hive.metastore.api.AbortCompactionResponseElement;
-import org.apache.hadoop.hive.metastore.api.NoSuchCompactionException;
-import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
-import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
-import org.apache.hadoop.hive.metastore.api.AddDynamicPartitions;
-import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsRequest;
-import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsResponse;
-import org.apache.hadoop.hive.metastore.api.CheckLockRequest;
-import org.apache.hadoop.hive.metastore.api.CommitTxnRequest;
-import org.apache.hadoop.hive.metastore.api.CompactionInfoStruct;
-import org.apache.hadoop.hive.metastore.api.CompactionRequest;
-import org.apache.hadoop.hive.metastore.api.CompactionResponse;
-import org.apache.hadoop.hive.metastore.api.CompactionType;
-import org.apache.hadoop.hive.metastore.api.CreationMetadata;
-import org.apache.hadoop.hive.metastore.api.DataOperationType;
-import org.apache.hadoop.hive.metastore.api.Database;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.GetLatestCommittedCompactionInfoRequest;
-import org.apache.hadoop.hive.metastore.api.GetLatestCommittedCompactionInfoResponse;
-import org.apache.hadoop.hive.metastore.api.GetOpenTxnsInfoResponse;
-import org.apache.hadoop.hive.metastore.api.GetOpenTxnsResponse;
-import org.apache.hadoop.hive.metastore.api.GetValidWriteIdsRequest;
-import org.apache.hadoop.hive.metastore.api.GetValidWriteIdsResponse;
-import org.apache.hadoop.hive.metastore.api.HeartbeatRequest;
-import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeRequest;
-import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
-import org.apache.hadoop.hive.metastore.api.HiveObjectType;
-import org.apache.hadoop.hive.metastore.api.LockComponent;
-import org.apache.hadoop.hive.metastore.api.LockRequest;
-import org.apache.hadoop.hive.metastore.api.LockResponse;
-import org.apache.hadoop.hive.metastore.api.LockState;
-import org.apache.hadoop.hive.metastore.api.LockType;
-import org.apache.hadoop.hive.metastore.api.Materialization;
-import org.apache.hadoop.hive.metastore.api.MaxAllocatedTableWriteIdRequest;
-import org.apache.hadoop.hive.metastore.api.MaxAllocatedTableWriteIdResponse;
-import org.apache.hadoop.hive.metastore.api.MetaException;
-import org.apache.hadoop.hive.metastore.api.NoSuchLockException;
-import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
-import org.apache.hadoop.hive.metastore.api.OpenTxnRequest;
-import org.apache.hadoop.hive.metastore.api.OpenTxnsResponse;
-import org.apache.hadoop.hive.metastore.api.Partition;
-import org.apache.hadoop.hive.metastore.api.ReplLastIdInfo;
-import org.apache.hadoop.hive.metastore.api.ReplTblWriteIdStateRequest;
-import org.apache.hadoop.hive.metastore.api.SeedTableWriteIdsRequest;
-import org.apache.hadoop.hive.metastore.api.SeedTxnIdRequest;
-import org.apache.hadoop.hive.metastore.api.ShowCompactRequest;
-import org.apache.hadoop.hive.metastore.api.ShowCompactResponse;
-import org.apache.hadoop.hive.metastore.api.ShowCompactResponseElement;
-import org.apache.hadoop.hive.metastore.api.ShowLocksRequest;
-import org.apache.hadoop.hive.metastore.api.ShowLocksResponse;
-import org.apache.hadoop.hive.metastore.api.ShowLocksResponseElement;
-import org.apache.hadoop.hive.metastore.api.Table;
-import org.apache.hadoop.hive.metastore.api.TableValidWriteIds;
-import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
-import org.apache.hadoop.hive.metastore.api.TxnOpenException;
-import org.apache.hadoop.hive.metastore.api.TxnToWriteId;
-import org.apache.hadoop.hive.metastore.api.TxnType;
-import org.apache.hadoop.hive.metastore.api.UnlockRequest;
-import org.apache.hadoop.hive.metastore.api.UpdateTransactionalStatsRequest;
-import org.apache.hadoop.hive.metastore.api.WriteEventInfo;
+import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars;
 import org.apache.hadoop.hive.metastore.datasource.DataSourceProvider;
@@ -1764,18 +1703,37 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
     // knows where to look to compact.
     String s = "INSERT INTO \"COMPLETED_TXN_COMPONENTS\" (\"CTC_TXNID\", \"CTC_DATABASE\", " +
             "\"CTC_TABLE\", \"CTC_PARTITION\", \"CTC_WRITEID\", \"CTC_UPDATE_DELETE\") SELECT \"TC_TXNID\"," +
-        " \"TC_DATABASE\", \"TC_TABLE\", \"TC_PARTITION\", \"TC_WRITEID\", '" + isUpdateDelete +
-        "' FROM \"TXN_COMPONENTS\" WHERE \"TC_TXNID\" = " + txnid +
-        //we only track compactor activity in TXN_COMPONENTS to handle the case where the
-        //compactor txn aborts - so don't bother copying it to COMPLETED_TXN_COMPONENTS
-        " AND \"TC_OPERATION_TYPE\" <> " + OperationType.COMPACT;
-    LOG.debug("Going to execute insert <{}>", s);
+            " \"TC_DATABASE\", \"TC_TABLE\", \"TC_PARTITION\", \"TC_WRITEID\", '" + isUpdateDelete +
+            "' FROM \"TXN_COMPONENTS\" WHERE \"TC_TXNID\" = " + txnid +
+            //we only track compactor activity in TXN_COMPONENTS to handle the case where the
+            //compactor txn aborts - so don't bother copying it to COMPLETED_TXN_COMPONENTS
+            " AND \"TC_OPERATION_TYPE\" <> " + OperationType.COMPACT;
 
-    if ((stmt.executeUpdate(s)) < 1) {
-      //this can be reasonable for an empty txn START/COMMIT or read-only txn
-      //also an IUD with DP that didn't match any rows.
-      LOG.info("Expected to move at least one record from txn_components to "
-          + "completed_txn_components when committing txn! {}", JavaUtils.txnIdToString(txnid));
+    try {
+      stmt.addBatch(s);
+      if (isUpdateDelete == 'Y') {
+        stmt.addBatch("UPDATE \"MV_TABLES_USED\" " +
+                "SET \"DELETED_COUNT\" = \"DELETED_COUNT\" + 1 WHERE \"TBL_ID\" IN ( " +
+                "SELECT t.\"TBL_ID\" FROM \"TBLS\" t " +
+                "JOIN \"DBS\" d ON d.\"DB_ID\" = t.\"DB_ID\" " +
+                "JOIN \"TXN_COMPONENTS\" tc ON tc.\"TC_DATABASE\" = d.\"NAME\" AND tc.\"TC_TABLE\" = t.\"TBL_NAME\" " +
+                "WHERE tc.\"TC_TXNID\" = " + txnid + "\n" +
+                "AND (tc.\"TC_OPERATION_TYPE\" = " +
+                OperationType.UPDATE + " OR tc.\"TC_OPERATION_TYPE\" = " + OperationType.DELETE + ") " +
+                ")");
+      }
+
+      LOG.debug("Going to execute insert <{}>", s);
+      int[] results = stmt.executeBatch();
+
+      if (results[0] < 1) {
+        //this can be reasonable for an empty txn START/COMMIT or read-only txn
+        //also an IUD with DP that didn't match any rows.
+        LOG.info("Expected to move at least one record from txn_components to " +
+                "completed_txn_components when committing txn! " + JavaUtils.txnIdToString(txnid));
+      }
+    } finally {
+      stmt.clearBatch();
     }
   }
 
@@ -2719,8 +2677,16 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
     queryCompletedCompactions.append(")");
     queryCompactionQueue.append(") ");
 
-    boolean hasUpdateDelete = executeBoolean(queryUpdateDelete.toString(), params,
-            "Unable to retrieve materialization invalidation information: completed transaction components.");
+    boolean hasUpdateDelete = false;
+    for (SourceTable sourceTable : creationMetadata.getSourceTables()) {
+      if (sourceTable.getDeletedCount() > 0) {
+        hasUpdateDelete = true;
+        break;
+      }
+    }
+
+//    boolean hasUpdateDelete = executeBoolean(queryUpdateDelete.toString(), params,
+//            "Unable to retrieve materialization invalidation information: completed transaction components.");
 
     // Execute query
     queryCompletedCompactions.append(" UNION ");

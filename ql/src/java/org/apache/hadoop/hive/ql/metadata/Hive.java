@@ -2250,7 +2250,7 @@ public class Hive {
             // Obtain additional information if we should try incremental rewriting / rebuild
             // We will not try partial rewriting if there were update/delete/compaction operations on source tables
             invalidationInfo = getMaterializationInvalidationInfo(metadata);
-            ignore = invalidationInfo == null || invalidationInfo.isSourceTablesCompacted();
+            ignore = invalidationInfo == null;
           }
           if (ignore) {
             LOG.debug("Materialized view " + materializedViewTable.getFullyQualifiedName() +

@@ -1,6 +1,7 @@
 -- Test Incremental rebuild of materialized view with aggregate and count(*) when source tables have delete operations since last rebuild.
 -- SORT_QUERY_RESULTS
 
+set hive.stats.autogather=false;
 set hive.support.concurrency=true;
 set hive.txn.manager=org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
 set hive.materializedview.rewriting.sql=false;
@@ -53,6 +54,8 @@ insert into t2(a,b) values
 
 delete from t1 where a like '%add/remove';
 
+describe formatted mat1;
+
 -- view can not be used
 explain cbo
 select t1.a, sum(t1.b), count(t1.b), avg(t1.b), count(*) from t1
@@ -66,6 +69,8 @@ alter materialized view mat1 rebuild;
 explain
 alter materialized view mat1 rebuild;
 alter materialized view mat1 rebuild;
+
+describe formatted mat1;
 
 -- the view should be up to date and used
 explain cbo
