@@ -2611,11 +2611,9 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
             currentValidTxnList.getHighWatermark(), currentTblValidWriteIdsList);
 
     List<String> params = new ArrayList<>();
-    StringBuilder queryUpdateDelete = new StringBuilder();
     StringBuilder queryCompletedCompactions = new StringBuilder();
     StringBuilder queryCompactionQueue = new StringBuilder();
     // compose a query that select transactions containing an update...
-    queryUpdateDelete.append("SELECT \"CTC_UPDATE_DELETE\" FROM \"COMPLETED_TXN_COMPONENTS\" WHERE \"CTC_UPDATE_DELETE\" ='Y' AND (");
     queryCompletedCompactions.append("SELECT 1 FROM \"COMPLETED_COMPACTIONS\" WHERE (");
     queryCompactionQueue.append("SELECT 1 FROM \"COMPACTION_QUEUE\" WHERE (");
     int i = 0;
@@ -2644,36 +2642,25 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
       // ...for each of the tables that are part of the materialized view,
       // where the transaction had to be committed after the materialization was created...
       if (i != 0) {
-        queryUpdateDelete.append("OR");
         queryCompletedCompactions.append("OR");
         queryCompactionQueue.append("OR");
       }
       String[] names = TxnUtils.getDbTableName(fullyQualifiedName);
       assert (names.length == 2);
-      queryUpdateDelete.append(" (\"CTC_DATABASE\"=? AND \"CTC_TABLE\"=?");
       queryCompletedCompactions.append(" (\"CC_DATABASE\"=? AND \"CC_TABLE\"=?");
       queryCompactionQueue.append(" (\"CQ_DATABASE\"=? AND \"CQ_TABLE\"=?");
       params.add(names[0]);
       params.add(names[1]);
-      queryUpdateDelete.append(" AND (\"CTC_WRITEID\" > " + tblValidWriteIdList.getHighWatermark());
       queryCompletedCompactions.append(" AND (\"CC_HIGHEST_WRITE_ID\" > " + tblValidWriteIdList.getHighWatermark());
-      queryUpdateDelete.append(tblValidWriteIdList.getInvalidWriteIds().length == 0 ? ") " :
-              " OR \"CTC_WRITEID\" IN(" + StringUtils.join(",",
-                      Arrays.asList(ArrayUtils.toObject(tblValidWriteIdList.getInvalidWriteIds()))) + ") ) ");
       queryCompletedCompactions.append(tblValidWriteIdList.getInvalidWriteIds().length == 0 ? ") " :
               " OR \"CC_HIGHEST_WRITE_ID\" IN(" + StringUtils.join(",",
                       Arrays.asList(ArrayUtils.toObject(tblValidWriteIdList.getInvalidWriteIds()))) + ") ) ");
-      queryUpdateDelete.append(") ");
       queryCompletedCompactions.append(") ");
       queryCompactionQueue.append(") ");
       i++;
     }
     // ... and where the transaction has already been committed as per snapshot taken
     // when we are running current query
-    queryUpdateDelete.append(") AND \"CTC_TXNID\" <= " + currentValidTxnList.getHighWatermark());
-    queryUpdateDelete.append(currentValidTxnList.getInvalidTransactions().length == 0 ? " " :
-            " AND \"CTC_TXNID\" NOT IN(" + StringUtils.join(",",
-                    Arrays.asList(ArrayUtils.toObject(currentValidTxnList.getInvalidTransactions()))) + ") ");
     queryCompletedCompactions.append(")");
     queryCompactionQueue.append(") ");
 
@@ -2684,9 +2671,6 @@ abstract class TxnHandler implements TxnStore, TxnStore.MutexAPI {
         break;
       }
     }
-
-//    boolean hasUpdateDelete = executeBoolean(queryUpdateDelete.toString(), params,
-//            "Unable to retrieve materialization invalidation information: completed transaction components.");
 
     // Execute query
     queryCompletedCompactions.append(" UNION ");
