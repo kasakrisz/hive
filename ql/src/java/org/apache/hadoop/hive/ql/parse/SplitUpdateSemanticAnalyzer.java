@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils.getColNameToDefaultValueMap;
+
 /**
  * A subclass of the {@link SemanticAnalyzer} that just handles
  * update statements. It works by rewriting the updates into multi-insert

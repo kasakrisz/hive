@@ -3,9 +3,7 @@ package org.apache.hadoop.hive.ql.parse.rewrite;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
-import org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
-import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.CalcitePlanner;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
@@ -14,12 +12,9 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import static org.apache.hadoop.hive.ql.parse.rewrite.RewriteSemanticAnalyzer2.addPartitionColsAsValues;
 import static org.apache.hadoop.hive.ql.parse.rewrite.UpdateSemanticAnalyzer.SUB_QUERY_ALIAS;
 
 public class SplitUpdateRewriter extends UpdateRewriter {
@@ -34,12 +29,10 @@ public class SplitUpdateRewriter extends UpdateRewriter {
     this.sqlBuilder = sqlBuilder;
   }
 
-  public ParseUtils.ReparseResult rewrite(Context context, ASTNode tree, Table table) throws SemanticException {
-    UpdateBlock updateBlock = findSetClause(tree);
-    Set<String> setRCols = new LinkedHashSet<>();
-    Map<String, ASTNode> setCols = collectSetColumnsAndExpressions(updateBlock.getSetClauseTree(), setRCols, table);
+  @Override
+  public ParseUtils.ReparseResult rewrite(Context context, UpdateSemanticAnalyzer.UpdateBlock updateBlock)
+      throws SemanticException {
     Map<Integer, ASTNode> setColExprs = new HashMap<>(updateBlock.getSetClauseTree().getChildCount());
-    Map<String, String> colNameToDefaultConstraint = ConstraintsUtils.getColNameToDefaultValueMap(table);
 
     sqlBuilder.append("FROM\n");
     sqlBuilder.append("(SELECT ");
@@ -48,10 +41,10 @@ public class SplitUpdateRewriter extends UpdateRewriter {
     List<String> deleteValues = sqlBuilder.getDeleteValues(operation);
     int columnOffset = deleteValues.size();
 
-    List<String> insertValues = new ArrayList<>(table.getCols().size());
+    List<String> insertValues = new ArrayList<>(updateBlock.getTargetTable().getCols().size());
     boolean first = true;
 
-    List<FieldSchema> nonPartCols = table.getCols();
+    List<FieldSchema> nonPartCols = updateBlock.getTargetTable().getCols();
     for (int i = 0; i < nonPartCols.size(); i++) {
       if (first) {
         first = false;
@@ -60,13 +53,13 @@ public class SplitUpdateRewriter extends UpdateRewriter {
       }
 
       String name = nonPartCols.get(i).getName();
-      ASTNode setCol = setCols.get(name);
+      ASTNode setCol = updateBlock.getSetCols().get(name);
       String identifier = HiveUtils.unparseIdentifier(name, this.conf);
 
       if (setCol != null) {
         if (setCol.getType() == HiveParser.TOK_TABLE_OR_COL &&
             setCol.getChildCount() == 1 && setCol.getChild(0).getType() == HiveParser.TOK_DEFAULT_VALUE) {
-          sqlBuilder.append(colNameToDefaultConstraint.get(name));
+          sqlBuilder.append(updateBlock.getColNameToDefaultConstraint().get(name));
         } else {
           sqlBuilder.append(identifier);
           // This is one of the columns we're setting, record it's position so we can come back
@@ -81,7 +74,7 @@ public class SplitUpdateRewriter extends UpdateRewriter {
 
       insertValues.add(SUB_QUERY_ALIAS + "." + identifier);
     }
-    addPartitionColsAsValues(table.getPartCols(), SUB_QUERY_ALIAS, insertValues, conf);
+    addPartitionColsAsValues(updateBlock.getTargetTable().getPartCols(), SUB_QUERY_ALIAS, insertValues, conf);
     sqlBuilder.append(" FROM ").append(sqlBuilder.getTargetTableFullName()).append(") ");
     sqlBuilder.append(SUB_QUERY_ALIAS).append("\n");
 
@@ -112,20 +105,14 @@ public class SplitUpdateRewriter extends UpdateRewriter {
     rewrittenCtx.setEnableUnparse(false);
 
     return rr;
+  }
 
-//    analyzeRewrittenTree(rewrittenTree, rewrittenCtx);
-
-//    updateOutputs(mTable);
-//
-//    setUpAccessControlInfoForUpdate(mTable, setCols);
-//
-//    // Add the setRCols to the input list
-//    if (columnAccessInfo == null) { //assuming this means we are not doing Auth
-//      return;
-//    }
-//
-//    for (String colName : setRCols) {
-//      columnAccessInfo.add(Table.getCompleteName(mTable.getDbName(), mTable.getTableName()), colName);
-//    }
+  public static void addPartitionColsAsValues(
+      List<FieldSchema> partCols, String alias, List<String> values, HiveConf conf) {
+    if (partCols == null) {
+      return;
+    }
+    partCols.forEach(
+        fieldSchema -> values.add(alias + "." + HiveUtils.unparseIdentifier(fieldSchema.getName(), conf)));
   }
 }
