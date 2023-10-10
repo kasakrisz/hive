@@ -831,21 +831,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return defaultConstraints;
   }
 
-  protected Map<String, String> getColNameToDefaultValueMap(Table tbl) throws SemanticException {
-    Map<String, String> colNameToDefaultVal = null;
-    try {
-      DefaultConstraint dc = Hive.get().getEnabledDefaultConstraints(tbl.getDbName(), tbl.getTableName());
-      colNameToDefaultVal = dc.getColNameToDefaultValueMap();
-    } catch (Exception e) {
-      if (e instanceof SemanticException) {
-        throw (SemanticException) e;
-      } else {
-        throw (new RuntimeException(e));
-      }
-    }
-    return colNameToDefaultVal;
-  }
-
   /**
    * Constructs an AST for given DEFAULT string
    * @param newValue
