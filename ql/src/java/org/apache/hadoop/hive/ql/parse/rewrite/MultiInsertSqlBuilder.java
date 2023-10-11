@@ -124,4 +124,8 @@ public abstract class MultiInsertSqlBuilder {
   public String toString() {
     return rewrittenQueryStr.toString();
   }
+
+  public void removeLastChar() {
+    rewrittenQueryStr.setLength(rewrittenQueryStr.length() - 1);
+  }
 }

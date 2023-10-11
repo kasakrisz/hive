@@ -70,7 +70,7 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     if (splitUpdate) {
       rewriter = new SplitUpdateRewriter(conf, multiInsertSqlBuilder);
     } else {
-      rewriter = new UpdateRewriter();
+      rewriter = new UpdateRewriter(conf, multiInsertSqlBuilder);
     }
 
     ParseUtils.ReparseResult rr = rewriter.rewrite(ctx, updateBlock);

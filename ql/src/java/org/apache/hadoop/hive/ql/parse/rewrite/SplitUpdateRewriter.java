@@ -25,6 +25,7 @@ public class SplitUpdateRewriter extends UpdateRewriter {
   private final MultiInsertSqlBuilder sqlBuilder;
 
   public SplitUpdateRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
+    super(conf, sqlBuilder);
     this.conf = conf;
     this.sqlBuilder = sqlBuilder;
   }
