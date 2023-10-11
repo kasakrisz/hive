@@ -9,13 +9,14 @@ import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlock> {
 
-  private final HiveConf conf;
-  private final MultiInsertSqlBuilder sqlBuilder;
+  protected final HiveConf conf;
+  protected final MultiInsertSqlBuilder sqlBuilder;
 
   public UpdateRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
     this.conf = conf;
@@ -35,15 +36,14 @@ public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlo
     sqlBuilder.appendAcidSelectColumns(Context.Operation.UPDATE);
     sqlBuilder.removeLastChar();
 
-    Map<Integer, ASTNode> setColExprs = null;
-    Map<String, ASTNode> setCols = null;
+    Map<Integer, ASTNode> setColExprs = new HashMap<>(updateBlock.getSetCols().size());
     // Must be deterministic order set for consistent q-test output across Java versions
 
     List<FieldSchema> nonPartCols = updateBlock.getTargetTable().getCols();
     for (int i = 0; i < nonPartCols.size(); i++) {
       sqlBuilder.append(",");
       String name = nonPartCols.get(i).getName();
-      ASTNode setCol = setCols.get(name);
+      ASTNode setCol = updateBlock.getSetCols().get(name);
       sqlBuilder.append(HiveUtils.unparseIdentifier(name, this.conf));
       if (setCol != null) {
         // This is one of the columns we're setting, record it's position so we can come back
@@ -100,9 +100,7 @@ public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlo
       }
     }
 
-    if (setColExprs != null) {
-      patchProjectionForUpdate(rewrittenInsert, setColExprs);
-    }
+    patchProjectionForUpdate(rewrittenInsert, setColExprs);
 
     // Note: this will overwrite this.ctx with rewrittenCtx
     rewrittenCtx.setEnableUnparse(false);
