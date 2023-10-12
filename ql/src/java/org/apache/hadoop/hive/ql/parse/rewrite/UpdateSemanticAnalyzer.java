@@ -81,7 +81,7 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
 
     boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
-    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(null, DELETE_PREFIX);
+    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(splitUpdate ? SUB_QUERY_ALIAS : null, DELETE_PREFIX);
     Rewriter<UpdateBlock> rewriter;
     if (splitUpdate) {
       rewriter = new SplitUpdateRewriter(conf, multiInsertSqlBuilder);
