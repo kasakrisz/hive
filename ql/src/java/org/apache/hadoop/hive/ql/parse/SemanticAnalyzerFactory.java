@@ -22,6 +22,8 @@ import org.antlr.runtime.tree.Tree;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.QueryState;
 import org.apache.hadoop.hive.ql.ddl.DDLSemanticAnalyzerFactory;
+import org.apache.hadoop.hive.ql.parse.rewrite.DeleteSemanticAnalyzer;
+import org.apache.hadoop.hive.ql.parse.rewrite.UpdateSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.plan.HiveOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,11 +96,9 @@ public final class SemanticAnalyzerFactory {
         return new ColumnStatsSemanticAnalyzer(queryState);
 
       case HiveParser.TOK_UPDATE_TABLE:
-        if (HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE)) {
-          return new SplitUpdateSemanticAnalyzer(queryState);
-        }
+        return new UpdateSemanticAnalyzer(queryState);
       case HiveParser.TOK_DELETE_FROM:
-        return new UpdateDeleteSemanticAnalyzer(queryState);
+        return new DeleteSemanticAnalyzer(queryState);
 
       case HiveParser.TOK_MERGE:
         if (HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE) ||

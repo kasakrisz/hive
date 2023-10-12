@@ -40,7 +40,7 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   public static final String DELETE_PREFIX = "__d__";
   public static final String SUB_QUERY_ALIAS = "s";
 
-  DeleteSemanticAnalyzer(QueryState queryState) throws SemanticException {
+  public DeleteSemanticAnalyzer(QueryState queryState) throws SemanticException {
     super(queryState);
   }
 
