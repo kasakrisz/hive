@@ -5,7 +5,6 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryState;
-import org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -15,16 +14,15 @@ import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
+public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   public static final String DELETE_PREFIX = "__d__";
   public static final String SUB_QUERY_ALIAS = "s";
 
-  UpdateSemanticAnalyzer(QueryState queryState) throws SemanticException {
+  DeleteSemanticAnalyzer(QueryState queryState) throws SemanticException {
     super(queryState);
   }
 
@@ -33,46 +31,44 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     // The first child should be the table we are updating / deleting from
     ASTNode tabName = (ASTNode) tree.getChild(0);
     assert tabName.getToken().getType() == HiveParser.TOK_TABNAME :
-        "Expected tablename as first child of " + Context.Operation.UPDATE + " but found " + tabName.getName();
+        "Expected tablename as first child of " + Context.Operation.DELETE + " but found " + tabName.getName();
     return tabName;
   }
 
   @Override
   protected void analyze(ASTNode tree, Table table, ASTNode tableName) throws SemanticException {
     List<? extends Node> children = tree.getChildren();
+    boolean shouldTruncate = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_OPTIMIZE_REPLACE_DELETE_WITH_TRUNCATE)
+        && children.size() == 1;
+    if (shouldTruncate) {
+      // TODO: truncate rewriter
+    }
 
     ASTNode where = null;
-    int whereIndex = 2;
+    int whereIndex = 1;
     if (children.size() > whereIndex) {
       where = (ASTNode) children.get(whereIndex);
       assert where.getToken().getType() == HiveParser.TOK_WHERE :
           "Expected where clause, but found " + where.getName();
     }
 
-//    TOK_UPDATE_TABLE
-//            TOK_TABNAME
-//               ...
-//            TOK_SET_COLUMNS_CLAUSE <- The set list from update should be the second child (index 1)
-    assert children.size() >= 2 : "Expected update token to have at least two children";
-    ASTNode setClause = (ASTNode) children.get(1);
-
-    Set<String> setRCols = new LinkedHashSet<>();
-    Map<String, ASTNode> setCols = collectSetColumnsAndExpressions(setClause, setRCols, table);
-    Map<String, String> colNameToDefaultConstraint = ConstraintsUtils.getColNameToDefaultValueMap(table);
-
-    UpdateBlock updateBlock = new UpdateBlock(table, where, setClause, setCols, colNameToDefaultConstraint);
-
-
-    boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
     MultiInsertSqlBuilder multiInsertSqlBuilder = getColumnAppender(SUB_QUERY_ALIAS, DELETE_PREFIX);
-    Rewriter<UpdateBlock> rewriter;
-    if (splitUpdate) {
-      rewriter = new SplitUpdateRewriter(conf, multiInsertSqlBuilder);
-    } else {
-      rewriter = new UpdateRewriter(conf, multiInsertSqlBuilder);
+    DeleteBlock deleteBlock = new DeleteBlock(table, where);
+
+    boolean copyOnWriteMode = false;
+    HiveStorageHandler storageHandler = table.getStorageHandler();
+    if (storageHandler != null) {
+      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.DELETE.name());
     }
 
-    ParseUtils.ReparseResult rr = rewriter.rewrite(ctx, updateBlock);
+    Rewriter<DeleteBlock> rewriter;
+    if (copyOnWriteMode) {
+      rewriter = new CopyOnWriteRewriter(conf, multiInsertSqlBuilder);
+    } else {
+      rewriter = new DeleteRewriter(multiInsertSqlBuilder);
+    }
+
+    ParseUtils.ReparseResult rr = rewriter.rewrite(ctx, deleteBlock);
 
     Context rewrittenCtx = rr.rewrittenCtx;
     ASTNode rewrittenTree = rr.rewrittenTree;
@@ -80,17 +76,6 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     analyzeRewrittenTree(rewrittenTree, rewrittenCtx);
 
     updateOutputs(table);
-
-    setUpAccessControlInfoForUpdate(table, setCols);
-
-    // Add the setRCols to the input list
-    if (columnAccessInfo == null) { //assuming this means we are not doing Auth
-      return;
-    }
-
-    for (String colName : setRCols) {
-      columnAccessInfo.add(Table.getCompleteName(table.getDbName(), table.getTableName()), colName);
-    }
   }
 
   protected Map<String, ASTNode> collectSetColumnsAndExpressions(
@@ -193,20 +178,14 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     return colName.toLowerCase();
   }
 
-  public static class UpdateBlock {
+  public static class DeleteBlock {
     private final Table targetTable;
     private final ASTNode whereTree;
-    private final ASTNode setClauseTree;
-    private final Map<String, ASTNode> setCols;
-    private final Map<String, String> colNameToDefaultConstraint;
 
 
-    public UpdateBlock(Table targetTable, ASTNode whereTree, ASTNode setClauseTree, Map<String, ASTNode> setCols, Map<String, String> colNameToDefaultConstraint) {
+    public DeleteBlock(Table targetTable, ASTNode whereTree) {
       this.targetTable = targetTable;
       this.whereTree = whereTree;
-      this.setClauseTree = setClauseTree;
-      this.setCols = setCols;
-      this.colNameToDefaultConstraint = colNameToDefaultConstraint;
     }
 
     public Table getTargetTable() {
@@ -215,18 +194,6 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     public ASTNode getWhereTree() {
       return whereTree;
-    }
-
-    public ASTNode getSetClauseTree() {
-      return setClauseTree;
-    }
-
-    public Map<String, ASTNode> getSetCols() {
-      return setCols;
-    }
-
-    public Map<String, String> getColNameToDefaultConstraint() {
-      return colNameToDefaultConstraint;
     }
   }
 }
