@@ -70,7 +70,7 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
           "Expected where clause, but found " + where.getName();
     }
 
-    MultiInsertSqlBuilder multiInsertSqlBuilder = getColumnAppender(SUB_QUERY_ALIAS, DELETE_PREFIX);
+    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(null, DELETE_PREFIX);
     DeleteBlock deleteBlock = new DeleteBlock(table, where);
 
     boolean copyOnWriteMode = false;

@@ -123,7 +123,7 @@ public abstract class RewriteSemanticAnalyzer2 extends CalcitePlanner {
 
   protected abstract void analyze(ASTNode tree, Table table, ASTNode tableName) throws SemanticException;
 
-  protected MultiInsertSqlBuilder getColumnAppender(String subQueryAlias, String deletePrefix) {
+  protected MultiInsertSqlBuilder getSqlBuilder(String subQueryAlias, String deletePrefix) {
     boolean nonNativeAcid = AcidUtils.isNonNativeAcidTable(targetTable, true);
     return nonNativeAcid ? new NonNativeAcidMultiInsertSqlBuilder(targetTable, targetTableFullName, conf, subQueryAlias, deletePrefix) :
         new NativeAcidMultiInsertSqlBuilder(targetTable, targetTableFullName, conf, subQueryAlias);
