@@ -25,8 +25,10 @@ import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
+import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
+import org.apache.hadoop.hive.ql.parse.SemanticAnalyzerFactory;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.List;
@@ -51,10 +53,13 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   @Override
   protected void analyze(ASTNode tree, Table table, ASTNode tableName) throws SemanticException {
     List<? extends Node> children = tree.getChildren();
+    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(null, DELETE_PREFIX);
+
     boolean shouldTruncate = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_OPTIMIZE_REPLACE_DELETE_WITH_TRUNCATE)
         && children.size() == 1;
     if (shouldTruncate) {
-      // TODO: truncate rewriter
+      genTruncatePlan(table, multiInsertSqlBuilder);
+      return;
     }
 
     ASTNode where = null;
@@ -65,7 +70,6 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
           "Expected where clause, but found " + where.getName();
     }
 
-    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(null, DELETE_PREFIX);
     DeleteBlock deleteBlock = new DeleteBlock(table, where);
 
     boolean copyOnWriteMode = false;
@@ -88,6 +92,22 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     analyzeRewrittenTree(rewrittenTree, rewrittenCtx);
 
+    updateOutputs(table);
+  }
+
+  private void genTruncatePlan(Table table, MultiInsertSqlBuilder multiInsertSqlBuilder) throws SemanticException {
+    multiInsertSqlBuilder.append("truncate ").append(multiInsertSqlBuilder.getTargetTableFullName());
+    ParseUtils.ReparseResult rr = ParseUtils.parseRewrittenQuery(ctx, multiInsertSqlBuilder.toString());
+    Context rewrittenCtx = rr.rewrittenCtx;
+    ASTNode rewrittenTree = rr.rewrittenTree;
+
+    BaseSemanticAnalyzer truncate = SemanticAnalyzerFactory.get(queryState, rewrittenTree);
+    // Note: this will overwrite this.ctx with rewrittenCtx
+    rewrittenCtx.setEnableUnparse(false);
+    truncate.analyze(rewrittenTree, rewrittenCtx);
+
+    rootTasks = truncate.getRootTasks();
+    outputs = truncate.getOutputs();
     updateOutputs(table);
   }
 
