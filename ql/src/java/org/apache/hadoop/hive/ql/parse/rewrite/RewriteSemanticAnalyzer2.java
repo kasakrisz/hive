@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
@@ -216,6 +217,14 @@ public abstract class RewriteSemanticAnalyzer2 extends CalcitePlanner {
     // Since any DDL now advances the write id, we should ignore the write Id,
     // while comparing two tables
     return targetTable.equalsWithIgnoreWriteId(entity.getTable());
+  }
+
+  /**
+   * Returns the table name to use in the generated query preserving original quotes/escapes if any.
+   * @see #getFullTableNameForSQL(ASTNode)
+   */
+  protected String getSimpleTableName(ASTNode n) throws SemanticException {
+    return HiveUtils.unparseIdentifier(getSimpleTableNameBase(n), this.conf);
   }
 
   /**

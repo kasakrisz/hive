@@ -24,6 +24,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.List;
 import java.util.Map;
@@ -145,5 +146,19 @@ public abstract class MultiInsertSqlBuilder {
 
   public void removeLastChar() {
     rewrittenQueryStr.setLength(rewrittenQueryStr.length() - 1);
+  }
+
+  /**
+   * Append list of partition columns to Insert statement, i.e. the 2nd set of partCol1,partCol2
+   * INSERT INTO T PARTITION(partCol1,partCol2...) SELECT col1, ... partCol1,partCol2...
+   */
+  protected void addColsToSelect(List<FieldSchema> partCols) {
+    // If the table is partitioned, we need to select the partition columns as well.
+    if (partCols != null) {
+      for (FieldSchema fschema : partCols) {
+        rewrittenQueryStr.append(", ");
+        rewrittenQueryStr.append(HiveUtils.unparseIdentifier(fschema.getName(), this.conf));
+      }
+    }
   }
 }
