@@ -246,4 +246,9 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
       return colNameToDefaultConstraint;
     }
   }
+
+  @Override
+  protected boolean enableColumnStatsCollecting() {
+    return false;
+  }
 }

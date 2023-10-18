@@ -214,4 +214,9 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
       return whereTree;
     }
   }
+
+  @Override
+  protected boolean enableColumnStatsCollecting() {
+    return false;
+  }
 }
