@@ -37,7 +37,7 @@ public class DeleteRewriter implements Rewriter<DeleteSemanticAnalyzer.DeleteBlo
       throws SemanticException {
     sqlBuilder.append("insert into table ");
     sqlBuilder.append(sqlBuilder.getTargetTableFullName());
-    sqlBuilder.addPartitionColsToInsert(deleteBlock.getTargetTable().getPartCols());
+    sqlBuilder.appendPartitionCols(deleteBlock.getTargetTable().getPartCols());
 
     sqlBuilder.append(" select ");
     sqlBuilder.appendAcidSelectColumns(Context.Operation.DELETE);

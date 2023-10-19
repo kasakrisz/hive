@@ -46,8 +46,8 @@ public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlo
       throws SemanticException {
 
     sqlBuilder.append("insert into table ");
-    sqlBuilder.append(sqlBuilder.getTargetTableFullName());
-    sqlBuilder.addPartitionColsToInsert(updateBlock.getTargetTable().getPartCols());
+    sqlBuilder.appendTargetTableName();
+    sqlBuilder.appendPartitionCols(updateBlock.getTargetTable().getPartCols());
 
     int columnOffset = sqlBuilder.getDeleteValues(Context.Operation.UPDATE).size();
     sqlBuilder.append(" select ");

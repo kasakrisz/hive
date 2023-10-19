@@ -24,10 +24,8 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.Table;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -74,7 +72,7 @@ public abstract class MultiInsertSqlBuilder {
 
   public void appendInsertBranch(String hintStr, List<String> values) {
     rewrittenQueryStr.append("INSERT INTO ").append(targetTableFullName);
-    addPartitionColsToInsert(targetTable.getPartCols());
+    appendPartitionCols(targetTable.getPartCols());
     rewrittenQueryStr.append("\n");
 
     rewrittenQueryStr.append(INDENT);
@@ -87,12 +85,8 @@ public abstract class MultiInsertSqlBuilder {
     rewrittenQueryStr.append("\n");
   }
 
-  /**
-   * Append list of partition columns to Insert statement, i.e. the 1st set of partCol1,partCol2
-   * INSERT INTO T PARTITION(partCol1,partCol2...) SELECT col1, ... partCol1,partCol2...
-   */
-  public void addPartitionColsToInsert(List<FieldSchema> partCols) {
-    addPartitionColsToInsert(partCols, null);
+  public void appendPartitionColsOfTarget() {
+    appendPartitionCols(targetTable);
   }
 
   /**
@@ -103,26 +97,15 @@ public abstract class MultiInsertSqlBuilder {
    * Dynamic partition mode:
    * INSERT INTO T PARTITION(partCol1,partCol2...) SELECT col1, ... partCol1,partCol2...
    */
-  protected void addPartitionColsToInsert(List<FieldSchema> partCols, Map<String, String> partSpec) {
+  public void appendPartitionCols(Table table) {
     // If the table is partitioned we have to put the partition() clause in
-    if (partCols != null && !partCols.isEmpty()) {
-      rewrittenQueryStr.append(" partition (");
-      boolean first = true;
-      for (FieldSchema fschema : partCols) {
-        if (first) {
-          first = false;
-        } else {
-          rewrittenQueryStr.append(", ");
-        }
-        // Would be nice if there was a way to determine if quotes are needed
-        rewrittenQueryStr.append(HiveUtils.unparseIdentifier(fschema.getName(), this.conf));
-        String partVal = (partSpec != null) ? partSpec.get(fschema.getName()) : null;
-        if (partVal != null) {
-          rewrittenQueryStr.append("=").append(partVal);
-        }
-      }
-      rewrittenQueryStr.append(")");
+    List<FieldSchema> partCols = table.getPartCols();
+    if (partCols == null || partCols.isEmpty()) {
+      return;
     }
+    rewrittenQueryStr.append(" partition (");
+    appendCols(partCols);
+    rewrittenQueryStr.append(")");
   }
 
   void appendSortBy(List<String> keys) {
@@ -148,17 +131,38 @@ public abstract class MultiInsertSqlBuilder {
     rewrittenQueryStr.setLength(rewrittenQueryStr.length() - 1);
   }
 
-  /**
-   * Append list of partition columns to Insert statement, i.e. the 2nd set of partCol1,partCol2
-   * INSERT INTO T PARTITION(partCol1,partCol2...) SELECT col1, ... partCol1,partCol2...
-   */
-  protected void addColsToSelect(List<FieldSchema> partCols) {
-    // If the table is partitioned, we need to select the partition columns as well.
-    if (partCols != null) {
-      for (FieldSchema fschema : partCols) {
-        rewrittenQueryStr.append(", ");
-        rewrittenQueryStr.append(HiveUtils.unparseIdentifier(fschema.getName(), this.conf));
-      }
+  public void appendColsOfTargetTable() {
+    appendCols(targetTable.getCols());
+  }
+
+  public void appendCols(List<FieldSchema> columns) {
+    if (columns == null) {
+      return;
     }
+    boolean first = true;
+    for (FieldSchema fschema : columns) {
+      if (first) {
+        first = false;
+      } else {
+        rewrittenQueryStr.append(", ");
+      }
+      // Would be nice if there was a way to determine if quotes are needed
+      rewrittenQueryStr.append(HiveUtils.unparseIdentifier(fschema.getName(), this.conf));
+    }
+  }
+
+  public MultiInsertSqlBuilder appendTargetTableName() {
+    rewrittenQueryStr.append(targetTableFullName);
+    return this;
+  }
+
+  public MultiInsertSqlBuilder append(char c) {
+    rewrittenQueryStr.append(c);
+    return this;
+  }
+
+  public MultiInsertSqlBuilder indent() {
+    rewrittenQueryStr.append(INDENT);
+    return this;
   }
 }

@@ -18,22 +18,18 @@
 
 package org.apache.hadoop.hive.ql.parse.rewrite;
 
-import org.antlr.runtime.TokenRewriteStream;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryState;
-import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTErrorUtils;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
-import org.apache.hadoop.hive.ql.parse.RewriteSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.hadoop.hive.ql.parse.rewrite.UpdateSemanticAnalyzer.DELETE_PREFIX;
@@ -99,14 +95,15 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
           "MergeSemanticAnalyzer");
     }
 
-    IdentifierQuoter identifierQuoter = new IdentifierQuoter(ctx.getTokenRewriteStream());
-
     ctx.setOperation(Context.Operation.MERGE);
     ASTNode source = (ASTNode)tree.getChild(1);
     String targetName = getSimpleTableName(tableName);
     String sourceName = getSimpleTableName(source);
+    String sourceFullTableName = getFullTableNameForSQL(source);
+    if (isAliased(source)) {
+      sourceFullTableName = String.format("%s %s", sourceFullTableName, sourceName);
+    }
     ASTNode onClause = (ASTNode) tree.getChild(2);
-    String onClauseAsText = getMatchedText(identifierQuoter, onClause);
 
     int whenClauseBegins = 3;
     boolean hasHint = false;
@@ -118,38 +115,19 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     }
     List<ASTNode> whenClauses = findWhenClauses(tree, whenClauseBegins);
 
-    String subQueryAlias = isAliased(targetName) ? targetName : table.getTTable().getTableName();
+    String subQueryAlias = isAliased(tableName) ? targetName : table.getTTable().getTableName();
 
     MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(subQueryAlias, DELETE_PREFIX);
-    Rewriter rewriter = new MergeRewriter(multiInsertSqlBuilder);
-
-    columnAppender.appendAcidSelectColumns(rewrittenQueryStr, Context.Operation.MERGE);
-
-    rewrittenQueryStr.deleteCharAt(rewrittenQueryStr.length() - 1); // remove last ','
-    addColsToSelect(targetTable.getCols(), rewrittenQueryStr);
-    addColsToSelect(targetTable.getPartCols(), rewrittenQueryStr);
-    rewrittenQueryStr.append(" FROM ").append(getFullTableNameForSQL(targetNameNode)).append(") ");
-    rewrittenQueryStr.append(subQueryAlias);
-    rewrittenQueryStr.append('\n');
-
-    rewrittenQueryStr.append(INDENT).append(chooseJoinType(whenClauses)).append("\n");
-    if (source.getType() == HiveParser.TOK_SUBQUERY) {
-      //this includes the mandatory alias
-      rewrittenQueryStr.append(INDENT).append(getMatchedText(source));
-    } else {
-      rewrittenQueryStr.append(INDENT).append(getFullTableNameForSQL(source));
-      if (isAliased(source)) {
-        rewrittenQueryStr.append(" ").append(sourceName);
-      }
-    }
-    rewrittenQueryStr.append('\n');
-    rewrittenQueryStr.append(INDENT).append("ON ").append(onClauseAsText).append('\n');
 
     // Add the hint if any
     String hintStr = null;
     if (hasHint) {
       hintStr = " /*+ " + qHint.getText() + " */ ";
     }
+
+    Rewriter rewriter = new MergeRewriter(conf, multiInsertSqlBuilder, ctx.getTokenRewriteStream());
+
+
     /**
      * We allow at most 2 WHEN MATCHED clause, in which case 1 must be Update the other Delete
      * If we have both update and delete, the 1st one (in SQL code) must have "AND <extra predicate>"
@@ -244,66 +222,51 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
   public static class MergeBlock {
     private final Table targetTable;
+    private final ASTNode source;
+    private final String sourceFullTableName;
+    private final ASTNode onClause;
+    private final List<ASTNode> whenClauses;
+    private final String subQueryAlias;
+    private final String hintStr;
 
 
-    public MergeBlock(Table targetTable) {
+    public MergeBlock(Table targetTable, ASTNode source, String sourceFullTableName, ASTNode onClause, String subQueryAlias, List<ASTNode> whenClauses, String hintStr) {
       this.targetTable = targetTable;
+      this.source = source;
+      this.sourceFullTableName = sourceFullTableName;
+      this.onClause = onClause;
+      this.subQueryAlias = subQueryAlias;
+      this.whenClauses = whenClauses;
+      this.hintStr = hintStr;
     }
 
     public Table getTargetTable() {
       return targetTable;
     }
-  }
 
-  /**
-   * This allows us to take an arbitrary ASTNode and turn it back into SQL that produced it.
-   * Since HiveLexer.g is written such that it strips away any ` (back ticks) around
-   * quoted identifiers we need to add those back to generated SQL.
-   * Additionally, the parser only produces tokens of type Identifier and never
-   * QuotedIdentifier (HIVE-6013).  So here we just quote all identifiers.
-   * (') around String literals are retained w/o issues
-   */
-  private static class IdentifierQuoter {
-    private final TokenRewriteStream trs;
-    private final IdentityHashMap<ASTNode, ASTNode> visitedNodes = new IdentityHashMap<>();
-
-    IdentifierQuoter(TokenRewriteStream trs) {
-      this.trs = trs;
-      if (trs == null) {
-        throw new IllegalArgumentException("Must have a TokenRewriteStream");
-      }
+    public String getSubQueryAlias() {
+      return subQueryAlias;
     }
 
-    private void visit(ASTNode n) {
-      if (n.getType() == HiveParser.Identifier) {
-        if (visitedNodes.containsKey(n)) {
-          /**
-           * Since we are modifying the stream, it's not idempotent.  Ideally, the caller would take
-           * care to only quote Identifiers in each subtree once, but this makes it safe
-           */
-          return;
-        }
-        visitedNodes.put(n, n);
-        trs.insertBefore(n.getToken(), "`");
-        trs.insertAfter(n.getToken(), "`");
-      }
-      if (n.getChildCount() <= 0) {
-        return;
-      }
-      for (Node c : n.getChildren()) {
-        visit((ASTNode)c);
-      }
+    public List<ASTNode> getWhenClauses() {
+      return Collections.unmodifiableList(whenClauses);
     }
-  }
 
-  /**
-   * This allows us to take an arbitrary ASTNode and turn it back into SQL that produced it without
-   * needing to understand what it is (except for QuotedIdentifiers).
-   */
-  private String getMatchedText(IdentifierQuoter identifierQuoter, ASTNode n) {
-    identifierQuoter.visit(n);
-    return ctx.getTokenRewriteStream().toString(n.getTokenStartIndex(),
-        n.getTokenStopIndex() + 1).trim();
+    public ASTNode getSourceTree() {
+      return source;
+    }
+
+    public String getSourceFullTableName() {
+      return sourceFullTableName;
+    }
+
+    public ASTNode getOnClause() {
+      return onClause;
+    }
+
+    public String getHintStr() {
+      return hintStr;
+    }
   }
 
   /**
