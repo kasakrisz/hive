@@ -47,7 +47,7 @@ public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlo
 
     sqlBuilder.append("insert into table ");
     sqlBuilder.appendTargetTableName();
-    sqlBuilder.appendPartitionCols(updateBlock.getTargetTable().getPartCols());
+    sqlBuilder.appendPartitionColsOfTarget();
 
     int columnOffset = sqlBuilder.getDeleteValues(Context.Operation.UPDATE).size();
     sqlBuilder.append(" select ");

@@ -222,7 +222,9 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
   public static class MergeBlock {
     private final Table targetTable;
+    private final String targetName;
     private final ASTNode source;
+    private final String sourceName;
     private final String sourceFullTableName;
     private final ASTNode onClause;
     private final List<ASTNode> whenClauses;
@@ -230,9 +232,11 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     private final String hintStr;
 
 
-    public MergeBlock(Table targetTable, ASTNode source, String sourceFullTableName, ASTNode onClause, String subQueryAlias, List<ASTNode> whenClauses, String hintStr) {
+    public MergeBlock(Table targetTable, String targetName, ASTNode source, String sourceName, String sourceFullTableName, ASTNode onClause, String subQueryAlias, List<ASTNode> whenClauses, String hintStr) {
       this.targetTable = targetTable;
+      this.targetName = targetName;
       this.source = source;
+      this.sourceName = sourceName;
       this.sourceFullTableName = sourceFullTableName;
       this.onClause = onClause;
       this.subQueryAlias = subQueryAlias;
@@ -266,6 +270,18 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     public String getHintStr() {
       return hintStr;
+    }
+
+    public String getTargetName() {
+      return targetName;
+    }
+
+    public ASTNode getSource() {
+      return source;
+    }
+
+    public String getSourceName() {
+      return sourceName;
     }
   }
 

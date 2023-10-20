@@ -239,7 +239,7 @@ public class UnparseTranslator {
    * @param tokenRewriteStream
    *          rewrite-capable stream
    */
-  void applyTranslations(TokenRewriteStream tokenRewriteStream) {
+  public void applyTranslations(TokenRewriteStream tokenRewriteStream) {
     applyTranslations(tokenRewriteStream, TokenRewriteStream.DEFAULT_PROGRAM_NAME);
   }
 

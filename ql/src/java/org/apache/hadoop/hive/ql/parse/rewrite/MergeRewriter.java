@@ -11,6 +11,7 @@ import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
+import org.apache.hadoop.hive.ql.parse.RewriteSemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.UnparseTranslator;
 
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils.getColNameToDefaultValueMap;
 import static org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.unescapeIdentifier;
 
 public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock> {
@@ -80,13 +82,13 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
       switch (getWhenClauseOperation(whenClause).getType()) {
         case HiveParser.TOK_INSERT:
           numInsertClauses++;
-          handleInsert(whenClause, rewrittenQueryStr, targetNameNode, mergeBlock.getOnClause(),
-              targetTable, targetName, onClauseAsText, hintProcessed ? null : mergeBlock.getHintStr());
+          handleInsert(whenClause, mergeBlock.getOnClause(), sqlBuilder.getTargetTable(), mergeBlock.getTargetName(),
+              onClauseAsText, hintProcessed ? null : mergeBlock.getHintStr());
           hintProcessed = true;
           break;
         case HiveParser.TOK_UPDATE:
           numWhenMatchedUpdateClauses++;
-          String s = handleUpdate(whenClause, rewrittenQueryStr, targetNameNode,
+          String s = handleUpdate(whenClause, targetNameNode,
               onClauseAsText, targetTable, extraPredicate, hintProcessed ? null : hintStr, columnAppender);
           hintProcessed = true;
           if (numWhenMatchedUpdateClauses + numWhenMatchedDeleteClauses == 1) {
@@ -182,8 +184,8 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
    * @param targetTableNameInSourceQuery - simple name/alias
    * @throws SemanticException
    */
-  private void handleInsert(ASTNode whenNotMatchedClause, ASTNode target,
-                            ASTNode onClause, Table targetTable, String targetTableNameInSourceQuery, String onClauseAsString,
+  private void handleInsert(ASTNode whenNotMatchedClause, ASTNode onClause, Table targetTable,
+                            String targetTableNameInSourceQuery, String onClauseAsString,
                             String hintStr) throws SemanticException {
     ASTNode whenClauseOperation = getWhenClauseOperation(whenNotMatchedClause);
     assert whenNotMatchedClause.getType() == HiveParser.TOK_NOT_MATCHED;
@@ -234,6 +236,83 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
           .append(getMatchedText(((ASTNode)whenNotMatchedClause.getChild(1))));
     }
     sqlBuilder.append('\n');
+  }
+
+  /**
+   * @param onClauseAsString - because there is no clone() and we need to use in multiple places
+   * @param deleteExtraPredicate - see notes at caller
+   */
+  private String handleUpdate(ASTNode whenMatchedUpdateClause, String onClauseAsString, Table targetTable,
+                              String targetName, String deleteExtraPredicate, String hintStr)
+      throws SemanticException {
+    assert whenMatchedUpdateClause.getType() == HiveParser.TOK_MATCHED;
+    assert getWhenClauseOperation(whenMatchedUpdateClause).getType() == HiveParser.TOK_UPDATE;
+    List<String> values = new ArrayList<>(targetTable.getCols().size());
+
+    ASTNode setClause = (ASTNode)getWhenClauseOperation(whenMatchedUpdateClause).getChild(0);
+    //columns being updated -> update expressions; "setRCols" (last param) is null because we use actual expressions
+    //before re-parsing, i.e. they are known to SemanticAnalyzer logic
+    Map<String, ASTNode> setColsExprs = collectSetColumnsAndExpressions(setClause, null, targetTable);
+    //if target table has cols c1,c2,c3 and p1 partition col and we had "SET c2 = 5, c1 = current_date()" we want to end
+    //up with
+    //insert into target (p1) select current_date(), 5, c3, p1 where ....
+    //since we take the RHS of set exactly as it was in Input, we don't need to deal with quoting/escaping column/table
+    //names
+    List<FieldSchema> nonPartCols = targetTable.getCols();
+    Map<String, String> colNameToDefaultConstraint = getColNameToDefaultValueMap(targetTable);
+    for (FieldSchema fs : nonPartCols) {
+      String name = fs.getName();
+      if (setColsExprs.containsKey(name)) {
+        ASTNode setColExpr = setColsExprs.get(name);
+        if (setColExpr.getType() == HiveParser.TOK_TABLE_OR_COL &&
+            setColExpr.getChildCount() == 1 && setColExpr.getChild(0).getType() == HiveParser.TOK_DEFAULT_VALUE) {
+          UnparseTranslator defaultValueTranslator = new UnparseTranslator(conf);
+          defaultValueTranslator.enable();
+          defaultValueTranslator.addDefaultValueTranslation(
+              setColsExprs.get(name), colNameToDefaultConstraint.get(name));
+          defaultValueTranslator.applyTranslations(tokenRewriteStream);
+        }
+
+        String rhsExp = getMatchedText(setColsExprs.get(name));
+        //"set a=5, b=8" - rhsExp picks up the next char (e.g. ',') from the token stream
+        switch (rhsExp.charAt(rhsExp.length() - 1)) {
+          case ',':
+          case '\n':
+            rhsExp = rhsExp.substring(0, rhsExp.length() - 1);
+            break;
+          default:
+            //do nothing
+        }
+
+        values.add(rhsExp);
+      } else {
+        values.add(targetName + "." + HiveUtils.unparseIdentifier(name, this.conf));
+      }
+    }
+    addPartitionColsAsValues(targetTable.getPartCols(), targetName, values);
+
+    String extraPredicate = handleUpdate(whenMatchedUpdateClause, onClauseAsString,
+        deleteExtraPredicate, hintStr, targetName, values);
+
+    setUpAccessControlInfoForUpdate(targetTable, setColsExprs);
+    return extraPredicate;
+  }
+
+  protected String handleUpdate(ASTNode whenMatchedUpdateClause, StringBuilder rewrittenQueryStr,
+                                String onClauseAsString, String deleteExtraPredicate, String hintStr,
+                                String targetName, List<String> values) {
+    values.add(0, targetName + ".ROW__ID");
+
+    rewrittenQueryStr.append("    -- update clause").append("\n");
+    sqlBuilder.appendInsertBranch(hintStr, values);
+
+    String extraPredicate = addWhereClauseOfUpdate(
+        rewrittenQueryStr, onClauseAsString, whenMatchedUpdateClause, deleteExtraPredicate);
+
+    sqlBuilder.appendSortBy(Collections.singletonList(targetName + ".ROW__ID "));
+    rewrittenQueryStr.append("\n");
+
+    return extraPredicate;
   }
 
   protected List<String> processTableColumnNames(ASTNode tabColName, String tableName) throws SemanticException {
@@ -442,5 +521,28 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
     identifierQuoter.visit(n);
     return tokenRewriteStream.toString(n.getTokenStartIndex(),
         n.getTokenStopIndex() + 1).trim();
+  }
+
+  private void collectDefaultValues(
+      ASTNode valueClause, Table targetTable, List<String> targetSchema, UnparseTranslator unparseTranslator)
+      throws SemanticException {
+    List<String> defaultConstraints = getDefaultConstraints(targetTable, targetSchema);
+    for (int j = 0; j < defaultConstraints.size(); j++) {
+      unparseTranslator.addDefaultValueTranslation((ASTNode) valueClause.getChild(j + 1), defaultConstraints.get(j));
+    }
+  }
+
+  /**
+   * Returns the <boolean predicate> as in WHEN MATCHED AND <boolean predicate> THEN...
+   * @return may be null
+   */
+  private String getWhenClausePredicate(ASTNode whenClause) {
+    if (!(whenClause.getType() == HiveParser.TOK_MATCHED || whenClause.getType() == HiveParser.TOK_NOT_MATCHED)) {
+      throw raiseWrongType("Expected TOK_MATCHED|TOK_NOT_MATCHED", whenClause);
+    }
+    if (whenClause.getChildCount() == 2) {
+      return getMatchedText((ASTNode)whenClause.getChild(1));
+    }
+    return null;
   }
 }
