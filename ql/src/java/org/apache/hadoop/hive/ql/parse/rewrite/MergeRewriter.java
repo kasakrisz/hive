@@ -26,6 +26,8 @@ import java.util.Set;
 
 import static org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils.getColNameToDefaultValueMap;
 import static org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.unescapeIdentifier;
+import static org.apache.hadoop.hive.ql.parse.rewrite.ASTRewriteUtils.addPartitionColsAsValues;
+import static org.apache.hadoop.hive.ql.parse.rewrite.ASTRewriteUtils.collectSetColumnsAndExpressions;
 
 public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock> {
 
@@ -88,8 +90,9 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
           break;
         case HiveParser.TOK_UPDATE:
           numWhenMatchedUpdateClauses++;
-          String s = handleUpdate(whenClause, targetNameNode,
-              onClauseAsText, targetTable, extraPredicate, hintProcessed ? null : hintStr, columnAppender);
+          String s = handleUpdate(whenClause, onClauseAsText, mergeBlock.getTargetTable(), mergeBlock.getTargetName(),
+              extraPredicate, hintProcessed ? null : mergeBlock.getHintStr());
+
           hintProcessed = true;
           if (numWhenMatchedUpdateClauses + numWhenMatchedDeleteClauses == 1) {
             extraPredicate = s; //i.e. it's the 1st WHEN MATCHED
@@ -298,19 +301,18 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
     return extraPredicate;
   }
 
-  protected String handleUpdate(ASTNode whenMatchedUpdateClause, StringBuilder rewrittenQueryStr,
+  protected String handleUpdate(ASTNode whenMatchedUpdateClause,
                                 String onClauseAsString, String deleteExtraPredicate, String hintStr,
                                 String targetName, List<String> values) {
     values.add(0, targetName + ".ROW__ID");
 
-    rewrittenQueryStr.append("    -- update clause").append("\n");
+    sqlBuilder.append("    -- update clause").append("\n");
     sqlBuilder.appendInsertBranch(hintStr, values);
 
-    String extraPredicate = addWhereClauseOfUpdate(
-        rewrittenQueryStr, onClauseAsString, whenMatchedUpdateClause, deleteExtraPredicate);
+    String extraPredicate = addWhereClauseOfUpdate(onClauseAsString, whenMatchedUpdateClause, deleteExtraPredicate);
 
     sqlBuilder.appendSortBy(Collections.singletonList(targetName + ".ROW__ID "));
-    rewrittenQueryStr.append("\n");
+    sqlBuilder.append("\n");
 
     return extraPredicate;
   }
@@ -544,5 +546,20 @@ public class MergeRewriter implements Rewriter<MergeSemanticAnalyzer.MergeBlock>
       return getMatchedText((ASTNode)whenClause.getChild(1));
     }
     return null;
+  }
+
+  protected String addWhereClauseOfUpdate(String onClauseAsString,
+                                          ASTNode whenMatchedUpdateClause, String deleteExtraPredicate) {
+    sqlBuilder.indent().append("WHERE ").append(onClauseAsString);
+    String extraPredicate = getWhenClausePredicate(whenMatchedUpdateClause);
+    if (extraPredicate != null) {
+      //we have WHEN MATCHED AND <boolean expr> THEN DELETE
+      sqlBuilder.append(" AND ").append(extraPredicate);
+    }
+    if (deleteExtraPredicate != null) {
+      sqlBuilder.append(" AND NOT(").append(deleteExtraPredicate).append(")");
+    }
+
+    return extraPredicate;
   }
 }
