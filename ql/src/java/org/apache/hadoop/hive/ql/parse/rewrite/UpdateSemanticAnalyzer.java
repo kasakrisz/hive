@@ -31,13 +31,8 @@ import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import static org.apache.hadoop.hive.ql.parse.rewrite.ASTRewriteUtils.collectSetColumnsAndExpressions;
 
 public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   public static final String DELETE_PREFIX = "__d__";
@@ -75,12 +70,11 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     assert children.size() >= 2 : "Expected update token to have at least two children";
     ASTNode setClause = (ASTNode) children.get(1);
 
-    Set<String> setRCols = new LinkedHashSet<>();
-    Map<String, ASTNode> setCols = collectSetColumnsAndExpressions(setClause, setRCols, table);
+    SetClauseHandler.Result setCols = new SetClauseHandler().handle(setClause, table);
     Map<String, String> colNameToDefaultConstraint = ConstraintsUtils.getColNameToDefaultValueMap(table);
 
-    UpdateBlock updateBlock = new UpdateBlock(table, where, setClause, setCols, colNameToDefaultConstraint);
-
+    UpdateBlock updateBlock = new UpdateBlock(
+        table, where, setClause, setCols.getSetExpressions(), colNameToDefaultConstraint);
 
     boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
     MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(splitUpdate ? SUB_QUERY_ALIAS : null, DELETE_PREFIX);
@@ -100,14 +94,14 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     updateOutputs(table);
 
-    setUpAccessControlInfoForUpdate(table, setCols);
+    setUpAccessControlInfoForUpdate(table, setCols.getSetExpressions());
 
     // Add the setRCols to the input list
     if (columnAccessInfo == null) { //assuming this means we are not doing Auth
       return;
     }
 
-    for (String colName : setRCols) {
+    for (String colName : setCols.getSetRCols()) {
       columnAccessInfo.add(Table.getCompleteName(table.getDbName(), table.getTableName()), colName);
     }
   }
