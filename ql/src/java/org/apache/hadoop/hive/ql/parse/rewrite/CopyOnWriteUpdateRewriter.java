@@ -24,22 +24,19 @@ import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 
-public class CopyOnWriteRewriter extends DeleteRewriter {
+public class CopyOnWriteUpdateRewriter extends UpdateRewriter {
 
-  private final HiveConf conf;
-
-  public CopyOnWriteRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
-    super(sqlBuilder);
-    this.conf = conf;
+  public CopyOnWriteUpdateRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
+    super(conf, sqlBuilder);
   }
 
   @Override
-  public ParseUtils.ReparseResult rewrite(Context context, DeleteSemanticAnalyzer.DeleteBlock deleteBlock)
+  public ParseUtils.ReparseResult rewrite(Context context, UpdateSemanticAnalyzer.UpdateBlock updateBlock)
       throws SemanticException {
 
     String whereClause = context.getTokenRewriteStream().toString(
-        deleteBlock.getWhereTree().getChild(0).getTokenStartIndex(),
-        deleteBlock.getWhereTree().getChild(0).getTokenStopIndex());
+        updateBlock.getWhereTree().getChild(0).getTokenStartIndex(),
+        updateBlock.getWhereTree().getChild(0).getTokenStopIndex());
     String filePathCol = HiveUtils.unparseIdentifier("FILE__PATH", conf);
 
     sqlBuilder.append("WITH t AS (");

@@ -25,6 +25,7 @@ import org.apache.hadoop.hive.ql.ErrorMsg;
 import org.apache.hadoop.hive.ql.QueryState;
 import org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils;
 import org.apache.hadoop.hive.ql.lib.Node;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
@@ -77,9 +78,16 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
         table, where, setClause, setCols.getSetExpressions(), colNameToDefaultConstraint);
 
     boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
+    boolean copyOnWriteMode = false;
+    HiveStorageHandler storageHandler = table.getStorageHandler();
+    if (storageHandler != null) {
+      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.UPDATE.name());
+    }
     MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(splitUpdate ? SUB_QUERY_ALIAS : null, DELETE_PREFIX);
     Rewriter<UpdateBlock> rewriter;
-    if (splitUpdate) {
+    if (copyOnWriteMode) {
+      rewriter = new CopyOnWriteUpdateRewriter(conf, multiInsertSqlBuilder);
+    } else if (splitUpdate) {
       rewriter = new SplitUpdateRewriter(conf, multiInsertSqlBuilder);
     } else {
       rewriter = new UpdateRewriter(conf, multiInsertSqlBuilder);

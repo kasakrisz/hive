@@ -80,7 +80,7 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     Rewriter<DeleteBlock> rewriter;
     if (copyOnWriteMode) {
-      rewriter = new CopyOnWriteRewriter(conf, multiInsertSqlBuilder);
+      rewriter = new CopyOnWriteDeleteRewriter(conf, multiInsertSqlBuilder);
     } else {
       rewriter = new DeleteRewriter(multiInsertSqlBuilder);
     }
