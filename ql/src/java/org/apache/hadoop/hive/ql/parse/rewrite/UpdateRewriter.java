@@ -56,7 +56,6 @@ public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlo
 
     Map<Integer, ASTNode> setColExprs = new HashMap<>(updateBlock.getSetCols().size());
     // Must be deterministic order set for consistent q-test output across Java versions
-
     List<FieldSchema> nonPartCols = updateBlock.getTargetTable().getCols();
     for (int i = 0; i < nonPartCols.size(); i++) {
       sqlBuilder.append(",");
@@ -72,7 +71,7 @@ public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlo
     }
 
     sqlBuilder.append(" from ");
-    sqlBuilder.append(sqlBuilder.getTargetTableFullName());
+    sqlBuilder.appendTargetTableName();
 
     // Add a sort by clause so that the row ids come out in the correct order
     sqlBuilder.appendSortBy(sqlBuilder.getSortKeys());

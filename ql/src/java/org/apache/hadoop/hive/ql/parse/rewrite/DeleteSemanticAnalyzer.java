@@ -75,7 +75,7 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     boolean copyOnWriteMode = false;
     HiveStorageHandler storageHandler = table.getStorageHandler();
     if (storageHandler != null) {
-      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.DELETE.name());
+      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.DELETE);
     }
 
     Rewriter<DeleteBlock> rewriter;

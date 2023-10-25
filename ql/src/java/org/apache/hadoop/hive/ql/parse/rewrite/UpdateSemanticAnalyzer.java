@@ -81,9 +81,10 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     boolean copyOnWriteMode = false;
     HiveStorageHandler storageHandler = table.getStorageHandler();
     if (storageHandler != null) {
-      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.UPDATE.name());
+      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.UPDATE);
     }
-    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(splitUpdate ? SUB_QUERY_ALIAS : null, DELETE_PREFIX);
+    MultiInsertSqlBuilder multiInsertSqlBuilder =
+        getSqlBuilder(splitUpdate && !copyOnWriteMode ? SUB_QUERY_ALIAS : null, DELETE_PREFIX);
     Rewriter<UpdateBlock> rewriter;
     if (copyOnWriteMode) {
       rewriter = new CopyOnWriteUpdateRewriter(conf, multiInsertSqlBuilder);
