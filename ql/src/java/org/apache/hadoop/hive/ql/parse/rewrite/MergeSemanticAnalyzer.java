@@ -147,7 +147,13 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     String subQueryAlias = isAliased(targetNameNode) ? targetName : targetTable.getTTable().getTableName();
     MultiInsertSqlBuilder sqlBuilder = getSqlBuilder(subQueryAlias, DELETE_PREFIX);
 
-    MergeRewriter mergeRewriter = new MergeRewriter(sqlBuilder);
+    MergeRewriter mergeRewriter;
+    boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
+    if (splitUpdate) {
+      mergeRewriter = new SplitMergeRewriter(sqlBuilder);
+    } else {
+      mergeRewriter = new MergeRewriter(sqlBuilder);
+    }
     String sourceAlias;
 
     if (source.getType() == HiveParser.TOK_SUBQUERY) {
@@ -249,7 +255,7 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
           ++insClauseIdx;
           break;
         case HiveParser.TOK_UPDATE:
-          insClauseIdx += addDestNamePrefixOfUpdate(insClauseIdx, rewrittenCtx);
+          insClauseIdx += mergeRewriter.addDestNamePrefixOfUpdate(insClauseIdx, rewrittenCtx);
           break;
         case HiveParser.TOK_DELETE:
           rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.DELETE);
@@ -266,17 +272,6 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     analyzeRewrittenTree(rewrittenTree, rewrittenCtx);
     updateOutputs(targetTable);
-  }
-
-  /**
-   * This sets the destination name prefix for update clause.
-   * @param insClauseIdx index of insert clause in the rewritten multi-insert represents the merge update clause.
-   * @param rewrittenCtx the {@link Context} stores the prefixes
-   * @return the number of prefixes set.
-   */
-  protected int addDestNamePrefixOfUpdate(int insClauseIdx, Context rewrittenCtx) {
-    rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.UPDATE);
-    return 1;
   }
 
   /**

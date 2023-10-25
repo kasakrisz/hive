@@ -101,10 +101,6 @@ public final class SemanticAnalyzerFactory {
         return new DeleteSemanticAnalyzer(queryState);
 
       case HiveParser.TOK_MERGE:
-        if (HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE) ||
-                HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.MERGE_SPLIT_UPDATE)) {
-          return new SplitMergeSemanticAnalyzer(queryState);
-        }
         return new org.apache.hadoop.hive.ql.parse.rewrite.MergeSemanticAnalyzer(queryState);
 
       case HiveParser.TOK_ALTER_SCHEDULED_QUERY:

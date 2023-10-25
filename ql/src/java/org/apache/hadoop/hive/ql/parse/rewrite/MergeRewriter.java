@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MergeRewriter {
-  private final MultiInsertSqlBuilder sqlBuilder;
+  protected final MultiInsertSqlBuilder sqlBuilder;
 
   public MergeRewriter(MultiInsertSqlBuilder sqlBuilder) {
     this.sqlBuilder = sqlBuilder;
@@ -144,5 +144,16 @@ public class MergeRewriter {
     } catch(HiveException | MetaException e) {
       throw new SemanticException(e.getMessage(), e);
     }
+  }
+
+  /**
+   * This sets the destination name prefix for update clause.
+   * @param insClauseIdx index of insert clause in the rewritten multi-insert represents the merge update clause.
+   * @param rewrittenCtx the {@link Context} stores the prefixes
+   * @return the number of prefixes set.
+   */
+  public int addDestNamePrefixOfUpdate(int insClauseIdx, Context rewrittenCtx) {
+    rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.UPDATE);
+    return 1;
   }
 }
