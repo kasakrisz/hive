@@ -26,10 +26,10 @@ public class MergeRewriter {
   }
 
   public void handleSource(boolean hasWhenNotMatchedClause, String sourceAlias, String onClauseAsText) {
+    sqlBuilder.append("FROM\n");
     sqlBuilder.append("(SELECT ");
     sqlBuilder.appendAcidSelectColumns(Context.Operation.MERGE);
-    sqlBuilder.removeLastChar();
-    sqlBuilder.appendCols(sqlBuilder.getTargetTable().getPartCols());
+    sqlBuilder.appendPartitionColsOfTarget();
     sqlBuilder.appendColsOfTargetTable();
     sqlBuilder.append(" FROM ").appendTargetTableName().append(") ");
     sqlBuilder.appendSubQueryAlias();

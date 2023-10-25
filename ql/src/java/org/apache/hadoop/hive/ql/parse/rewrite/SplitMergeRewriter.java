@@ -19,7 +19,7 @@ public class SplitMergeRewriter extends MergeRewriter {
     sqlBuilder.append("\n");
 
     sqlBuilder.append("    -- update clause (delete part)\n");
-    handleWhenMatchedDelete(hintStr, onClauseAsString, deleteExtraPredicate, extraPredicate);
+    handleWhenMatchedDelete(hintStr, onClauseAsString, extraPredicate, deleteExtraPredicate);
   }
 
   @Override
