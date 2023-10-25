@@ -26,15 +26,17 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 public class DeleteRewriter implements Rewriter<DeleteSemanticAnalyzer.DeleteBlock> {
 
-  protected final MultiInsertSqlBuilder sqlBuilder;
+  protected final SqlBuilderFactory sqlBuilderFactory;
 
-  public DeleteRewriter(MultiInsertSqlBuilder sqlBuilder) {
-    this.sqlBuilder = sqlBuilder;
+  public DeleteRewriter(SqlBuilderFactory sqlBuilderFactory) {
+    this.sqlBuilderFactory = sqlBuilderFactory;
   }
 
   @Override
   public ParseUtils.ReparseResult rewrite(Context context, DeleteSemanticAnalyzer.DeleteBlock deleteBlock)
       throws SemanticException {
+    MultiInsertSqlBuilder sqlBuilder = sqlBuilderFactory.createSqlBuilder();
+
     sqlBuilder.append("insert into table ");
     sqlBuilder.append(sqlBuilder.getTargetTableFullName());
     sqlBuilder.appendPartitionColsOfTarget();

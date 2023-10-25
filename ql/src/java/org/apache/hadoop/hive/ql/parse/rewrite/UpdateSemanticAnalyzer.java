@@ -36,11 +36,13 @@ import java.util.List;
 import java.util.Map;
 
 public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
-  public static final String DELETE_PREFIX = "__d__";
-  public static final String SUB_QUERY_ALIAS = "s";
 
-  public UpdateSemanticAnalyzer(QueryState queryState) throws SemanticException {
+  private final RewriterFactory<UpdateBlock> rewriterFactory;
+
+  public UpdateSemanticAnalyzer(QueryState queryState, RewriterFactory<UpdateBlock> rewriterFactory)
+      throws SemanticException {
     super(queryState);
+    this.rewriterFactory = rewriterFactory;
   }
 
   @Override
@@ -77,22 +79,7 @@ public class UpdateSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     UpdateBlock updateBlock = new UpdateBlock(
         table, where, setClause, setCols.getSetExpressions(), colNameToDefaultConstraint);
 
-    boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
-    boolean copyOnWriteMode = false;
-    HiveStorageHandler storageHandler = table.getStorageHandler();
-    if (storageHandler != null) {
-      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.UPDATE);
-    }
-    MultiInsertSqlBuilder multiInsertSqlBuilder =
-        getSqlBuilder(splitUpdate && !copyOnWriteMode ? SUB_QUERY_ALIAS : null, DELETE_PREFIX);
-    Rewriter<UpdateBlock> rewriter;
-    if (copyOnWriteMode) {
-      rewriter = new CopyOnWriteUpdateRewriter(conf, multiInsertSqlBuilder);
-    } else if (splitUpdate) {
-      rewriter = new SplitUpdateRewriter(conf, multiInsertSqlBuilder);
-    } else {
-      rewriter = new UpdateRewriter(conf, multiInsertSqlBuilder);
-    }
+    Rewriter<UpdateBlock> rewriter = rewriterFactory.createRewriter(table, getFullTableNameForSQL(tableName));
 
     ParseUtils.ReparseResult rr = rewriter.rewrite(ctx, updateBlock);
 

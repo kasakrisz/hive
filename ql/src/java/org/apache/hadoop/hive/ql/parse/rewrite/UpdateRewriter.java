@@ -34,16 +34,18 @@ import java.util.Map;
 public class UpdateRewriter implements Rewriter<UpdateSemanticAnalyzer.UpdateBlock> {
 
   protected final HiveConf conf;
-  protected final MultiInsertSqlBuilder sqlBuilder;
+  protected final SqlBuilderFactory sqlBuilderFactory;
 
-  public UpdateRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
+  public UpdateRewriter(HiveConf conf, SqlBuilderFactory sqlBuilderFactory) {
     this.conf = conf;
-    this.sqlBuilder = sqlBuilder;
+    this.sqlBuilderFactory = sqlBuilderFactory;
   }
 
   @Override
   public ParseUtils.ReparseResult rewrite(Context context, UpdateSemanticAnalyzer.UpdateBlock updateBlock)
       throws SemanticException {
+
+    MultiInsertSqlBuilder sqlBuilder = sqlBuilderFactory.createSqlBuilder();
 
     sqlBuilder.append("insert into table ");
     sqlBuilder.appendTargetTableName();

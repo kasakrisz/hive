@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.ql.hooks.WriteEntity;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -277,6 +278,14 @@ public abstract class RewriteSemanticAnalyzer2 extends CalcitePlanner {
       if (writeEntity.toString().equalsIgnoreCase(readEntity.toString())) {
         return true;
       }
+    }
+    return false;
+  }
+
+  protected boolean copyOnWriteMode(Table table, Context.Operation operation) {
+    HiveStorageHandler storageHandler = table.getStorageHandler();
+    if (storageHandler != null) {
+      return storageHandler.shouldOverwrite(table, operation);
     }
     return false;
   }

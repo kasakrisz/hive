@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.parse.rewrite;
 
 import org.antlr.runtime.TokenRewriteStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.Context;
@@ -44,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils.getColNameToDefaultValueMap;
-import static org.apache.hadoop.hive.ql.parse.rewrite.UpdateSemanticAnalyzer.DELETE_PREFIX;
+import static org.apache.hadoop.hive.ql.parse.rewrite.SqlBuilderFactory.DELETE_PREFIX;
 
 public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   private int numWhenMatchedUpdateClauses;
@@ -62,10 +63,6 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
   @Override
   public void analyze(ASTNode tree, Table targetTable, ASTNode tableNameNode) throws SemanticException {
-    boolean nonNativeAcid = AcidUtils.isNonNativeAcidTable(targetTable, true);
-    if (nonNativeAcid) {
-      throw new SemanticException(ErrorMsg.NON_NATIVE_ACID_UPDATE.getErrorCodedMsg());
-    }
     analyzeMerge(tree, targetTable, tableNameNode);
   }
 
@@ -81,8 +78,14 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
    *
    * @throws SemanticException
    */
-  protected void analyzeMerge(ASTNode tree, Table targetTable, ASTNode targetNameNode)
+  private void analyzeMerge(ASTNode tree, Table targetTable, ASTNode targetNameNode)
       throws SemanticException {
+
+    boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
+    boolean nonNativeAcid = AcidUtils.isNonNativeAcidTable(targetTable, true);
+    if (nonNativeAcid && !splitUpdate) {
+      throw new SemanticException(ErrorMsg.NON_NATIVE_ACID_UPDATE.getErrorCodedMsg());
+    }
 
     quotedIdentifierHelper = new IdentifierQuoter(ctx.getTokenRewriteStream());
 
@@ -145,17 +148,16 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     List<ASTNode> whenClauses = findWhenClauses(tree, whenClauseBegins);
 
     String subQueryAlias = isAliased(targetNameNode) ? targetName : targetTable.getTTable().getTableName();
-    MultiInsertSqlBuilder sqlBuilder = getSqlBuilder(subQueryAlias, DELETE_PREFIX);
+    MultiInsertSqlBuilder sqlBuilder = new SqlBuilderFactory(
+        targetTable,
+        getFullTableNameForSQL(targetNameNode),
+        conf,
+        subQueryAlias,
+        splitUpdate ? DELETE_PREFIX : StringUtils.EMPTY).createSqlBuilder();
 
-    MergeRewriter mergeRewriter;
-    boolean splitUpdate = HiveConf.getBoolVar(queryState.getConf(), HiveConf.ConfVars.SPLIT_UPDATE);
-    if (splitUpdate) {
-      mergeRewriter = new SplitMergeRewriter(sqlBuilder);
-    } else {
-      mergeRewriter = new MergeRewriter(sqlBuilder);
-    }
+    MergeRewriter mergeRewriter = splitUpdate ? new SplitMergeRewriter(sqlBuilder) : new MergeRewriter(sqlBuilder);
+
     String sourceAlias;
-
     if (source.getType() == HiveParser.TOK_SUBQUERY) {
       //this includes the mandatory alias
       sourceAlias = getMatchedText(source);
@@ -167,7 +169,6 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     }
 
     mergeRewriter.handleSource(hasWhenNotMatchedInsertClause(whenClauses), sourceAlias, onClauseAsText);
-
 
     // Add the hint if any
     String hintStr = null;

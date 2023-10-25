@@ -22,7 +22,6 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.QueryState;
 import org.apache.hadoop.hive.ql.lib.Node;
-import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer;
@@ -33,12 +32,14 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 import java.util.List;
 
-import static org.apache.hadoop.hive.ql.parse.rewrite.UpdateSemanticAnalyzer.DELETE_PREFIX;
-
 public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
-  public DeleteSemanticAnalyzer(QueryState queryState) throws SemanticException {
+  private final RewriterFactory<DeleteBlock> rewriterFactory;
+
+  public DeleteSemanticAnalyzer(QueryState queryState, RewriterFactory<DeleteBlock> rewriterFactory)
+      throws SemanticException {
     super(queryState);
+    this.rewriterFactory = rewriterFactory;
   }
 
   @Override
@@ -53,12 +54,11 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   @Override
   protected void analyze(ASTNode tree, Table table, ASTNode tableName) throws SemanticException {
     List<? extends Node> children = tree.getChildren();
-    MultiInsertSqlBuilder multiInsertSqlBuilder = getSqlBuilder(null, DELETE_PREFIX);
 
     boolean shouldTruncate = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_OPTIMIZE_REPLACE_DELETE_WITH_TRUNCATE)
         && children.size() == 1;
     if (shouldTruncate) {
-      genTruncatePlan(table, multiInsertSqlBuilder);
+      genTruncatePlan(table, tableName);
       return;
     }
 
@@ -70,22 +70,8 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
           "Expected where clause, but found " + where.getName();
     }
 
-    DeleteBlock deleteBlock = new DeleteBlock(table, where);
-
-    boolean copyOnWriteMode = false;
-    HiveStorageHandler storageHandler = table.getStorageHandler();
-    if (storageHandler != null) {
-      copyOnWriteMode = storageHandler.shouldOverwrite(table, Context.Operation.DELETE);
-    }
-
-    Rewriter<DeleteBlock> rewriter;
-    if (copyOnWriteMode) {
-      rewriter = new CopyOnWriteDeleteRewriter(conf, multiInsertSqlBuilder);
-    } else {
-      rewriter = new DeleteRewriter(multiInsertSqlBuilder);
-    }
-
-    ParseUtils.ReparseResult rr = rewriter.rewrite(ctx, deleteBlock);
+    Rewriter<DeleteBlock> rewriter = rewriterFactory.createRewriter(table, getFullTableNameForSQL(tableName));
+    ParseUtils.ReparseResult rr = rewriter.rewrite(ctx, new DeleteBlock(table, where));
 
     Context rewrittenCtx = rr.rewrittenCtx;
     ASTNode rewrittenTree = rr.rewrittenTree;
@@ -95,9 +81,9 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
     updateOutputs(table);
   }
 
-  private void genTruncatePlan(Table table, MultiInsertSqlBuilder multiInsertSqlBuilder) throws SemanticException {
-    multiInsertSqlBuilder.append("truncate ").append(multiInsertSqlBuilder.getTargetTableFullName());
-    ParseUtils.ReparseResult rr = ParseUtils.parseRewrittenQuery(ctx, multiInsertSqlBuilder.toString());
+  private void genTruncatePlan(Table table, ASTNode tabNameNode) throws SemanticException {
+    String rewrittenQueryStr = "truncate " + getFullTableNameForSQL(tabNameNode);
+    ParseUtils.ReparseResult rr = ParseUtils.parseRewrittenQuery(ctx, rewrittenQueryStr);
     Context rewrittenCtx = rr.rewrittenCtx;
     ASTNode rewrittenTree = rr.rewrittenTree;
 

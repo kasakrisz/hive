@@ -33,25 +33,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.hadoop.hive.ql.parse.rewrite.UpdateSemanticAnalyzer.SUB_QUERY_ALIAS;
-
 public class SplitUpdateRewriter extends UpdateRewriter {
 
   private final Context.Operation operation = Context.Operation.UPDATE;
 
   private final HiveConf conf;
-  private final MultiInsertSqlBuilder sqlBuilder;
 
-  public SplitUpdateRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
-    super(conf, sqlBuilder);
+  public SplitUpdateRewriter(HiveConf conf, SqlBuilderFactory sqlBuilderFactory) {
+    super(conf, sqlBuilderFactory);
     this.conf = conf;
-    this.sqlBuilder = sqlBuilder;
   }
 
   @Override
   public ParseUtils.ReparseResult rewrite(Context context, UpdateSemanticAnalyzer.UpdateBlock updateBlock)
       throws SemanticException {
     Map<Integer, ASTNode> setColExprs = new HashMap<>(updateBlock.getSetClauseTree().getChildCount());
+
+    MultiInsertSqlBuilder sqlBuilder = sqlBuilderFactory.createSqlBuilder();
 
     sqlBuilder.append("FROM\n");
     sqlBuilder.append("(SELECT ");
@@ -91,11 +89,11 @@ public class SplitUpdateRewriter extends UpdateRewriter {
       sqlBuilder.append(" AS ");
       sqlBuilder.append(identifier);
 
-      insertValues.add(SUB_QUERY_ALIAS + "." + identifier);
+      insertValues.add(sqlBuilder.subQueryAlias + "." + identifier);
     }
-    addPartitionColsAsValues(updateBlock.getTargetTable().getPartCols(), SUB_QUERY_ALIAS, insertValues, conf);
+    addPartitionColsAsValues(updateBlock.getTargetTable().getPartCols(), sqlBuilder.subQueryAlias, insertValues, conf);
     sqlBuilder.append(" FROM ").append(sqlBuilder.getTargetTableFullName()).append(") ");
-    sqlBuilder.append(SUB_QUERY_ALIAS).append("\n");
+    sqlBuilder.appendSubQueryAlias().append("\n");
 
     sqlBuilder.appendInsertBranch(null, insertValues);
     sqlBuilder.appendInsertBranch(null, deleteValues);

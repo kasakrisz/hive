@@ -28,8 +28,8 @@ public class CopyOnWriteDeleteRewriter extends DeleteRewriter {
 
   private final HiveConf conf;
 
-  public CopyOnWriteDeleteRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
-    super(sqlBuilder);
+  public CopyOnWriteDeleteRewriter(HiveConf conf, SqlBuilderFactory sqlBuilderFactory) {
+    super(sqlBuilderFactory);
     this.conf = conf;
   }
 
@@ -41,6 +41,8 @@ public class CopyOnWriteDeleteRewriter extends DeleteRewriter {
         deleteBlock.getWhereTree().getChild(0).getTokenStartIndex(),
         deleteBlock.getWhereTree().getChild(0).getTokenStopIndex());
     String filePathCol = HiveUtils.unparseIdentifier("FILE__PATH", conf);
+
+    MultiInsertSqlBuilder sqlBuilder = sqlBuilderFactory.createSqlBuilder();
 
     sqlBuilder.append("WITH t AS (");
     sqlBuilder.append("\n");

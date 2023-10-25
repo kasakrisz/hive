@@ -34,8 +34,8 @@ import java.util.Map;
 
 public class CopyOnWriteUpdateRewriter extends UpdateRewriter {
 
-  public CopyOnWriteUpdateRewriter(HiveConf conf, MultiInsertSqlBuilder sqlBuilder) {
-    super(conf, sqlBuilder);
+  public CopyOnWriteUpdateRewriter(HiveConf conf, SqlBuilderFactory sqlBuilderFactory) {
+    super(conf, sqlBuilderFactory);
   }
 
   @Override
@@ -46,6 +46,8 @@ public class CopyOnWriteUpdateRewriter extends UpdateRewriter {
         updateBlock.getWhereTree().getChild(0).getTokenStartIndex(),
         updateBlock.getWhereTree().getChild(0).getTokenStopIndex());
     String filePathCol = HiveUtils.unparseIdentifier("FILE__PATH", conf);
+
+    MultiInsertSqlBuilder sqlBuilder = sqlBuilderFactory.createSqlBuilder();
 
     sqlBuilder.append("WITH t AS (");
     sqlBuilder.append("\n");
