@@ -63,7 +63,7 @@ public class CopyOnWriteRewriter extends DeleteRewriter {
 
     sqlBuilder.append("insert into table ");
     sqlBuilder.append(sqlBuilder.getTargetTableFullName());
-    sqlBuilder.appendPartitionCols(deleteBlock.getTargetTable().getPartCols());
+    sqlBuilder.appendPartitionColsOfTarget();
 
     sqlBuilder.append(" select ");
     sqlBuilder.appendAcidSelectColumns(Context.Operation.DELETE);

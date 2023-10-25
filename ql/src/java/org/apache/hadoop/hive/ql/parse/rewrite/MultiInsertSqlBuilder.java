@@ -72,7 +72,7 @@ public abstract class MultiInsertSqlBuilder {
 
   public void appendInsertBranch(String hintStr, List<String> values) {
     rewrittenQueryStr.append("INSERT INTO ").append(targetTableFullName);
-    appendPartitionCols(targetTable.getPartCols());
+    appendPartitionCols(targetTable);
     rewrittenQueryStr.append("\n");
 
     rewrittenQueryStr.append(INDENT);
@@ -83,6 +83,11 @@ public abstract class MultiInsertSqlBuilder {
 
     rewrittenQueryStr.append(StringUtils.join(values, ","));
     rewrittenQueryStr.append("\n");
+  }
+
+  public void appendDeleteBranch(String hintStr) {
+    List<String> deleteValues = getDeleteValues(Context.Operation.DELETE);
+    appendInsertBranch(hintStr, deleteValues);
   }
 
   public void appendPartitionColsOfTarget() {
@@ -108,13 +113,17 @@ public abstract class MultiInsertSqlBuilder {
     rewrittenQueryStr.append(")");
   }
 
-  void appendSortBy(List<String> keys) {
+  public void appendSortBy(List<String> keys) {
     if (keys.isEmpty()) {
       return;
     }
     rewrittenQueryStr.append(INDENT).append("SORT BY ");
     rewrittenQueryStr.append(StringUtils.join(keys, ","));
     rewrittenQueryStr.append("\n");
+  }
+
+  public void appendSortKeys() {
+    appendSortBy(getSortKeys());
   }
 
   public MultiInsertSqlBuilder append(String sqlTextFragment) {
@@ -135,10 +144,24 @@ public abstract class MultiInsertSqlBuilder {
     appendCols(targetTable.getCols());
   }
 
+  public void appendPartColsOfTargetTable(String alias) {
+    appendCols(targetTable.getPartCols(), alias);
+  }
+
   public void appendCols(List<FieldSchema> columns) {
+    appendCols(columns, null);
+  }
+
+  public void appendCols(List<FieldSchema> columns, String alias) {
     if (columns == null) {
       return;
     }
+
+    String quotedAlias = null;
+    if (isNotBlank(alias)) {
+      quotedAlias = HiveUtils.unparseIdentifier(alias, this.conf);
+    }
+
     boolean first = true;
     for (FieldSchema fschema : columns) {
       if (first) {
@@ -146,7 +169,10 @@ public abstract class MultiInsertSqlBuilder {
       } else {
         rewrittenQueryStr.append(", ");
       }
-      // Would be nice if there was a way to determine if quotes are needed
+
+      if (quotedAlias != null) {
+        rewrittenQueryStr.append(quotedAlias).append('.');
+      }
       rewrittenQueryStr.append(HiveUtils.unparseIdentifier(fschema.getName(), this.conf));
     }
   }
@@ -163,6 +189,11 @@ public abstract class MultiInsertSqlBuilder {
 
   public MultiInsertSqlBuilder indent() {
     rewrittenQueryStr.append(INDENT);
+    return this;
+  }
+
+  public MultiInsertSqlBuilder appendSubQueryAlias() {
+    rewrittenQueryStr.append(subQueryAlias);
     return this;
   }
 }

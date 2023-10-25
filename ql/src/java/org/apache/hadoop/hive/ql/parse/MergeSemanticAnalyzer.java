@@ -151,8 +151,8 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer {
     columnAppender.appendAcidSelectColumns(rewrittenQueryStr, Context.Operation.MERGE);
 
     rewrittenQueryStr.deleteCharAt(rewrittenQueryStr.length() - 1); // remove last ','
-    addColsToSelect(targetTable.getCols(), rewrittenQueryStr);
-    addColsToSelect(targetTable.getPartCols(), rewrittenQueryStr);
+//    addColsToSelect(targetTable.getCols(), rewrittenQueryStr);
+//    addColsToSelect(targetTable.getPartCols(), rewrittenQueryStr);
     rewrittenQueryStr.append(" FROM ").append(getFullTableNameForSQL(targetNameNode)).append(") ");
     rewrittenQueryStr.append(subQueryAlias);
     rewrittenQueryStr.append('\n');
