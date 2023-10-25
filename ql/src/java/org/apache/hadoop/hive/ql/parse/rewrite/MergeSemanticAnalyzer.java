@@ -676,6 +676,10 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
    * needing to understand what it is (except for QuotedIdentifiers).
    */
   protected String getMatchedText(ASTNode n) {
+    if (n == null) {
+      return null;
+    }
+
     quotedIdentifierHelper.visit(n);
     return ctx.getTokenRewriteStream().toString(n.getTokenStartIndex(),
         n.getTokenStopIndex() + 1).trim();

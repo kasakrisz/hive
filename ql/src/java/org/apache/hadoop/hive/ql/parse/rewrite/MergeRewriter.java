@@ -156,4 +156,9 @@ public class MergeRewriter {
     rewrittenCtx.addDestNamePrefix(insClauseIdx, Context.DestClausePrefix.UPDATE);
     return 1;
   }
+
+  @Override
+  public String toString() {
+    return sqlBuilder.toString();
+  }
 }
