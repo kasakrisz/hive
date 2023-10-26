@@ -12,6 +12,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.StorageFormat;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import java.util.ArrayList;

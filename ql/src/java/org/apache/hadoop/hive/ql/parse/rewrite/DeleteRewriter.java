@@ -23,6 +23,8 @@ import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory;
 
 public class DeleteRewriter implements Rewriter<DeleteSemanticAnalyzer.DeleteBlock> {
 

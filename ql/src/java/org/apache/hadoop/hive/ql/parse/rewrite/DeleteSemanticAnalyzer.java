@@ -76,10 +76,10 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
     boolean shouldTruncate = HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_OPTIMIZE_REPLACE_DELETE_WITH_TRUNCATE)
         && where == null;
-    if (shouldTruncate) {
-      genTruncatePlan(table, tableName);
+    if (tryMetadataUpdate(table, tableName, where)) {
       return;
-    } else if (tryMetadataUpdate(table, tableName, where)) {
+    } else if (shouldTruncate) {
+      genTruncatePlan(table, tableName);
       return;
     }
 
@@ -112,6 +112,9 @@ public class DeleteSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
 
   private boolean tryMetadataUpdate(Table table, ASTNode tabNameNode, ASTNode whereNode)
       throws SemanticException {
+    if (whereNode == null) {
+      return false;
+    }
     // A feature flag on Hive to perform metadata delete on the source table.
     if (!HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_OPTIMIZE_METADATA_DELETE)) {
       return false;

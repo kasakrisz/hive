@@ -1,6 +1,7 @@
 package org.apache.hadoop.hive.ql.parse.rewrite;
 
 import org.apache.hadoop.hive.ql.Context;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
 
 import java.util.List;
 

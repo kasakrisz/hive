@@ -39,6 +39,9 @@ import org.apache.hadoop.hive.ql.parse.CalcitePlanner;
 import org.apache.hadoop.hive.ql.parse.ColumnAccessInfo;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.NativeAcidMultiInsertSqlBuilder;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.NonNativeAcidMultiInsertSqlBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +53,6 @@ public abstract class RewriteSemanticAnalyzer2 extends CalcitePlanner {
   protected static final Logger LOG = LoggerFactory.getLogger(RewriteSemanticAnalyzer2.class);
 
   protected boolean useSuper = false;
-  protected static final String INDENT = "  ";
   private Table targetTable;
   private String targetTableFullName;
 

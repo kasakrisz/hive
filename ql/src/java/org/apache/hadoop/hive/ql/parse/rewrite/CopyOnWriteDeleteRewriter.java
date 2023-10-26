@@ -23,6 +23,8 @@ import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory;
 
 public class CopyOnWriteDeleteRewriter extends DeleteRewriter {
 

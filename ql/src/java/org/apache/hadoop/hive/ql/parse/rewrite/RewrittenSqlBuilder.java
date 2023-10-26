@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.parse.rewrite;
 
 import org.apache.hadoop.hive.ql.metadata.Table;
 
+// TODO: drop this
 public class RewrittenSqlBuilder {
 
   static RewrittenSqlBuilder with(Table table, String targetTableFullName) {

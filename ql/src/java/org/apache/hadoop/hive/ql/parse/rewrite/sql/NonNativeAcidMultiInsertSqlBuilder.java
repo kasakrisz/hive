@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.parse.rewrite;
+package org.apache.hadoop.hive.ql.parse.rewrite.sql;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.conf.HiveConf;

@@ -35,6 +35,8 @@ import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.UnparseTranslator;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.hadoop.hive.ql.ddl.table.constraint.ConstraintsUtils.getColNameToDefaultValueMap;
-import static org.apache.hadoop.hive.ql.parse.rewrite.SqlBuilderFactory.DELETE_PREFIX;
+import static org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory.DELETE_PREFIX;
 
 public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer2 {
   private int numWhenMatchedUpdateClauses;

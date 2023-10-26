@@ -4,8 +4,9 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory;
 
-import static org.apache.hadoop.hive.ql.parse.rewrite.SqlBuilderFactory.DELETE_PREFIX;
+import static org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory.DELETE_PREFIX;
 
 public class DeleteRewriterFactory implements RewriterFactory<DeleteSemanticAnalyzer.DeleteBlock> {
   protected final HiveConf conf;

@@ -27,6 +27,8 @@ import org.apache.hadoop.hive.ql.parse.CalcitePlanner;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.MultiInsertSqlBuilder;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory;
 
 import java.util.HashMap;
 import java.util.List;

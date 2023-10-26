@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.parse.rewrite;
+package org.apache.hadoop.hive.ql.parse.rewrite.sql;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -29,9 +29,10 @@ import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.apache.hadoop.hive.ql.parse.rewrite.RewriteSemanticAnalyzer2.INDENT;
 
 public abstract class MultiInsertSqlBuilder {
+  protected static final String INDENT = "  ";
+
   protected final Table targetTable;
   protected final String targetTableFullName;
   protected final HiveConf conf;

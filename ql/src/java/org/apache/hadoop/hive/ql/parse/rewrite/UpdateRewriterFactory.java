@@ -4,9 +4,10 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.Context;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory;
 
-import static org.apache.hadoop.hive.ql.parse.rewrite.SqlBuilderFactory.DELETE_PREFIX;
-import static org.apache.hadoop.hive.ql.parse.rewrite.SqlBuilderFactory.SUB_QUERY_ALIAS;
+import static org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory.DELETE_PREFIX;
+import static org.apache.hadoop.hive.ql.parse.rewrite.sql.SqlBuilderFactory.SUB_QUERY_ALIAS;
 
 public class UpdateRewriterFactory implements RewriterFactory<UpdateSemanticAnalyzer.UpdateBlock> {
   protected final HiveConf conf;
@@ -33,5 +34,7 @@ public class UpdateRewriterFactory implements RewriterFactory<UpdateSemanticAnal
     } else {
       return new UpdateRewriter(conf, sqlBuilderFactory);
     }
+    // TODO: throw exception when split update is false and target is iceberg
+    // TODO: throw exception when updating non-acid table
   }
 }

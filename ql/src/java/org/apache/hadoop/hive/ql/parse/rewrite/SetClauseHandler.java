@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// TODO: move this back to RewriteSA
 public class SetClauseHandler {
   public static class Result {
     private final Set<String> setRCols;
