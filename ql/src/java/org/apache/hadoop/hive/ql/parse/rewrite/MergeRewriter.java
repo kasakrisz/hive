@@ -218,24 +218,26 @@ public class MergeRewriter implements Rewriter<MergeStatement>, MergeStatement.D
     }
 
     protected void addValues(Table targetTable, String targetAlias, Map<String, String> newValues,
-                             List<String> values, boolean aliasRhsExpr) {
-      UnaryOperator<String> formatter = name -> String.format("%s.%s", targetAlias, 
+                             List<String> values) {
+      UnaryOperator<String> formatter = name -> String.format("%s.%s", targetAlias,
           HiveUtils.unparseIdentifier(name, conf));
-      
+
       for (FieldSchema fieldSchema : targetTable.getCols()) {
+        String quotedColumnName = String.format("%s.%s", targetAlias,
+            HiveUtils.unparseIdentifier(fieldSchema.getName(), conf));
         if (newValues.containsKey(fieldSchema.getName())) {
-          String rhsExp = newValues.get(fieldSchema.getName());
-          if (aliasRhsExpr){
-            rhsExp += String.format(" AS %s", formatter.apply(fieldSchema.getName()));
-          }
-          values.add(rhsExp);
+          values.add(getValue(newValues.get(fieldSchema.getName()), quotedColumnName));
         } else {
-          values.add(formatter.apply(fieldSchema.getName()));
+          values.add(quotedColumnName);
         }
       }
       
       targetTable.getPartCols().forEach(fieldSchema -> values.add(
           formatter.apply(fieldSchema.getName())));
+    }
+
+    protected String getValue(String newValue, String alias) {
+      return newValue;
     }
 
     protected void addWhereClauseOfUpdate(String onClauseAsString, String extraPredicate, String deleteExtraPredicate,
