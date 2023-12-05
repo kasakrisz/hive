@@ -276,7 +276,13 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         }
 
         RelNode incrementalRebuildPlan = applyRecordIncrementalRebuildPlan(
-                basePlan, mdProvider, executorProvider, optCluster, calcitePreMVRewritingPlan, materialization);
+                basePlan,
+                mdProvider,
+                executorProvider,
+                optCluster,
+                calcitePreMVRewritingPlan,
+                materialization,
+                tablesUsedQuery);
 
         if (mvRebuildMode != MaterializationRebuildMode.INSERT_OVERWRITE_REBUILD) {
           return incrementalRebuildPlan;
@@ -291,18 +297,20 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
     }
 
     private RelNode applyRecordIncrementalRebuildPlan(
-            RelNode basePlan,
-            RelMetadataProvider mdProvider,
-            RexExecutor executorProvider,
-            RelOptCluster optCluster,
-            RelNode calcitePreMVRewritingPlan,
-            HiveRelOptMaterialization materialization) {
+        RelNode basePlan,
+        RelMetadataProvider mdProvider,
+        RexExecutor executorProvider,
+        RelOptCluster optCluster,
+        RelNode calcitePreMVRewritingPlan,
+        HiveRelOptMaterialization materialization,
+        Set<TableName> baseTables) {
       // First we need to check if it is valid to convert to MERGE/INSERT INTO.
       // If we succeed, we modify the plan and afterwards the AST.
       // MV should be an acid table.
       boolean acidView = AcidUtils.isFullAcidTable(mvTable.getTTable())
               || AcidUtils.isNonNativeAcidTable(mvTable);
-      MaterializedViewRewritingRelVisitor visitor = new MaterializedViewRewritingRelVisitor(acidView);
+      MaterializedViewRewritingRelVisitor visitor =
+          new MaterializedViewRewritingRelVisitor(acidView, optCluster, baseTables);
       visitor.go(basePlan);
       if (visitor.isRewritingAllowed()) {
         if (!materialization.isSourceTablesUpdateDeleteModified()) {
@@ -322,6 +330,9 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
               }
               return applyAggregateInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
             } else {
+              if (!visitor.isAllRowIdsProjected()) {
+                return calcitePreMVRewritingPlan;
+              }
               return applyJoinInsertDeleteIncremental(
                       basePlan, mdProvider, executorProvider, optCluster, calcitePreMVRewritingPlan);
             }
@@ -396,9 +407,9 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
     }
 
     private RelNode applyPartitionIncrementalRebuildPlan(
-            RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider,
-            HiveRelOptMaterialization materialization, RelOptCluster optCluster,
-            RelNode calcitePreMVRewritingPlan) {
+        RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider,
+        HiveRelOptMaterialization materialization, RelOptCluster optCluster,
+        RelNode calcitePreMVRewritingPlan) {
 
       if (materialization.isSourceTablesUpdateDeleteModified()) {
         // TODO: Create rewrite rule to transform the plan to partition based incremental rebuild

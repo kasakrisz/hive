@@ -137,17 +137,27 @@ public class HiveJoinInsertDeleteIncrementalRewritingRule extends RelOptRule {
         }
 
         foundTopRightJoin = true;
-        return createFilter(join);
+        return createTopFilter(join);
       }
 
       // continue traversal and propagate rowIsDeleted column
-      return super.visit(join);
+      HiveProject projectTopOnJoin = (HiveProject) super.visit(join);
+
+      RexBuilder rexBuilder = relBuilder.getRexBuilder();
+      HiveJoin newJoin = (HiveJoin) projectTopOnJoin.getInput(0);
+      RexNode allDeleted = createInputRef(projectTopOnJoin, -3);
+      RexNode allInserted = createInputRef(projectTopOnJoin, -3);
+
+      return relBuilder.push(newJoin)
+          .filter(createFilterCondition(rexBuilder, newJoin.getCondition(), allDeleted, allInserted))
+          .project(projectTopOnJoin.getProjects())
+          .build();
     }
 
-    private RelNode createFilter(HiveJoin join) {
-      RexBuilder rexBuilder = relBuilder.getRexBuilder();
+    private RelNode createTopFilter(HiveJoin join) {
       // This should be a Scan on the MV
       RelNode leftInput = join.getLeft();
+      RexBuilder rexBuilder;
 
       // This branch is querying the rows should be inserted/deleted into the view since the last rebuild.
       RelNode rightInput = join.getRight();
