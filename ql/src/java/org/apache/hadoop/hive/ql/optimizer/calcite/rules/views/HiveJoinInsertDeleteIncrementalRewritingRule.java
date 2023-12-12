@@ -103,7 +103,7 @@ public class HiveJoinInsertDeleteIncrementalRewritingRule extends RelOptRule {
             .join(JoinRelType.RIGHT, joinCond)
             .build();
 
-    RelNode filter = createTopFilter2((HiveJoin) rightOuterJoin, call.builder());
+    RelNode filter = createTopFilter((HiveJoin) rightOuterJoin, call.builder());
 
     RelNode newNode = call.builder()
             .push(filter)
@@ -113,7 +113,7 @@ public class HiveJoinInsertDeleteIncrementalRewritingRule extends RelOptRule {
     call.transformTo(newNode);
   }
 
-  private RelNode createTopFilter2(HiveJoin join, RelBuilder relBuilder) {
+  private RelNode createTopFilter(HiveJoin join, RelBuilder relBuilder) {
     RexBuilder rexBuilder = relBuilder.getRexBuilder();
     // This should be a Scan on the MV
     RelNode leftInput = join.getLeft();
