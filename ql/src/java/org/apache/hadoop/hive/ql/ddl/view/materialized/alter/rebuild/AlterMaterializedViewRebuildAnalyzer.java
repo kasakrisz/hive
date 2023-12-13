@@ -333,8 +333,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
               if (!visitor.isAllRowIdsProjected()) {
                 return calcitePreMVRewritingPlan;
               }
-              return applyJoinInsertDeleteIncremental(
-                      basePlan, mdProvider, executorProvider, optCluster, calcitePreMVRewritingPlan);
+              return applyJoinInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
             }
           } else {
             return calcitePreMVRewritingPlan;
@@ -385,18 +384,10 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
     }
 
     private RelNode applyJoinInsertDeleteIncremental(
-            RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider, RelOptCluster optCluster,
-            RelNode calcitePreMVRewritingPlan) {
-      basePlan = applyIncrementalRebuild(
-              basePlan, mdProvider, executorProvider, HiveJoinInsertDeleteIncrementalRewritingRule.INSTANCE);
+            RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider) {
       mvRebuildMode = MaterializationRebuildMode.JOIN_INSERT_DELETE_REBUILD;
-      try {
-        return new HiveJoinInsertDeleteIncrementalRewritingRule.FilterPropagator(
-                HiveRelFactories.HIVE_BUILDER.create(optCluster, null)).propagate(basePlan);
-      } catch (ColumnPropagationException ex) {
-        LOG.warn("Exception while propagating column " + VirtualColumn.ROWISDELETED.getName(), ex);
-        return calcitePreMVRewritingPlan;
-      }
+      return applyIncrementalRebuild(
+              basePlan, mdProvider, executorProvider, HiveJoinInsertDeleteIncrementalRewritingRule.INSTANCE);
     }
 
     private RelNode applyJoinInsertIncremental(
