@@ -30,6 +30,7 @@ import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexExecutor;
 import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.hadoop.hive.common.TableName;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.LockState;
@@ -44,12 +45,9 @@ import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveRelOptMaterialization;
 import org.apache.hadoop.hive.ql.metadata.Table;
-import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
-import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveTezModelRelMetadataProvider;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveInBetweenExpandRule;
-import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.ColumnPropagationException;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregateInsertIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregatePartitionIncrementalRewritingRule;
@@ -330,7 +328,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
               }
               return applyAggregateInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
             } else {
-              if (!visitor.isAllRowIdsProjected()) {
+              if (!visitor.isAllBasedTablesHasProjectedUniqueKeyColumn()) {
                 return calcitePreMVRewritingPlan;
               }
               return applyJoinInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
@@ -384,7 +382,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
     }
 
     private RelNode applyJoinInsertDeleteIncremental(
-            RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider) {
+        RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider) {
       mvRebuildMode = MaterializationRebuildMode.JOIN_INSERT_DELETE_REBUILD;
       return applyIncrementalRebuild(
               basePlan, mdProvider, executorProvider, HiveJoinInsertDeleteIncrementalRewritingRule.INSTANCE);

@@ -24,10 +24,12 @@ import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveJoin;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveHepExtractRelNodeRule;
@@ -129,7 +131,10 @@ public class HiveJoinInsertDeleteIncrementalRewritingRule extends RelOptRule {
       leftProjectNames.add(relDataTypeField.getName());
     }
     List<RexNode> projects = new ArrayList<>(leftProjects.size() + newRightInput.getRowType().getFieldCount());
-    projects.addAll(leftProjects);
+    for (int i = 0; i < leftProjects.size(); ++i) {
+      RelDataType dataType = rexBuilder.getTypeFactory().createTypeWithNullability(leftProjects.get(i).getType(), true);
+      projects.add(rexBuilder.makeInputRef(dataType, i));
+    }
     List<String> projectNames = new ArrayList<>(leftProjects.size() + newRightInput.getRowType().getFieldCount());
     projectNames.addAll(leftProjectNames);
 
