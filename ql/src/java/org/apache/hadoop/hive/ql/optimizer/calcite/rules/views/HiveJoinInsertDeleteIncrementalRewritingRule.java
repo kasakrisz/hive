@@ -30,6 +30,7 @@ import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.hadoop.hive.ql.ddl.view.materialized.alter.rebuild.AlterMaterializedViewRebuildAnalyzer;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveJoin;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveHepExtractRelNodeRule;
@@ -45,8 +46,8 @@ import java.util.List;
  * MULTI INSERT statement instead: one insert branch for inserted rows
  * and another for inserting deleted rows to delete delta.
  * Since CBO plan does not contain the INSERT branches we focus on the SELECT part of the plan in this rule.
- * See also {@link CalcitePlanner}
  *
+ * <pre>
  * FROM (select mv.ROW__ID, mv.a, mv.b, true as flag from mv) mv
  * RIGHT OUTER JOIN (SELECT _source_.ROW__IS_DELETED,_source_.a, _source_.b FROM _source_) source
  * ON (mv.a &lt;=&gt; source.a AND mv.b &lt;=&gt; source.b)
@@ -57,6 +58,9 @@ import java.util.List;
  *   SELECT source.a, source.b
  *   WHERE NOT source.ROW__IS__DELETED
  *   SORT BY mv.ROW__ID;
+ * </pre>
+ *
+ * @see AlterMaterializedViewRebuildAnalyzer
  */
 public class HiveJoinInsertDeleteIncrementalRewritingRule extends RelOptRule {
 
