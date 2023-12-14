@@ -6,6 +6,7 @@ set hive.support.concurrency=true;
 set hive.txn.manager=org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
 
 create table cmv_basetable_n6 (a int, b varchar(256), c decimal(10,2), d int) stored as orc TBLPROPERTIES ('transactional'='true');
+alter table cmv_basetable_n6 add constraint u1 UNIQUE (a) disable novalidate rely;
 
 insert into cmv_basetable_n6 values
  (1, 'alfred', 10.30, 2),
@@ -15,6 +16,7 @@ insert into cmv_basetable_n6 values
  (3, 'charlie', 9.8, 1);
 
 create table cmv_basetable_2_n3 (a int, b varchar(256), c decimal(10,2), d int) stored as orc TBLPROPERTIES ('transactional'='true');
+alter table cmv_basetable_2_n3 add constraint pk1 primary key (c) disable novalidate rely;
 
 insert into cmv_basetable_2_n3 values
  (1, 'alfred', 10.30, 2),
@@ -28,10 +30,14 @@ CREATE MATERIALIZED VIEW cmv_mat_view_n6
 
 DELETE from cmv_basetable_2_n3 WHERE a=1;
 
+explain cbo
+ALTER MATERIALIZED VIEW cmv_mat_view_n6 REBUILD;
 ALTER MATERIALIZED VIEW cmv_mat_view_n6 REBUILD;
 
 DELETE FROM cmv_basetable_n6 WHERE a=1;
 
+explain cbo
+ALTER MATERIALIZED VIEW cmv_mat_view_n6 REBUILD;
 ALTER MATERIALIZED VIEW cmv_mat_view_n6 REBUILD;
 
 SELECT * FROM cmv_mat_view_n6;
