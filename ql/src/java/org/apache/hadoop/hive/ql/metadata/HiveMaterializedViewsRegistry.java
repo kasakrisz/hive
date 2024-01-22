@@ -61,6 +61,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveRelNode;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewUtils;
+import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.IncrementalRebuildMode;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.MaterializedViewIncrementalRewritingRelVisitor;
 import org.apache.hadoop.hive.ql.optimizer.calcite.translator.TypeConverter;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
@@ -238,16 +239,16 @@ public final class HiveMaterializedViewsRegistry {
             determineIncrementalRebuildMode(plan.getPlan()), plan.getAst());
   }
 
-  private HiveRelOptMaterialization.IncrementalRebuildMode determineIncrementalRebuildMode(RelNode definitionPlan) {
+  private IncrementalRebuildMode determineIncrementalRebuildMode(RelNode definitionPlan) {
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
     visitor.go(definitionPlan);
     if (!visitor.hasAllowedOperatorsOnly()) {
-      return HiveRelOptMaterialization.IncrementalRebuildMode.NOT_AVAILABLE;
+      return IncrementalRebuildMode.NOT_AVAILABLE;
     }
     if (visitor.isContainsAggregate() && !visitor.hasCountStar() || visitor.isInsertAllowedOnly()) {
-      return HiveRelOptMaterialization.IncrementalRebuildMode.INSERT_ONLY;
+      return IncrementalRebuildMode.INSERT_ONLY;
     }
-    return HiveRelOptMaterialization.IncrementalRebuildMode.AVAILABLE;
+    return IncrementalRebuildMode.AVAILABLE;
   }
 
   /**
