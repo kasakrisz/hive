@@ -240,15 +240,7 @@ public final class HiveMaterializedViewsRegistry {
   }
 
   private IncrementalRebuildMode determineIncrementalRebuildMode(RelNode definitionPlan) {
-    MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
-    visitor.go(definitionPlan);
-    if (!visitor.hasAllowedOperatorsOnly()) {
-      return IncrementalRebuildMode.NOT_AVAILABLE;
-    }
-    if (visitor.isContainsAggregate() && !visitor.hasCountStar() || visitor.isInsertAllowedOnly()) {
-      return IncrementalRebuildMode.INSERT_ONLY;
-    }
-    return IncrementalRebuildMode.AVAILABLE;
+    return new MaterializedViewIncrementalRewritingRelVisitor().go(definitionPlan);
   }
 
   /**

@@ -16,17 +16,29 @@
  */
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules.views;
 
+import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.util.ReflectUtil;
+import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveFilter;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveJoin;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 
 /**
  * This class is a helper to check whether a materialized view rebuild
@@ -38,76 +50,108 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
  *   2) Whether the plane has aggregate
  *   3) Whether the plane has an count(*) aggregate function call
  */
-public class MaterializedViewIncrementalRewritingRelVisitor extends RelVisitor {
+public class MaterializedViewIncrementalRewritingRelVisitor implements ReflectiveVisitor {
 
-  private boolean containsAggregate;
-  private boolean hasAllowedOperatorsOnly;
-  private boolean hasCountStar;
-  private boolean insertAllowedOnly;
+  protected final Deque<RelNode> stack = new ArrayDeque<>();
+  private final ReflectUtil.MethodDispatcher<IncrementalRebuildMode> dispatcher;
+
+//  private boolean containsAggregate;
+//  private boolean hasAllowedOperatorsOnly;
+//  private boolean hasCountStar;
+//  private boolean insertAllowedOnly;
 
   public MaterializedViewIncrementalRewritingRelVisitor() {
-    this.containsAggregate = false;
-    this.hasAllowedOperatorsOnly = true;
-    this.hasCountStar = false;
-    this.insertAllowedOnly = false;
-  }
+    this.dispatcher = ReflectUtil.createMethodDispatcher(
+        IncrementalRebuildMode.class, this, "visit", RelNode.class);
 
-  @Override
-  public void visit(RelNode node, int ordinal, RelNode parent) {
-    if (node instanceof Aggregate) {
-      this.containsAggregate = true;
-      check((Aggregate) node);
-      super.visit(node, ordinal, parent);
-    } else if (
-            node instanceof Filter ||
-            node instanceof Project ||
-            node instanceof Join) {
-      super.visit(node, ordinal, parent);
-    } else if (node instanceof TableScan) {
-      HiveTableScan scan = (HiveTableScan) node;
-      RelOptHiveTable hiveTable = (RelOptHiveTable) scan.getTable();
-      if (hiveTable.getHiveTableMD().getStorageHandler() != null &&
-              hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
-        // Incremental rebuild of materialized views with non-native source tables are not implemented
-        // when any of the source tables has delete/update operation since the last rebuild
-        insertAllowedOnly = true;
-      }
-    } else {
-      hasAllowedOperatorsOnly = false;
-    }
-  }
-
-  private void check(Aggregate aggregate) {
-    for (int i = 0; i < aggregate.getAggCallList().size(); ++i) {
-      AggregateCall aggregateCall = aggregate.getAggCallList().get(i);
-      if (aggregateCall.getAggregation().getKind() == SqlKind.COUNT && aggregateCall.getArgList().size() == 0) {
-        hasCountStar = true;
-        break;
-      }
-    }
+//    this.containsAggregate = false;
+//    this.hasAllowedOperatorsOnly = true;
+//    this.hasCountStar = false;
+//    this.insertAllowedOnly = false;
   }
 
   /**
    * Starts an iteration.
    */
-  public RelNode go(RelNode p) {
-    visit(p, 0, null);
-    return p;
+  public IncrementalRebuildMode go(RelNode relNode) {
+    return dispatcher.invoke(relNode);
   }
 
-  public boolean isContainsAggregate() {
-    return containsAggregate;
+  public IncrementalRebuildMode visit(RelNode relNode) {
+    // Only TS, Filter, Join, Project and Aggregate are supported
+    return IncrementalRebuildMode.NOT_AVAILABLE;
   }
 
-  public boolean hasAllowedOperatorsOnly() {
-    return hasAllowedOperatorsOnly;
+  protected IncrementalRebuildMode visitChildren(RelNode rel) {
+    IncrementalRebuildMode incrementalRebuildMode = IncrementalRebuildMode.UNKNOWN;
+    for (RelNode child : rel.getInputs()) {
+      incrementalRebuildMode = dispatcher.invoke(child);
+      if (incrementalRebuildMode == IncrementalRebuildMode.NOT_AVAILABLE ||
+          incrementalRebuildMode == IncrementalRebuildMode.UNKNOWN) {
+        return incrementalRebuildMode;
+      }
+    }
+    return incrementalRebuildMode;
   }
 
-  public boolean isInsertAllowedOnly() {
-    return insertAllowedOnly;
+  public IncrementalRebuildMode visit(HiveTableScan scan) {
+    RelOptHiveTable hiveTable = (RelOptHiveTable) scan.getTable();
+    if (hiveTable.getHiveTableMD().getStorageHandler() != null &&
+        hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
+      // Incremental rebuild of materialized views with non-native source tables are not implemented
+      // when any of the source tables has delete/update operation since the last rebuild
+      return IncrementalRebuildMode.INSERT_ONLY;
+    }
+    return IncrementalRebuildMode.AVAILABLE;
   }
 
-  public boolean hasCountStar() {
-    return hasCountStar;
+  public IncrementalRebuildMode visit(HiveProject project) {
+    return visitChildren(project);
   }
+
+  public IncrementalRebuildMode visit(HiveFilter filter) {
+    return visitChildren(filter);
+  }
+
+  public IncrementalRebuildMode visit(HiveJoin join) {
+    if (join.getJoinType() == JoinRelType.INNER) {
+      return visitChildren(join);
+    }
+    return IncrementalRebuildMode.NOT_AVAILABLE;
+  }
+
+//  @Override
+//  public void visit(RelNode node, int ordinal, RelNode parent) {
+//    if (node instanceof Aggregate) {
+//      this.containsAggregate = true;
+//      check((Aggregate) node);
+//      super.visit(node, ordinal, parent);
+//    } else if (
+//            node instanceof Filter ||
+//            node instanceof Project ||
+//            node instanceof Join) {
+//      super.visit(node, ordinal, parent);
+//    } else if (node instanceof TableScan) {
+//      HiveTableScan scan = (HiveTableScan) node;
+//      RelOptHiveTable hiveTable = (RelOptHiveTable) scan.getTable();
+//      if (hiveTable.getHiveTableMD().getStorageHandler() != null &&
+//              hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
+//        // Incremental rebuild of materialized views with non-native source tables are not implemented
+//        // when any of the source tables has delete/update operation since the last rebuild
+//        insertAllowedOnly = true;
+//      }
+//    } else {
+//      hasAllowedOperatorsOnly = false;
+//    }
+//  }
+
+//  private void check(Aggregate aggregate) {
+//    for (int i = 0; i < aggregate.getAggCallList().size(); ++i) {
+//      AggregateCall aggregateCall = aggregate.getAggCallList().get(i);
+//      if (aggregateCall.getAggregation().getKind() == SqlKind.COUNT && aggregateCall.getArgList().size() == 0) {
+//        hasCountStar = true;
+//        break;
+//      }
+//    }
+//  }
 }
