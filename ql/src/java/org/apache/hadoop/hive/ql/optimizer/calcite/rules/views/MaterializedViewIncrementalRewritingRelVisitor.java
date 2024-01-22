@@ -96,11 +96,14 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
 
   public IncrementalRebuildMode visit(HiveTableScan scan) {
     RelOptHiveTable hiveTable = (RelOptHiveTable) scan.getTable();
-    if (hiveTable.getHiveTableMD().getStorageHandler() != null &&
-        hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
-      // Incremental rebuild of materialized views with non-native source tables are not implemented
-      // when any of the source tables has delete/update operation since the last rebuild
-      return IncrementalRebuildMode.INSERT_ONLY;
+    if (hiveTable.getHiveTableMD().getStorageHandler() != null) {
+        if (hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
+          // Incremental rebuild of materialized views with non-native source tables are not implemented
+          // when any of the source tables has delete/update operation since the last rebuild
+          return IncrementalRebuildMode.INSERT_ONLY;
+        } else {
+          return IncrementalRebuildMode.NOT_AVAILABLE;
+        }
     }
     return IncrementalRebuildMode.AVAILABLE;
   }
