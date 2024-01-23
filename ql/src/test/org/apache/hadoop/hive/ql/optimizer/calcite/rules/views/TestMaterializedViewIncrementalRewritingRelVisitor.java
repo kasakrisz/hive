@@ -228,6 +228,25 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
   }
 
   @Test
+  public void testIncrementalRebuildIsNotAvailableWhenPlanHasAggregateAvgCountSumButOnDifferentColumns() {
+    RelNode ts1 = createTS(t1NativeMock, "t1");
+
+    RexInputRef rexInputRef = REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0);
+    RexInputRef rexInputRef2 = REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 1);
+    RelNode mvQueryPlan = REL_BUILDER
+        .push(ts1)
+        .aggregate(
+            REL_BUILDER.groupKey(0),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.COUNT, rexInputRef),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.SUM, rexInputRef2),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.AVG, rexInputRef))
+        .build();
+
+    MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.NOT_AVAILABLE));
+  }
+
+  @Test
   public void testIncrementalRebuildNotAvailableWhenPlanHasNotSupportedAggregate() {
     RelNode ts1 = createTS(t1NativeMock, "t1");
 
