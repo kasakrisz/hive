@@ -1,9 +1,12 @@
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules.views;
 
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -54,22 +57,39 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
   }
 
   @Test
-  public void testIncrementalRebuildIsAvailableWhenPlanHasProject() {
+  public void testIncrementalRebuildIsAvailableWhenPKOfSourceTableIsProjected() {
     RelNode ts1 = createTS(t1NativeMock, "t1");
 
+    RelDataType intType = REL_BUILDER.getTypeFactory().createSqlType(SqlTypeName.INTEGER);
     RelNode mvQueryPlan = REL_BUILDER
         .push(ts1)
         .project(
+            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(2).getType(), 2),
+            REX_BUILDER.makeCall(
+                SqlStdOperatorTable.MULTIPLY,
+                REX_BUILDER.makeLiteral(10, intType, false),
+                REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0)),
+            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(1).getType(), 1),
+            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0))
+        .filter(REX_BUILDER.makeCall(SqlStdOperatorTable.IS_NOT_NULL, REX_BUILDER.makeInputRef(ts1, 0)))
+        .project(
+            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(3).getType(), 3),
+            REX_BUILDER.makeInputRef(REX_BUILDER.getTypeFactory().createTypeWithNullability(intType, true), 1),
             REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0),
-            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(1).getType(), 1))
+            REX_BUILDER.makeCall(
+                SqlStdOperatorTable.MULTIPLY,
+                REX_BUILDER.makeLiteral(10, intType, false),
+                    REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0)))
         .build();
+
+    System.out.println(RelOptUtil.toString(mvQueryPlan));
 
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
     assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.AVAILABLE));
   }
 
   @Test
-  public void testIncrementalRebuildIsAvailableWhenPlanHasFilter() {
+  public void testIncrementalRebuildIsInsertOnlyWhenPlanHasFilter() {
     RelNode ts1 = createTS(t1NativeMock, "t1");
 
     RelNode mvQueryPlan = REL_BUILDER
@@ -78,7 +98,7 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
         .build();
 
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
-    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.AVAILABLE));
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.INSERT_ONLY));
   }
 
   @Test
@@ -97,7 +117,7 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
         .build();
 
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
-    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.AVAILABLE));
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.INSERT_ONLY));
   }
 
   @Test

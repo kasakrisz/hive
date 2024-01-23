@@ -23,13 +23,16 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
-import org.apache.calcite.rel.type.RelRecordType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.api.SQLUniqueConstraint;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
+import org.apache.hadoop.hive.ql.metadata.PrimaryKeyInfo;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.metadata.TableConstraintsInfo;
+import org.apache.hadoop.hive.ql.metadata.UniqueConstraint;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.calcite.CalciteSemanticException;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveRelFactories;
@@ -100,11 +103,15 @@ public class TestRuleBase {
       put("b", SqlTypeName.VARCHAR);
       put("c", SqlTypeName.INTEGER);
     }}, asList(VirtualColumn.ROWID, VirtualColumn.ROWISDELETED));
+    addPK(t1Native, new HashMap<Integer, String>() {{ put(1, "a");}});
+
     t2NativeType = createTableType(new HashMap<String, SqlTypeName>() {{
       put("d", SqlTypeName.INTEGER);
       put("e", SqlTypeName.VARCHAR);
       put("f", SqlTypeName.INTEGER);
     }}, asList(VirtualColumn.ROWID, VirtualColumn.ROWISDELETED));
+    addUnique(t2Native, new HashMap<Integer, String>() {{ put(1, "d"); put(3, "f");}});
+
     t3NativeType = createTableType(new HashMap<String, SqlTypeName>() {{
       put("g", SqlTypeName.INTEGER);
       put("h", SqlTypeName.VARCHAR);
@@ -121,11 +128,42 @@ public class TestRuleBase {
     REL_BUILDER = HiveRelFactories.HIVE_BUILDER.create(relOptCluster, null);
   }
 
+  private static void addPK(Table table, Map<Integer, String> columns) {
+    TableConstraintsInfo constraintsInfo = new TableConstraintsInfo();
+    PrimaryKeyInfo primaryKeyInfo = new PrimaryKeyInfo();
+    primaryKeyInfo.setColNames(columns);
+    constraintsInfo.setPrimaryKeyInfo(primaryKeyInfo);
+    table.setTableConstraintsInfo(constraintsInfo);
+  }
+
+  private static void addUnique(Table table, HashMap<Integer, String> hashMap) {
+    TableConstraintsInfo constraintsInfo = new TableConstraintsInfo();
+    List<SQLUniqueConstraint> columns = new ArrayList<>(hashMap.size());
+    for (Map.Entry<Integer, String> entry : hashMap.entrySet()) {
+      columns.add(new SQLUniqueConstraint(
+          table.getCatName(),
+          table.getDbName(),
+          table.getTableName(),
+          entry.getValue(),
+          entry.getKey(),
+          "u_" + table.getTableName(),
+          true,
+          true,
+          true));
+    }
+
+    constraintsInfo.setUniqueConstraint(new UniqueConstraint(columns, table.getTableName(), table.getDbName()));
+
+    t2Native.setTableConstraintsInfo(constraintsInfo);
+  }
+
+
   private static Table createTable(String name) {
     Table table = new Table();
     table.setTTable(new org.apache.hadoop.hive.metastore.api.Table());
     table.setDbName("default");
     table.setTableName(name);
+    table.setTableConstraintsInfo(new TableConstraintsInfo());
     return table;
   }
 
