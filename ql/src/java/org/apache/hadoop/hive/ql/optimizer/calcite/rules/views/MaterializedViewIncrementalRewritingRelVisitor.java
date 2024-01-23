@@ -17,15 +17,18 @@
 package org.apache.hadoop.hive.ql.optimizer.calcite.rules.views;
 
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.ReflectUtil;
 import org.apache.calcite.util.ReflectiveVisitor;
 import org.apache.hadoop.hive.ql.metadata.PrimaryKeyInfo;
 import org.apache.hadoop.hive.ql.metadata.UniqueConstraint;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RelOptHiveTable;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveAggregate;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveFilter;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveJoin;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
@@ -75,10 +78,10 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
     if (relNode instanceof HiveProject) {
       ImmutableBitSet projectedCols = findProjectedColumnIndexes((HiveProject) relNode);
       Result result = dispatcher.invoke(relNode.getInput(0), projectedCols);
-      return result.incrementalRebuildMode;
+      return result.computeIncrementalRebuildMode();
     } else {
       Result result = dispatcher.invoke(relNode, ImmutableBitSet.of());
-      return result.incrementalRebuildMode;
+      return result.computeIncrementalRebuildMode();
     }
   }
 
@@ -113,16 +116,16 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
       if (hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
         // Incremental rebuild of materialized views with non-native source tables are not implemented
         // when any of the source tables has delete/update operation since the last rebuild
-        return new Result(INSERT_ONLY, false);
+        return new Result(INSERT_ONLY, false, false);
       } else {
-        return new Result(NOT_AVAILABLE, false);
+        return new Result(NOT_AVAILABLE, false, false);
       }
     }
 
     boolean uniqueConstraintProjected = primaryKeyProjected(hiveTable, projectedColPos) ||
         anyUniqueKeyProjected(hiveTable, projectedColPos);
 
-    return new Result(uniqueConstraintProjected ? AVAILABLE : INSERT_ONLY, false);
+    return new Result(AVAILABLE, false, uniqueConstraintProjected);
   }
 
   private boolean primaryKeyProjected(RelOptHiveTable hiveTable, ImmutableBitSet projectedColPos) {
@@ -196,31 +199,68 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
     Result rightResult = visitChildOf(join, 1, rightBuilder.build());
 
     boolean containsAggregate = leftResult.containsAggregate || rightResult.containsAggregate;
+    boolean uniqueConstraintProjected = leftResult.uniqueConstraintProjected && rightResult.uniqueConstraintProjected;
     switch (rightResult.incrementalRebuildMode) {
       case INSERT_ONLY:
-        return new Result(INSERT_ONLY, containsAggregate);
+        return new Result(INSERT_ONLY, containsAggregate, uniqueConstraintProjected);
       case AVAILABLE:
         return new Result(
             leftResult.incrementalRebuildMode == INSERT_ONLY ? INSERT_ONLY : AVAILABLE,
-            containsAggregate);
+            containsAggregate,
+            uniqueConstraintProjected);
       case NOT_AVAILABLE:
       case UNKNOWN:
       default:
-        return new Result(rightResult.incrementalRebuildMode, containsAggregate);
+        return new Result(rightResult.incrementalRebuildMode, containsAggregate, uniqueConstraintProjected);
     }
   }
 
-  public static class Result {
-    IncrementalRebuildMode incrementalRebuildMode;
-    boolean containsAggregate;
-
-    public Result(IncrementalRebuildMode incrementalRebuildMode) {
-      this(incrementalRebuildMode, false);
+  public Result visit(HiveAggregate aggregate, ImmutableBitSet projectedColPos) {
+    Result result = visitChildOf(aggregate, projectedColPos);
+    if (result.incrementalRebuildMode != AVAILABLE) {
+      return new Result(result.incrementalRebuildMode, true, result.uniqueConstraintProjected);
     }
 
-    public Result(IncrementalRebuildMode incrementalRebuildMode, boolean containsAggregate) {
+    boolean hasCountStar = false;
+    for (int i = 0; i < aggregate.getAggCallList().size(); ++i) {
+      AggregateCall aggregateCall = aggregate.getAggCallList().get(i);
+      if (aggregateCall.getAggregation().getKind() == SqlKind.COUNT && aggregateCall.getArgList().isEmpty()) {
+        hasCountStar = true;
+        break;
+      }
+    }
+
+    return new Result(hasCountStar ? AVAILABLE : INSERT_ONLY, true, result.uniqueConstraintProjected);
+  }
+
+  public static class Result {
+    final IncrementalRebuildMode incrementalRebuildMode;
+    final boolean containsAggregate;
+    final boolean uniqueConstraintProjected;
+
+    public Result(IncrementalRebuildMode incrementalRebuildMode) {
+      this(incrementalRebuildMode, false, true);
+    }
+
+    public Result(
+        IncrementalRebuildMode incrementalRebuildMode,
+        boolean containsAggregate,
+        boolean uniqueConstraintProjected) {
       this.incrementalRebuildMode = incrementalRebuildMode;
       this.containsAggregate = containsAggregate;
+      this.uniqueConstraintProjected = uniqueConstraintProjected;
+    }
+
+    public IncrementalRebuildMode computeIncrementalRebuildMode() {
+      if (containsAggregate) {
+        return incrementalRebuildMode;
+      }
+
+      if (incrementalRebuildMode != AVAILABLE) {
+        return incrementalRebuildMode;
+      }
+
+      return uniqueConstraintProjected ? AVAILABLE : INSERT_ONLY;
     }
   }
 
