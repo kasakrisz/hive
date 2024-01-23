@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.ql.optimizer.calcite.rules.views;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -189,5 +190,58 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
 
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
     assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.AVAILABLE));
+  }
+
+  @Test
+  public void testIncrementalRebuildIsNotAvailableWhenPlanHasAggregateAvg() {
+    RelNode ts1 = createTS(t1NativeMock, "t1");
+
+    RelNode mvQueryPlan = REL_BUILDER
+        .push(ts1)
+        .aggregate(
+            REL_BUILDER.groupKey(0),
+            REL_BUILDER.aggregateCall(
+                SqlStdOperatorTable.AVG,
+                REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0)))
+        .build();
+
+    MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.NOT_AVAILABLE));
+  }
+
+  @Test
+  public void testIncrementalRebuildIsInsertOnlyWhenPlanHasAggregateAvgCountSumOnTheSameColumn() {
+    RelNode ts1 = createTS(t1NativeMock, "t1");
+
+    RexInputRef rexInputRef = REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0);
+    RelNode mvQueryPlan = REL_BUILDER
+        .push(ts1)
+        .aggregate(
+            REL_BUILDER.groupKey(0),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.COUNT, rexInputRef),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.SUM, rexInputRef),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.AVG, rexInputRef))
+        .build();
+
+    MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.INSERT_ONLY));
+  }
+
+  @Test
+  public void testIncrementalRebuildNotAvailableWhenPlanHasNotSupportedAggregate() {
+    RelNode ts1 = createTS(t1NativeMock, "t1");
+
+    RexInputRef rexInputRef = REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0);
+    RelNode mvQueryPlan = REL_BUILDER
+        .push(ts1)
+        .aggregate(
+            REL_BUILDER.groupKey(0),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.STDDEV, rexInputRef),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.SUM, rexInputRef),
+            REL_BUILDER.aggregateCall(SqlStdOperatorTable.COUNT, rexInputRef))
+        .build();
+
+    MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.NOT_AVAILABLE));
   }
 }

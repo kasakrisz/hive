@@ -35,7 +35,11 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveTableScan;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.IncrementalRebuildMode.AVAILABLE;
@@ -211,16 +215,46 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
       return new Result(result.incrementalRebuildMode, true, result.uniqueConstraintProjected);
     }
 
+    Map<Integer, Set<SqlKind>> columnRefByAggregateCall = new HashMap<>(aggregate.getRowType().getFieldCount());
+
     boolean hasCountStar = false;
     for (int i = 0; i < aggregate.getAggCallList().size(); ++i) {
       AggregateCall aggregateCall = aggregate.getAggCallList().get(i);
       if (aggregateCall.getAggregation().getKind() == SqlKind.COUNT && aggregateCall.getArgList().isEmpty()) {
         hasCountStar = true;
-        break;
+        continue;
+      }
+
+      for (Integer argIndex : aggregateCall.getArgList()) {
+        columnRefByAggregateCall.putIfAbsent(argIndex, new HashSet<>());
+        Set<SqlKind> aggregates = columnRefByAggregateCall.get(argIndex);
+        aggregates.add(aggregateCall.getAggregation().getKind());
       }
     }
 
-    return new Result(hasCountStar ? AVAILABLE : INSERT_ONLY, true, result.uniqueConstraintProjected);
+    IncrementalRebuildMode incrementalRebuildMode = hasCountStar ? AVAILABLE : INSERT_ONLY;
+    for (int i = 0; i < aggregate.getAggCallList().size(); ++i) {
+      AggregateCall aggregateCall = aggregate.getAggCallList().get(i);
+      switch (aggregateCall.getAggregation().getKind()) {
+        case COUNT:
+        case SUM:
+        case SUM0:
+          break;
+
+        case AVG:
+          Set<SqlKind> aggregates = columnRefByAggregateCall.get(aggregateCall.getArgList().get(0));
+          if (!(aggregates.contains(SqlKind.SUM) && aggregates.contains(SqlKind.COUNT))) {
+            incrementalRebuildMode = NOT_AVAILABLE;
+          }
+          break;
+
+        default:
+          incrementalRebuildMode = NOT_AVAILABLE;
+          break;
+      }
+    }
+
+    return new Result(incrementalRebuildMode, true, result.uniqueConstraintProjected);
   }
 
   public static class Result {
