@@ -185,10 +185,10 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
     ImmutableBitSet.Builder rightBuilder = ImmutableBitSet.builder();
     int leftColumnCount = join.getLeft().getRowType().getFieldCount();
     for (int i : projectedColPos) {
-      if (i > leftColumnCount) {
-        rightBuilder.set(i - leftColumnCount);
-      } else {
+      if (i < leftColumnCount) {
         leftBuilder.set(i);
+      } else {
+        rightBuilder.set(i - leftColumnCount);
       }
     }
 

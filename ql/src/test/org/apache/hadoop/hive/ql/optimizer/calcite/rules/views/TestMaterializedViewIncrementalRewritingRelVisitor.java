@@ -82,8 +82,6 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
                     REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0)))
         .build();
 
-    System.out.println(RelOptUtil.toString(mvQueryPlan));
-
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
     assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.AVAILABLE));
   }
@@ -102,7 +100,7 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
   }
 
   @Test
-  public void testIncrementalRebuildIsAvailableWhenPlanHasInnerJoin() {
+  public void testIncrementalRebuildIsInsertOnlyWhenPlanHasInnerJoin() {
     RelNode ts1 = createTS(t1NativeMock, "t1");
     RelNode ts2 = createTS(t2NativeMock, "t2");
 
@@ -118,6 +116,29 @@ public class TestMaterializedViewIncrementalRewritingRelVisitor extends TestRule
 
     MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
     assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.INSERT_ONLY));
+  }
+
+  @Test
+  public void testIncrementalRebuildIsAvailableWhenPlanHasInnerJoinAndPKOrUniqueColsOfSourceTablesAreProjected() {
+    RelNode ts1 = createTS(t1NativeMock, "t1");
+    RelNode ts2 = createTS(t1NativeMock, "t2");
+
+    RexNode joinCondition = REX_BUILDER.makeCall(SqlStdOperatorTable.EQUALS,
+        REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0),
+        REX_BUILDER.makeInputRef(ts2.getRowType().getFieldList().get(0).getType(), 5));
+
+    RelNode mvQueryPlan = REL_BUILDER
+        .push(ts1)
+        .push(ts2)
+        .join(JoinRelType.INNER, joinCondition)
+        .project(
+            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 0),
+            REX_BUILDER.makeInputRef(ts1.getRowType().getFieldList().get(0).getType(), 7),
+            REX_BUILDER.makeInputRef(ts2.getRowType().getFieldList().get(0).getType(), 5))
+        .build();
+
+    MaterializedViewIncrementalRewritingRelVisitor visitor = new MaterializedViewIncrementalRewritingRelVisitor();
+    assertThat(visitor.go(mvQueryPlan), is(IncrementalRebuildMode.AVAILABLE));
   }
 
   @Test
