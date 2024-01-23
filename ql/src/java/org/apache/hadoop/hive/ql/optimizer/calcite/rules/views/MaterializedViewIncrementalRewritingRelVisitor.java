@@ -56,19 +56,9 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
 
   private final ReflectUtil.MethodDispatcher<Result> dispatcher;
 
-//  private boolean containsAggregate;
-//  private boolean hasAllowedOperatorsOnly;
-//  private boolean hasCountStar;
-//  private boolean insertAllowedOnly;
-
   public MaterializedViewIncrementalRewritingRelVisitor() {
     this.dispatcher = ReflectUtil.createMethodDispatcher(
         Result.class, this, "visit", RelNode.class, ImmutableBitSet.class);
-
-//    this.containsAggregate = false;
-//    this.hasAllowedOperatorsOnly = true;
-//    this.hasCountStar = false;
-//    this.insertAllowedOnly = false;
   }
 
   /**
@@ -263,39 +253,4 @@ public class MaterializedViewIncrementalRewritingRelVisitor implements Reflectiv
       return uniqueConstraintProjected ? AVAILABLE : INSERT_ONLY;
     }
   }
-
-//  @Override
-//  public void visit(RelNode node, int ordinal, RelNode parent) {
-//    if (node instanceof Aggregate) {
-//      this.containsAggregate = true;
-//      check((Aggregate) node);
-//      super.visit(node, ordinal, parent);
-//    } else if (
-//            node instanceof Filter ||
-//            node instanceof Project ||
-//            node instanceof Join) {
-//      super.visit(node, ordinal, parent);
-//    } else if (node instanceof TableScan) {
-//      HiveTableScan scan = (HiveTableScan) node;
-//      RelOptHiveTable hiveTable = (RelOptHiveTable) scan.getTable();
-//      if (hiveTable.getHiveTableMD().getStorageHandler() != null &&
-//              hiveTable.getHiveTableMD().getStorageHandler().areSnapshotsSupported()) {
-//        // Incremental rebuild of materialized views with non-native source tables are not implemented
-//        // when any of the source tables has delete/update operation since the last rebuild
-//        insertAllowedOnly = true;
-//      }
-//    } else {
-//      hasAllowedOperatorsOnly = false;
-//    }
-//  }
-
-//  private void check(Aggregate aggregate) {
-//    for (int i = 0; i < aggregate.getAggCallList().size(); ++i) {
-//      AggregateCall aggregateCall = aggregate.getAggCallList().get(i);
-//      if (aggregateCall.getAggregation().getKind() == SqlKind.COUNT && aggregateCall.getArgList().size() == 0) {
-//        hasCountStar = true;
-//        break;
-//      }
-//    }
-//  }
 }
