@@ -56,7 +56,6 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAggregatePart
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAugmentMaterializationRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveAugmentSnapshotMaterializationRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveInsertOnlyScanWriteIdRule;
-import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertDeleteIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveJoinInsertIncrementalRewritingRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializationRelMetadataProvider;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.views.HiveMaterializedViewRule;
@@ -351,7 +350,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
       boolean acidView = AcidUtils.isFullAcidTable(mvTable.getTTable())
               || AcidUtils.isNonNativeAcidTable(mvTable);
       MaterializedViewRewritingRelVisitor visitor =
-          new MaterializedViewRewritingRelVisitor(acidView, optCluster, baseTables);
+          new MaterializedViewRewritingRelVisitor(acidView);
       visitor.go(basePlan);
       if (visitor.isRewritingAllowed()) {
         if (!materialization.isSourceTablesUpdateDeleteModified()) {
@@ -371,10 +370,7 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
               }
               return applyAggregateInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
             } else {
-              if (!visitor.isAllBasedTablesHasProjectedUniqueKeyColumn()) {
-                return calcitePreMVRewritingPlan;
-              }
-              return applyJoinInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
+              return calcitePreMVRewritingPlan;
             }
           } else {
             return calcitePreMVRewritingPlan;
@@ -422,13 +418,6 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
         optCluster.invalidateMetadataQuery();
         RelMetadataQuery.THREAD_PROVIDERS.set(JaninoRelMetadataProvider.of(mdProvider));
       }
-    }
-
-    private RelNode applyJoinInsertDeleteIncremental(
-        RelNode basePlan, RelMetadataProvider mdProvider, RexExecutor executorProvider) {
-      mvRebuildMode = MaterializationRebuildMode.JOIN_INSERT_DELETE_REBUILD;
-      return applyIncrementalRebuild(
-              basePlan, mdProvider, executorProvider, HiveJoinInsertDeleteIncrementalRewritingRule.INSTANCE);
     }
 
     private RelNode applyJoinInsertIncremental(
