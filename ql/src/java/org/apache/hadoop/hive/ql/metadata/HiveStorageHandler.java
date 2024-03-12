@@ -686,7 +686,7 @@ public interface HiveStorageHandler extends Configurable {
     return null;
   }
 
-  default Iterable<SnapshotContext> snapshots(
+  default Iterable<SnapshotContext> getSnapshots(
       org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
     return Collections.emptyList();
   }

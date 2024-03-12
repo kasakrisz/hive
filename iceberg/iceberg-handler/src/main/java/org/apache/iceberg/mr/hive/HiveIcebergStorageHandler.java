@@ -1622,7 +1622,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     return new SnapshotContext(snapshot.snapshotId(), snapshot.operation(), addedRecords, deletedRecords);
   }
 
-  private static long getLongSummary(Map<String, String> summaryMap, String key) {
+  private long getLongSummary(Map<String, String> summaryMap, String key) {
     String textValue = summaryMap.get(key);
     if (StringUtils.isBlank(textValue)) {
       return 0;
@@ -1630,7 +1630,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     return Long.parseLong(textValue);
   }
 
-  public Iterable<SnapshotContext> snapshots(
+  public Iterable<SnapshotContext> getSnapshots(
       org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
 
     TableDesc tableDesc = Utilities.getTableDesc(hmsTable);
@@ -1726,6 +1726,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     }
   }
 
+  @Deprecated
   @Override
   public Boolean hasAppendsOnly(org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
     TableDesc tableDesc = Utilities.getTableDesc(hmsTable);

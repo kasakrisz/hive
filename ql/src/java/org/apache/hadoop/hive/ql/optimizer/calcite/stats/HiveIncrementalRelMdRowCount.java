@@ -90,7 +90,7 @@ public class HiveIncrementalRelMdRowCount extends HiveRelMdRowCount {
     if (storageHandler != null && storageHandler.areSnapshotsSupported()) {
       SnapshotContext since = new SnapshotContext(Long.parseLong(table.getVersionIntervalFrom()));
       long addedRowCount = 0;
-      for (SnapshotContext snapshot : storageHandler.snapshots(table, since)) {
+      for (SnapshotContext snapshot : storageHandler.getSnapshots(table, since)) {
         addedRowCount += snapshot.getAddedRowCount();
       }
       return (double) addedRowCount;
