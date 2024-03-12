@@ -702,6 +702,7 @@ public interface HiveStorageHandler extends Configurable {
       EnvironmentContext environmentContext) {
   }
 
+  @Deprecated
   default Boolean hasAppendsOnly(org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
     return null;
   }
