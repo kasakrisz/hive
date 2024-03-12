@@ -686,6 +686,12 @@ public interface HiveStorageHandler extends Configurable {
     return null;
   }
 
+  default Iterable<SnapshotContext> snapshots(
+      org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
+    return Collections.emptyList();
+  }
+
+
   /**
    * Alter table operations can rely on this to customize the EnvironmentContext to be used during the alter table
    * invocation (both on client and server side of HMS)

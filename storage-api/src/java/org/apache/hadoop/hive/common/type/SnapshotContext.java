@@ -27,7 +27,15 @@ import java.util.Objects;
  * materialized view on Iceberg tables.
  */
 public class SnapshotContext {
+  public static final String APPEND = "append";
+  public static final String REPLACE = "replace";
+  public static final String OVERWRITE = "overwrite";
+  public static final String DELETE = "delete";
+
   private long snapshotId;
+  private String operation;
+  private long addedRowCount;
+  private long deletedRowCount;
 
   /**
    * Constructor for json serialization
@@ -37,6 +45,16 @@ public class SnapshotContext {
 
   public SnapshotContext(long snapshotId) {
     this.snapshotId = snapshotId;
+    this.operation = null;
+    this.addedRowCount = 0;
+    this.deletedRowCount = 0;
+  }
+
+  public SnapshotContext(long snapshotId, String operation, long addedRowCount, long deletedRowCount) {
+    this.snapshotId = snapshotId;
+    this.operation = operation;
+    this.addedRowCount = addedRowCount;
+    this.deletedRowCount = deletedRowCount;
   }
 
   /**
@@ -64,10 +82,25 @@ public class SnapshotContext {
     return Objects.hash(snapshotId);
   }
 
+  public String getOperation() {
+    return operation;
+  }
+
+  public long getAddedRowCount() {
+    return addedRowCount;
+  }
+
+  public long getDeletedRowCount() {
+    return deletedRowCount;
+  }
+
   @Override
   public String toString() {
     return "SnapshotContext{" +
         "snapshotId=" + snapshotId +
+        ", operation=" + operation +
+        ", addedRowCount=" + addedRowCount +
+        ", deletedRowCount=" + deletedRowCount +
         '}';
   }
 }

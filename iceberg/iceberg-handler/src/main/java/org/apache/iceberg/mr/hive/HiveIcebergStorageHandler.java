@@ -135,6 +135,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.iceberg.BaseMetastoreTableOperations;
 import org.apache.iceberg.BaseTable;
 import org.apache.iceberg.DataFile;
+import org.apache.iceberg.DataOperations;
 import org.apache.iceberg.ExpireSnapshots;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.FileScanTask;
@@ -1611,7 +1612,47 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     if (current == null) {
       return null;
     }
-    return new SnapshotContext(current.snapshotId());
+    return toSnapshotContext(current);
+  }
+
+  private SnapshotContext toSnapshotContext(Snapshot snapshot) {
+    Map<String, String> summaryMap = snapshot.summary();
+    long addedRecords = getLongSummary(summaryMap, SnapshotSummary.ADDED_RECORDS_PROP);
+    long deletedRecords = getLongSummary(summaryMap, SnapshotSummary.DELETED_RECORDS_PROP);
+    return new SnapshotContext(snapshot.snapshotId(), snapshot.operation(), addedRecords, deletedRecords);
+  }
+
+  private static long getLongSummary(Map<String, String> summaryMap, String key) {
+    String textValue = summaryMap.get(key);
+    if (StringUtils.isBlank(textValue)) {
+      return 0;
+    }
+    return Long.parseLong(textValue);
+  }
+
+  public Iterable<SnapshotContext> snapshots(
+      org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
+
+    TableDesc tableDesc = Utilities.getTableDesc(hmsTable);
+    Table table = IcebergTableUtil.getTable(conf, tableDesc.getProperties());
+    List<SnapshotContext> result = Lists.newArrayList();
+
+    boolean foundSince = since == null;
+    for (Snapshot snapshot : table.snapshots()) {
+      if (!foundSince) {
+        if (snapshot.snapshotId() == since.getSnapshotId()) {
+          foundSince = true;
+        }
+      } else {
+        result.add(toSnapshotContext(snapshot));
+      }
+    }
+
+    if (foundSince) {
+      return result;
+    }
+
+    return Collections.emptyList();
   }
 
   @Override
@@ -1701,7 +1742,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
           foundSince = true;
         }
       } else {
-        if (!"append".equals(snapshot.operation())) {
+        if (!DataOperations.APPEND.equals(snapshot.operation())) {
           return false;
         }
       }
