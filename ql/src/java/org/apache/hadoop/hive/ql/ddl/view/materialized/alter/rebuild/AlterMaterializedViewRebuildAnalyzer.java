@@ -367,7 +367,8 @@ public class AlterMaterializedViewRebuildAnalyzer extends CalcitePlanner {
           }
         case AVAILABLE:
           if (!materialization.isSourceTablesUpdateDeleteModified()) {
-            return applyAggregateInsertIncremental(basePlan, mdProvider, executorProvider, optCluster, calcitePreMVRewritingPlan);
+            return applyAggregateInsertIncremental(
+                basePlan, mdProvider, executorProvider, optCluster, materialization, calcitePreMVRewritingPlan);
           } else {
             return applyAggregateInsertDeleteIncremental(basePlan, mdProvider, executorProvider);
           }
