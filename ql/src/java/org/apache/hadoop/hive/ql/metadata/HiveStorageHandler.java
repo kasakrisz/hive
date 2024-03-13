@@ -702,6 +702,16 @@ public interface HiveStorageHandler extends Configurable {
       EnvironmentContext environmentContext) {
   }
 
+  /**
+   * Checks all snapshots operation type newer than the specified snapshot. The specified snapshot is excluded.
+   * @deprecated
+   * <br>Use {@link HiveStorageHandler#getSnapshots(org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since)}
+   * and check {@link SnapshotContext#APPEND}.equals({@link SnapshotContext#getOperation()}).
+   *
+   * @param hmsTable table metadata stored in Hive Metastore
+   * @param since snapshot
+   * @return null if table is empty, true if all snapshots are {@link SnapshotContext#APPEND}s, false otherwise.
+   */
   @Deprecated
   default Boolean hasAppendsOnly(org.apache.hadoop.hive.ql.metadata.Table hmsTable, SnapshotContext since) {
     return null;
