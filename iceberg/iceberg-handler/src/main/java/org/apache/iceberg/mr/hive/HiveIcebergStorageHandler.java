@@ -1619,7 +1619,22 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     Map<String, String> summaryMap = snapshot.summary();
     long addedRecords = getLongSummary(summaryMap, SnapshotSummary.ADDED_RECORDS_PROP);
     long deletedRecords = getLongSummary(summaryMap, SnapshotSummary.DELETED_RECORDS_PROP);
-    return new SnapshotContext(snapshot.snapshotId(), snapshot.operation(), addedRecords, deletedRecords);
+    return new SnapshotContext(
+        snapshot.snapshotId(), toWriteOperationType(snapshot.operation()), addedRecords, deletedRecords);
+  }
+
+  private SnapshotContext.WriteOperationType toWriteOperationType(String operation) {
+    if (DataOperations.APPEND.equals(operation)) {
+      return SnapshotContext.WriteOperationType.APPEND;
+    } else if (DataOperations.DELETE.equals(operation)) {
+      return SnapshotContext.WriteOperationType.DELETE;
+    } else if (DataOperations.OVERWRITE.equals(operation)) {
+      return SnapshotContext.WriteOperationType.OVERWRITE;
+    } else if (DataOperations.REPLACE.equals(operation)) {
+      return SnapshotContext.WriteOperationType.REPLACE;
+    } else {
+      return SnapshotContext.WriteOperationType.UNKNOWN;
+    }
   }
 
   private long getLongSummary(Map<String, String> summaryMap, String key) {

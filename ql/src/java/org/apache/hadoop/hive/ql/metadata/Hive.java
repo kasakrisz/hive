@@ -2178,7 +2178,7 @@ public class Hive {
       for (SnapshotContext snapshot : storageHandler.getSnapshots(
           table, mvSnapshot.getTableSnapshots().get(table.getFullyQualifiedName()))) {
         noSnapshots = false;
-        if (!SnapshotContext.APPEND.equals(snapshot.getOperation())) {
+        if (!SnapshotContext.WriteOperationType.APPEND.equals(snapshot.getOperation())) {
           hasAppendsOnly = false;
           break;
         }
