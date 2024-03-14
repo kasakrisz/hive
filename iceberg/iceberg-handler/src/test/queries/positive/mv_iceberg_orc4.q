@@ -13,7 +13,7 @@ create external table tbl_ice_v2(d int, e string, f int) stored by iceberg store
 insert into tbl_ice values (1, 'one', 50), (4, 'four', 53), (5, 'five', 54);
 insert into tbl_ice_v2 values (1, 'one v2', 50), (4, 'four v2', 53), (5, 'five v2', 54);
 
-create materialized view mat1 as
+create materialized view mat1 stored by iceberg stored as orc tblproperties ('format-version'='2') as
 select tbl_ice.b, tbl_ice.c, sum(tbl_ice_v2.f)
 from tbl_ice
 join tbl_ice_v2 on tbl_ice.a=tbl_ice_v2.d where tbl_ice.c > 52

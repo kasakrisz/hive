@@ -36,7 +36,7 @@ POSTHOOK: query: insert into tbl_ice_v2 values (1, 'one v2', 50), (4, 'four v2',
 POSTHOOK: type: QUERY
 POSTHOOK: Input: _dummy_database@_dummy_table
 POSTHOOK: Output: default@tbl_ice_v2
-PREHOOK: query: create materialized view mat1 as
+PREHOOK: query: create materialized view mat1 stored by iceberg stored as orc tblproperties ('format-version'='2') as
 select tbl_ice.b, tbl_ice.c, sum(tbl_ice_v2.f)
 from tbl_ice
 join tbl_ice_v2 on tbl_ice.a=tbl_ice_v2.d where tbl_ice.c > 52
@@ -46,7 +46,8 @@ PREHOOK: Input: default@tbl_ice
 PREHOOK: Input: default@tbl_ice_v2
 PREHOOK: Output: database:default
 PREHOOK: Output: default@mat1
-POSTHOOK: query: create materialized view mat1 as
+PREHOOK: Output: hdfs://### HDFS PATH ###
+POSTHOOK: query: create materialized view mat1 stored by iceberg stored as orc tblproperties ('format-version'='2') as
 select tbl_ice.b, tbl_ice.c, sum(tbl_ice_v2.f)
 from tbl_ice
 join tbl_ice_v2 on tbl_ice.a=tbl_ice_v2.d where tbl_ice.c > 52
@@ -56,6 +57,7 @@ POSTHOOK: Input: default@tbl_ice
 POSTHOOK: Input: default@tbl_ice_v2
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@mat1
+POSTHOOK: Output: hdfs://### HDFS PATH ###
 POSTHOOK: Lineage: mat1._c2 EXPRESSION [(tbl_ice_v2)tbl_ice_v2.FieldSchema(name:f, type:int, comment:null), ]
 POSTHOOK: Lineage: mat1.b SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:b, type:string, comment:null), ]
 POSTHOOK: Lineage: mat1.c SIMPLE [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), ]
@@ -82,6 +84,7 @@ PREHOOK: Input: default@mat1
 PREHOOK: Input: default@tbl_ice
 PREHOOK: Input: default@tbl_ice_v2
 PREHOOK: Output: default@mat1
+PREHOOK: Output: default@mat1
 POSTHOOK: query: explain cbo
 alter materialized view mat1 rebuild
 POSTHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
@@ -89,21 +92,22 @@ POSTHOOK: Input: default@mat1
 POSTHOOK: Input: default@tbl_ice
 POSTHOOK: Input: default@tbl_ice_v2
 POSTHOOK: Output: default@mat1
+POSTHOOK: Output: default@mat1
 CBO PLAN:
-HiveAggregate(group=[{0, 1}], agg#0=[sum($2)])
-  HiveProject($f0=[$0], $f1=[$1], $f2=[$2])
-    HiveUnion(all=[true])
+HiveProject($f0=[$4], $f1=[$5], $f2=[CASE(IS NULL($2), $6, IS NULL($6), $2, +($6, $2))])
+  HiveFilter(condition=[OR($3, IS NULL($3))])
+    HiveJoin(condition=[AND(IS NOT DISTINCT FROM($0, $4), IS NOT DISTINCT FROM($1, $5))], joinType=[right], algorithm=[BucketJoin], cost=[not available])
+      HiveProject(b=[$0], c=[$1], _c2=[$2], $f3=[true])
+        HiveTableScan(table=[[default, mat1]], table:alias=[default.mat1])
       HiveProject(b=[$0], c=[$1], $f2=[$2])
         HiveAggregate(group=[{1, 2}], agg#0=[sum($4)])
-          HiveJoin(condition=[=($0, $3)], joinType=[inner], algorithm=[none], cost=[not available])
+          HiveJoin(condition=[=($0, $3)], joinType=[inner], algorithm=[CommonJoin], cost=[not available])
             HiveProject(a=[$0], b=[$1], c=[$2])
               HiveFilter(condition=[AND(>($2, 52), IS NOT NULL($0))])
                 HiveTableScan(table=[[default, tbl_ice]], table:alias=[tbl_ice], fromVersion=[#Masked#])
             HiveProject(d=[$0], f=[$2])
               HiveFilter(condition=[IS NOT NULL($0)])
                 HiveTableScan(table=[[default, tbl_ice_v2]], table:alias=[tbl_ice_v2], fromVersion=[#Masked#])
-      HiveProject(b=[$0], c=[$1], _c2=[$2])
-        HiveTableScan(table=[[default, mat1]], table:alias=[default.mat1])
 
 PREHOOK: query: alter materialized view mat1 rebuild
 PREHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
@@ -111,15 +115,14 @@ PREHOOK: Input: default@mat1
 PREHOOK: Input: default@tbl_ice
 PREHOOK: Input: default@tbl_ice_v2
 PREHOOK: Output: default@mat1
+PREHOOK: Output: default@mat1
 POSTHOOK: query: alter materialized view mat1 rebuild
 POSTHOOK: type: ALTER_MATERIALIZED_VIEW_REBUILD
 POSTHOOK: Input: default@mat1
 POSTHOOK: Input: default@tbl_ice
 POSTHOOK: Input: default@tbl_ice_v2
 POSTHOOK: Output: default@mat1
-POSTHOOK: Lineage: mat1._c2 EXPRESSION [(tbl_ice_v2)tbl_ice_v2.FieldSchema(name:f, type:int, comment:null), (mat1)default.mat1.FieldSchema(name:_c2, type:bigint, comment:null), ]
-POSTHOOK: Lineage: mat1.b EXPRESSION [(tbl_ice)tbl_ice.FieldSchema(name:b, type:string, comment:null), (mat1)default.mat1.FieldSchema(name:b, type:string, comment:null), ]
-POSTHOOK: Lineage: mat1.c EXPRESSION [(tbl_ice)tbl_ice.FieldSchema(name:c, type:int, comment:null), (mat1)default.mat1.FieldSchema(name:c, type:int, comment:null), ]
+POSTHOOK: Output: default@mat1
 PREHOOK: query: select * from mat1
 PREHOOK: type: QUERY
 PREHOOK: Input: default@mat1
