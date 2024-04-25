@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import java.nio.charset.Charset;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -72,8 +73,6 @@ import org.apache.calcite.rel.AbstractRelNode;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationImpl;
 import org.apache.calcite.rel.RelCollations;
-import org.apache.calcite.rel.RelDistribution;
-import org.apache.calcite.rel.RelDistributions;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
@@ -167,6 +166,7 @@ import org.apache.hadoop.hive.ql.optimizer.calcite.HiveConfPlannerContext;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveDefaultRelMetadataProvider;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveMaterializedViewASTSubQueryRewriteShuttle;
 import org.apache.hadoop.hive.ql.optimizer.calcite.HiveTezModelRelMetadataProvider;
+import org.apache.hadoop.hive.ql.optimizer.calcite.RelPlanParser;
 import org.apache.hadoop.hive.ql.optimizer.calcite.RuleEventLogger;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveAggregateSortLimitRule;
 import org.apache.hadoop.hive.ql.optimizer.calcite.rules.HiveJoinSwapConstraintsRule;
@@ -323,6 +323,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.jetbrains.annotations.Nullable;
 import org.joda.time.Interval;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -401,6 +402,8 @@ public class CalcitePlanner extends SemanticAnalyzer {
       Pattern.compile("VARCHAR\\(2147483647\\)");
   private static final Pattern PATTERN_TIMESTAMP =
       Pattern.compile("TIMESTAMP\\(9\\)");
+
+  private static final int PLAN_SERIALIZATION_DESERIALIZATION_STR_SIZE_LIMIT = 1_000_000;
 
   /**
    * This is the list of operators that are specifically used in Hive.
@@ -1745,7 +1748,70 @@ public class CalcitePlanner extends SemanticAnalyzer {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Plan after post-join transformations:\n" + RelOptUtil.toString(calcitePlan));
       }
+      perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.OPTIMIZER);
+
+      if (conf.getBoolVar(ConfVars.TEST_CBO_PLAN_SERIALIZATION_DESERIALIZATION_ENABLED)) {
+        calcitePlan = testSerializationAndDeserialization(perfLogger, calcitePlan);
+      }
+
       return calcitePlan;
+    }
+
+    @Nullable
+    private RelNode testSerializationAndDeserialization(PerfLogger perfLogger, RelNode calcitePlan) {
+      if (!isSerializable(calcitePlan)) {
+        return calcitePlan;
+      }
+      perfLogger.perfLogBegin(this.getClass().getName(), "plan serializer");
+      String calcitePlanJson = serializePlan(calcitePlan);
+      perfLogger.perfLogEnd(this.getClass().getName(), "plan serializer");
+
+      if (stringSizeGreaterThan(calcitePlanJson, PLAN_SERIALIZATION_DESERIALIZATION_STR_SIZE_LIMIT)) {
+        return calcitePlan;
+      }
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Size of calcite plan: {}", calcitePlanJson.getBytes(Charset.defaultCharset()).length);
+        LOG.debug("JSON plan: \n{}", calcitePlanJson);
+      }
+
+      try {
+        perfLogger.perfLogBegin(this.getClass().getName(), "plan deserializer");
+        RelNode fromJson = deserializePlan(calcitePlan.getCluster(), calcitePlanJson);
+        perfLogger.perfLogEnd(this.getClass().getName(), "plan deserializer");
+
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Base plan: \n{}", RelOptUtil.toString(calcitePlan));
+          LOG.debug("Plan from JSON: \n{}", RelOptUtil.toString(fromJson));
+        }
+
+        calcitePlan = fromJson;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+
+      return calcitePlan;
+    }
+
+    private String serializePlan(RelNode plan) {
+      return HiveRelOptUtil.asJSONObjectString(plan, false);
+    }
+
+    private RelNode deserializePlan(RelOptCluster cluster, String jsonPlan) throws IOException {
+      RelPlanParser parser =
+          new RelPlanParser(ctx, getQB(), relOptSchema, cluster, conf, db, tabNameToTabObject,
+              partitionCache, colStatsCache, noColsMissingStats);
+      return parser.parse(jsonPlan);
+    }
+
+    private boolean isSerializable(RelNode plan) {
+      return !stringSizeGreaterThan(ctx.getCmd(), PLAN_SERIALIZATION_DESERIALIZATION_STR_SIZE_LIMIT) &&
+          HiveRelNode.stream(plan)
+            .noneMatch(node -> node.getConvention().getName().toLowerCase().contains("jdbc"));
+    }
+
+    private boolean stringSizeGreaterThan(String str, int length) {
+      return str.getBytes(Charset.defaultCharset()).length > length;
     }
 
     /**
@@ -3327,6 +3393,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
             ASTNode subQueryRoot = (ASTNode) next.getChild(1);
             doPhase1(subQueryRoot, qbSQ, ctx1, null);
             getMetaData(qbSQ);
+            qb.getSubqueryMetaDataList().add(qbSQ.getMetaData());
             this.subqueryId++;
             RelNode subQueryRelNode =
                 genLogicalPlan(qbSQ, false, relToHiveColNameCalcitePosMap.get(srcRel), relToHiveRR.get(srcRel));
@@ -3876,7 +3943,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
                   // but the instance RelDistributions.ANY can not be used here because
                   // org.apache.calcite.rel.core.Exchange has
                   // assert distribution != RelDistributions.ANY;
-                  new HiveRelDistribution(RelDistribution.Type.ANY, RelDistributions.ANY.getKeys()),
+                  HiveRelDistribution.ANY,
               canonizedCollation,
               builder.build());
 
