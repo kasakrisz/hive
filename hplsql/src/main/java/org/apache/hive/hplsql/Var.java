@@ -181,6 +181,7 @@ public class Var {
       } else if (type == Type.DECIMAL) {
         if (val.type == Type.STRING) {
           value = new BigDecimal((String) val.value);
+          value = ((BigDecimal)value).setScale(scale);
         } else if (val.type == Type.BIGINT) {
           value = BigDecimal.valueOf(val.longValue());
         } else if (val.type == Type.DOUBLE) {
@@ -601,7 +602,7 @@ public class Var {
       return (String)value;
     }
     else if (type == Type.DATE) {
-      return String.format("DATE '%s'", value);
+      return ((Date)value).toString();
     }
     else if (type == Type.TIMESTAMP) {
       int len = 19;
@@ -612,7 +613,7 @@ public class Var {
       if (t.length() > len) {
         t = t.substring(0, len);
       }
-      return String.format("TIMESTAMP '%s'", t);
+      return t;
     }
 	  return value.toString();
 	}
@@ -628,6 +629,31 @@ public class Var {
       return Utils.quoteString((String)value);
     }
     return toString();
+  }
+
+  public String toSqlString(boolean isBuildSql, boolean handleStringType) {
+    if (type == Type.IDENT) {
+      return name;
+    } else if (handleStringType && value == null) {
+      return "NULL";
+    } else if (type == Type.TIMESTAMP && isBuildSql) {
+      int len = 19;
+      String t = ((Timestamp) value).toString();   // .0 returned if the fractional part not set
+      if (scale > 0) {
+        len += scale + 1;
+      }
+      if (t.length() > len) {
+        t = t.substring(0, len);
+      }
+      return String.format("TIMESTAMP '%s'", t);
+    } else if (type == Type.DATE && isBuildSql) {
+      return String.format("DATE '%s'", ((Date) value).toString());
+    } else if (handleStringType && isBuildSql && type == Type.STRING && (!((String) value).startsWith(
+        "'") || !((String) value).endsWith("'"))) {
+      return Utils.quoteString(((String) value));
+    } else {
+      return toString();
+    }
   }
 	
   /**
