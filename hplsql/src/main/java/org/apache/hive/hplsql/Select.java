@@ -230,7 +230,7 @@ public class Select {
   public Integer subselect(HplsqlParser.Subselect_stmtContext ctx) {
     StringBuilder sql = new StringBuilder();
     sql.append(ctx.start.getText());
-    exec.append(sql, evalPop(ctx.select_list()).toString(), ctx.start, ctx.select_list().getStart());
+    exec.append(sql, evalPop(ctx.select_list()).toSqlString(), ctx.start, ctx.select_list().getStart());
     Token last = ctx.select_list().stop;
     if (ctx.into_clause() != null) {
       last = ctx.into_clause().stop;

@@ -115,7 +115,7 @@ public class Expression {
         exec.stackPush(new Var());
         return;
       } else {
-        sql.append(value.toSqlString(exec.buildSql, false));
+        sql.append(value.toSqlString());
       }
     }
     exec.stackPush(sql);
@@ -571,10 +571,7 @@ public class Expression {
     sql.append("CONCAT(");
     int cnt = ctx.expr_concat_item().size();
     for (int i = 0; i < cnt; i++) {
-      String concatStr = evalPop(ctx.expr_concat_item(i)).toString();
-      if (!concatStr.startsWith("'") || !concatStr.endsWith("'")) {
-        concatStr = Utils.quoteString(concatStr);
-      }
+      String concatStr = evalPop(ctx.expr_concat_item(i)).toSqlString();
       sql.append(concatStr);
       if (i + 1 < cnt) {
         sql.append(", ");

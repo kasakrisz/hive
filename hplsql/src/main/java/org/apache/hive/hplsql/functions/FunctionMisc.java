@@ -96,7 +96,7 @@ public class FunctionMisc extends BuiltinFunctions {
     }
     var.cast(value);
     if (exec.buildSql && var.type == Var.Type.STRING) {
-      evalString(var.toSqlString());
+      evalSql(var.toSqlString());
     } else {
       evalVar(var);
     }
@@ -127,23 +127,23 @@ public class FunctionMisc extends BuiltinFunctions {
   void currentSql(HplsqlParser.Expr_spec_funcContext ctx) {
     if (ctx.T_DATE() != null) {
       if (exec.getConnectionType() == Conn.Type.HIVE) {
-        evalString("TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP()))");
+        evalSql("TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP()))");
       } 
       else {
-        evalString("CURRENT_DATE");
+        evalSql("CURRENT_DATE");
       }
     }
     else if (ctx.T_TIMESTAMP() != null) {
       if (exec.getConnectionType() == Conn.Type.HIVE) {
-        evalString("FROM_UNIXTIME(UNIX_TIMESTAMP())");
+        evalSql("FROM_UNIXTIME(UNIX_TIMESTAMP())");
       } 
       else {
-        evalString("CURRENT_TIMESTAMP");
+        evalSql("CURRENT_TIMESTAMP");
       }
     } else if (ctx.T_USER() != null) {
-      evalString("CURRENT_USER()");
+      evalSql("CURRENT_USER()");
     } else {
-      evalString(exec.getFormattedText(ctx));
+      evalSql(exec.getFormattedText(ctx));
     }
   }
   

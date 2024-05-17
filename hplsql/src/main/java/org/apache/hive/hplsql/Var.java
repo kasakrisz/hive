@@ -23,6 +23,8 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Objects;
+
 import org.apache.hive.hplsql.executor.QueryResult;
 
 /**
@@ -31,7 +33,7 @@ import org.apache.hive.hplsql.executor.QueryResult;
 public class Var {
   // Data types
 	public enum Type {BOOL, CURSOR, DATE, DECIMAL, DERIVED_TYPE, DERIVED_ROWTYPE, DOUBLE, FILE, IDENT, BIGINT, INTERVAL, ROW, 
-	                  RS_LOCATOR, STRING, STRINGLIST, TIMESTAMP, NULL, HPL_OBJECT}
+	                  RS_LOCATOR, STRING, STRINGLIST, TIMESTAMP, NULL, HPL_OBJECT, SQL_TEXT}
 	public static final String DERIVED_TYPE = "DERIVED%TYPE";
 	public static final String DERIVED_ROWTYPE = "DERIVED%ROWTYPE";
 	public static Var Empty = new Var();
@@ -78,7 +80,7 @@ public class Var {
     this.type = Type.STRING;
     this.value = value;
   }
-  
+
 	public Var(Double value) {
     this.type = Type.DOUBLE;
     this.value = value;
@@ -622,10 +624,27 @@ public class Var {
    * Convert value to SQL string - string literals are quoted and escaped, ab'c -&gt; 'ab''c'
    */
   public String toSqlString() {
+    if (type == Type.IDENT) {
+      return name;
+    }
     if (value == null) {
       return "NULL";
     }
-    else if (type == Type.STRING) {
+    if (type == Type.TIMESTAMP) {
+      int len = 19;
+      String t = ((Timestamp) value).toString();   // .0 returned if the fractional part not set
+      if (scale > 0) {
+        len += scale + 1;
+      }
+      if (t.length() > len) {
+        t = t.substring(0, len);
+      }
+      return String.format("TIMESTAMP '%s'", t);
+    }
+    if (type == Type.DATE) {
+      return String.format("DATE '%s'", ((Date) value).toString());
+    }
+    if (type == Type.STRING) {
       return Utils.quoteString((String)value);
     }
     return toString();

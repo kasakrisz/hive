@@ -301,7 +301,7 @@ public class Exec extends HplsqlBaseVisitor<Integer> implements Closeable {
   }
   
   public void stackPush(StringBuilder val) {
-    stackPush(val.toString());  
+    stackPush(new Var(Type.SQL_TEXT, (Object)val.toString()));
   }
   
   /**
@@ -2571,12 +2571,12 @@ public class Exec extends HplsqlBaseVisitor<Integer> implements Closeable {
    */
   @Override 
   public Integer visitSingle_quotedString(HplsqlParser.Single_quotedStringContext ctx) { 
-    if (exec.buildSql) {
-      exec.stackPush(ctx.getText());
-    }
-    else {
+//    if (exec.buildSql) {
+//      exec.stackPush(ctx.getText());
+//    }
+//    else {
       exec.stackPush(Utils.unquoteString(ctx.getText()));
-    }
+//    }
     return 0;
   }
   

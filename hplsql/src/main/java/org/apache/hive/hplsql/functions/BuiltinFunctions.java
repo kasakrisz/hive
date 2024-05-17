@@ -377,6 +377,10 @@ public class BuiltinFunctions {
     exec.stackPush(new Var(string));
   }
 
+  protected void evalSql(String string) {
+    exec.stackPush(new Var(Var.Type.SQL_TEXT, (Object)string));
+  }
+
   protected Var evalPop(ParserRuleContext ctx) {
     exec.visit(ctx);
     return exec.stackPop();
