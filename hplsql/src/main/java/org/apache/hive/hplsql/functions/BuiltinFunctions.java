@@ -135,7 +135,13 @@ public class BuiltinFunctions {
       func.run(ctx);
     }
     else {
-      specExec(ctx);
+      boolean oldBuildSql = exec.buildSql;
+      try {
+        exec.buildSql = false;
+        specExec(ctx);
+      } finally {
+        exec.buildSql = oldBuildSql;
+      }
     }
   }
 

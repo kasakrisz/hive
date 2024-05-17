@@ -111,11 +111,10 @@ public class Expression {
     else {
       visitChildren(ctx);
       Var value = exec.stackPop();
-      if (value.type == Type.NULL && sql.toString().length() == 0) {
-        exec.stackPush(new Var());
-        return;
-      } else {
+      if (exec.buildSql) {
         sql.append(value.toSqlString());
+      } else {
+        sql.append(value);
       }
     }
     exec.stackPush(sql);

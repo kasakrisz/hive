@@ -1826,10 +1826,18 @@ public class Exec extends HplsqlBaseVisitor<Integer> implements Closeable {
         executed = packCallContext.execFunc(name, params);
       }
       if (!executed) {
-        if (!exec.functions.exec(name, params)) {
+        boolean oldBuildSql = buildSql;
+        boolean functionExecuted;
+        try {
+          buildSql = false;
+          functionExecuted = exec.functions.exec(name, params);
+        } finally {
+          buildSql = oldBuildSql;
+        }
+        if (!functionExecuted) {
           Var var = findVariable(name);
           if (var != null && var.type == Type.HPL_OBJECT) {
-            stackPush(dispatch(ctx, (HplObject)var.value, __GETITEM__, params));
+            stackPush(dispatch(ctx, (HplObject) var.value, __GETITEM__, params));
           } else {
             throw new UndefinedIdentException(ctx, name);
           }
