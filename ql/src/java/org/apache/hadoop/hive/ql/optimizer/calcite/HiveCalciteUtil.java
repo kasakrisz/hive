@@ -26,7 +26,11 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import com.google.common.collect.BoundType;
+import com.google.common.collect.Range;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptPredicateList;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.RelOptUtil.InputFinder;
@@ -53,6 +57,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexPatternFieldRef;
 import org.apache.calcite.rex.RexShuttle;
+import org.apache.calcite.rex.RexSimplify;
 import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexSubQuery;
@@ -66,11 +71,13 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.validate.SqlValidatorUtil;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Pair;
+import org.apache.calcite.util.Sarg;
 import org.apache.calcite.util.Util;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
+import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveBetween;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveMultiJoin;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveProject;
 import org.apache.hadoop.hive.ql.optimizer.calcite.reloperators.HiveSqlFunction;
@@ -656,7 +663,9 @@ public class HiveCalciteUtil {
     }
     // Build map to not convert multiple times, further remove already included predicates
     Map<String,RexNode> stringToRexNode = Maps.newLinkedHashMap();
+    RexSimplify simplify = new RexSimplify(inp.getCluster().getRexBuilder(), RelOptPredicateList.EMPTY, RexUtil.EXECUTOR);
     for (RexNode r : predsToPushDown) {
+      r = simplify.simplify(r);
       String rexNodeString = r.toString();
       if (predicatesToExclude.add(rexNodeString)) {
         stringToRexNode.put(rexNodeString, r);
