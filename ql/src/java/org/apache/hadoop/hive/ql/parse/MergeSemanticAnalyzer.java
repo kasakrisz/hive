@@ -350,6 +350,36 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer<MergeStatemen
       throw new SemanticException(String.format("Column schema must have the same length as values (%d vs %d)",
           columnListNode.getChildCount(), valuesNode.getChildCount() - 1));
     }
+
+    List<String> columnNames;
+    if (columnListNode != null) {
+      columnNames = new ArrayList<>(valuesNode.getChildCount());
+      for (int i = 0; i < columnListNode.getChildCount(); ++i) {
+        ASTNode columnNameNode = (ASTNode) columnListNode.getChild(i);
+        String columnName = ctx.getTokenRewriteStream().toString(columnNameNode.getTokenStartIndex(),
+            columnNameNode.getTokenStopIndex()).trim();
+        columnNames.add(columnName);
+      }
+    } else {
+      columnNames = null;
+    }
+
+    List<String> values = new ArrayList<>(valuesNode.getChildCount());
+    // First child is 'struct'
+    // TOK_FUNCTION
+    //    struct
+    //    .
+    //       TOK_TABLE_OR_COL
+    //          any_alias
+    //       any_column_name
+    //    3
+    for (int i = 1; i < valuesNode.getChildCount(); ++i) {
+      ASTNode valueNode = (ASTNode) valuesNode.getChild(i);
+      String value = ctx.getTokenRewriteStream().toString(valueNode.getTokenStartIndex(),
+          valueNode.getTokenStopIndex()).trim();
+      values.add(value);
+    }
+
     UnparseTranslator defaultValuesTranslator = new UnparseTranslator(conf);
     defaultValuesTranslator.enable();
     List<String> targetSchema = processTableColumnNames(columnListNode, targetTable.getFullyQualifiedName());
@@ -359,8 +389,7 @@ public class MergeSemanticAnalyzer extends RewriteSemanticAnalyzer<MergeStatemen
     valuesClause = valuesClause.substring(1, valuesClause.length() - 1); //strip '(' and ')'
 
     String extraPredicate = getWhenClausePredicate(whenNotMatchedClause);
-    return new MergeStatement.InsertClause(
-        getMatchedText(columnListNode), valuesClause, onClausePredicate, extraPredicate);
+    return new MergeStatement.InsertClause(columnNames, values, onClausePredicate, extraPredicate);
   }
 
   private void collectDefaultValues(
