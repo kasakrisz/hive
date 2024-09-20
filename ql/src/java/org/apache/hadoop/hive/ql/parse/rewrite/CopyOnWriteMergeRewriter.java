@@ -208,7 +208,7 @@ public class CopyOnWriteMergeRewriter extends MergeRewriter {
       addWhereClauseOfUpdate(
           onClauseAsString, updateClause.getExtraPredicate(), updateClause.getDeleteExtraPredicate(), sqlGenerator,
           columnRefsFunc);
-      sqlGenerator.append("\n");
+      sqlGenerator.append(" AND sourceRecordExists\n");
     }
     
     @Override
