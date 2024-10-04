@@ -3958,8 +3958,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
       QBParseInfo qbp = getQBParseInfo(qb);
       String dest = qbp.getClauseNames().iterator().next();
       ASTNode sbAST = qbp.getSortByForClause(dest);
+      ASTNode distributeByAST = qbp.getDistributeByForClause(dest);
 
-      if (sbAST == null) {
+      if (sbAST == null && distributeByAST == null) {
         return null;
       }
 
@@ -3968,6 +3969,19 @@ public class CalcitePlanner extends SemanticAnalyzer {
       List<Pair<ASTNode, TypeInfo>> vcASTTypePairs = new ArrayList<>();
 
       beginGenSortByLogicalPlan(sbAST, selPair, newVCLst, fieldCollations, vcASTTypePairs);
+
+      if (distributeByAST != null) {
+        Builder<Integer> keys = ImmutableList.builder();
+        for (int i = 0; i < distributeByAST.getChildCount(); ++i) {
+          ASTNode keyAST = (ASTNode) distributeByAST.getChild(i);
+          int fieldIndex = genSortByKey(keyAST, selPair, newVCLst, vcASTTypePairs);
+          keys.add(fieldIndex);
+        }
+
+        HiveRelDistribution hiveRelDistribution =
+            new HiveRelDistribution(RelDistribution.Type.HASH_DISTRIBUTED, keys.build());
+      }
+
       OBLogicalPlanGenState obLogicalPlanGenState =
           genOBProject(selPair, outermostOB, newVCLst, fieldCollations, vcASTTypePairs);
 
