@@ -3965,7 +3965,9 @@ public class CalcitePlanner extends SemanticAnalyzer {
       final List<RelFieldCollation> fieldCollations = Lists.newArrayList();
       List<Pair<ASTNode, TypeInfo>> vcASTTypePairs = new ArrayList<>();
 
-      beginGenSortByLogicalPlan(sbAST, selPair, newVCLst, fieldCollations, vcASTTypePairs);
+      if (sbAST != null) {
+        beginGenSortByLogicalPlan(sbAST, selPair, newVCLst, fieldCollations, vcASTTypePairs);
+      }
 
       HiveRelDistribution hiveRelDistribution;
       if (distributeByAST != null) {
@@ -3975,9 +3977,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
           int fieldIndex = genSortByKey(keyAST, selPair, newVCLst, vcASTTypePairs);
           keys.add(fieldIndex);
         }
-
-        hiveRelDistribution =
-            new HiveRelDistribution(RelDistribution.Type.HASH_DISTRIBUTED, keys.build());
+        hiveRelDistribution = new HiveRelDistribution(RelDistribution.Type.HASH_DISTRIBUTED, keys.build());
       } else {
         // In case of SORT BY we do not need Distribution
         // but the instance RelDistributions.ANY can not be used here because
