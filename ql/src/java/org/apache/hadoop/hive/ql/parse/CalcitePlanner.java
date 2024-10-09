@@ -4126,7 +4126,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
         }
       } else {
         // 2.2 Convert ExprNode to RexNode
-        RexNode orderByExpression = getOrderByExpression(selectOutputRR, inputRR, ref, ref);
+        RexNode orderByExpression = getOrderByExpression(selectOutputRR, inputRR, ref);
 
         // 2.3 Determine the index of ob expr in child schema
         // NOTE: Calcite can not take compound exprs in OB without it being
@@ -4205,7 +4205,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
     }
 
     private RexNode getOrderByExpression(
-        RowResolver selectOutputRR, RowResolver inputRR, ASTNode orderByNode, ASTNode ref)
+        RowResolver selectOutputRR, RowResolver inputRR, ASTNode ref)
         throws SemanticException {
       // first try to get it from select
       // in case of udtf, selectOutputRR may be null.
@@ -4226,7 +4226,7 @@ public class CalcitePlanner extends SemanticAnalyzer {
         orderByExpression = astToExprNDescMap.get(ref);
       }
       if (orderByExpression == null) {
-        throw new SemanticException("Invalid order by expression: " + orderByNode.toString());
+        throw new SemanticException("Invalid order by expression: " + ref.toString());
       }
       return orderByExpression;
     }
