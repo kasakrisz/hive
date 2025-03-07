@@ -599,7 +599,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     return snapshot.summary();
   }
 
-  private Table getTable(org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
+  protected Table getTable(org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
     Table table;
     final Optional<QueryState> queryState = SessionStateUtil.getQueryState(conf);
     if (!queryState.isPresent() || queryState.get().getNumModifiedRows() > 0) {
@@ -2126,7 +2126,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
         !hmsTable.getTTable().isSetId()) {
       return false;
     }
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = getTable(hmsTable);
     return table.spec().isPartitioned();
   }
 
@@ -2156,7 +2156,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
    */
   public List<String> getPartitionNames(org.apache.hadoop.hive.ql.metadata.Table hmsTable,
       Map<String, String> partitionSpec) throws SemanticException {
-    Table icebergTable = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table icebergTable = getTable(hmsTable);
     return IcebergTableUtil.getPartitionNames(icebergTable, partitionSpec, true);
   }
 
@@ -2244,7 +2244,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     if (!hmsTable.getTTable().isSetId()) {
       return Collections.emptyList();
     }
-    Table icebergTable = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table icebergTable = getTable(hmsTable);
     return IcebergTableUtil.getPartitionKeys(icebergTable, icebergTable.spec().specId());
   }
 

@@ -238,6 +238,10 @@ public final class HiveMaterializedViewsRegistry {
   public HiveRelOptMaterialization createMaterialization(HiveConf conf, Table materializedViewTable) {
     // First we parse the view query and create the materialization object
     final String viewQuery = materializedViewTable.getViewExpandedText();
+    if (materializedViewTable.getProperty(org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_STORAGE).contains("Iceberg")) {
+      materializedViewTable.setProperty(org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_STORAGE, "org.apache.iceberg.mr.hive.HiveCacheableIcebergStorageHandler");
+      materializedViewTable.getStorageHandler().getPartitionKeys(materializedViewTable);
+    }
     final RelNode viewScan = createMaterializedViewScan(conf, materializedViewTable);
     if (viewScan == null) {
       LOG.warn("Materialized view " + materializedViewTable.getCompleteName() +
