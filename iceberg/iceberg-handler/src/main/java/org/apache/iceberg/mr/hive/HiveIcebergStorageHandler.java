@@ -605,20 +605,20 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     if (!queryState.isPresent() || queryState.get().getNumModifiedRows() > 0) {
       table = IcebergTableUtil.getTable(conf, hmsTable.getTTable(), true);
     } else {
-      table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+      table = IcebergTableUtil.getTable(conf, hmsTable);
     }
     return table;
   }
 
   @Override
   public boolean canSetColStatistics(org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     return table.currentSnapshot() != null && getStatsSource().equals(HiveMetaHook.ICEBERG);
   }
 
   @Override
   public boolean setColStatistics(org.apache.hadoop.hive.ql.metadata.Table hmsTable, List<ColumnStatistics> colStats) {
-    Table tbl = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table tbl = IcebergTableUtil.getTable(conf, hmsTable);
     return writeColStats(colStats.get(0), tbl);
   }
 
@@ -675,7 +675,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
 
   @Override
   public boolean canProvideColStatistics(org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     Snapshot snapshot = IcebergTableUtil.getTableSnapshot(table, hmsTable);
     if (snapshot != null) {
       return canSetColStatistics(hmsTable) && canProvideColStats(table, snapshot.snapshotId());
@@ -689,7 +689,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
 
   @Override
   public List<ColumnStatisticsObj> getColStatistics(org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     Snapshot snapshot = IcebergTableUtil.getTableSnapshot(table, hmsTable);
 
     ColumnStatistics emptyStats = new ColumnStatistics();
@@ -1224,7 +1224,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
       org.apache.hadoop.hive.ql.metadata.Table hmsTable, String tableMetaRef) throws SemanticException {
     String refName = HiveUtils.getTableSnapshotRef(tableMetaRef);
     if (refName != null) {
-      Table tbl = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+      Table tbl = IcebergTableUtil.getTable(conf, hmsTable);
       if (tbl.snapshot(refName) != null) {
         hmsTable.setSnapshotRef(tableMetaRef);
         return hmsTable;
@@ -1905,7 +1905,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
 
   @Override
   public Map<String, String> getNativeProperties(org.apache.hadoop.hive.ql.metadata.Table table) {
-    Table origTable = IcebergTableUtil.getTable(conf, table.getTTable());
+    Table origTable = IcebergTableUtil.getTable(conf, table);
     Map<String, String> props = Maps.newHashMap();
     props.put(InputFormatConfig.TABLE_SCHEMA, SchemaParser.toJson(origTable.schema()));
     props.put(InputFormatConfig.PARTITION_SPEC, PartitionSpecParser.toJson(origTable.spec()));
@@ -2021,7 +2021,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
   @Override
   public void validatePartSpec(org.apache.hadoop.hive.ql.metadata.Table hmsTable, Map<String, String> partitionSpec,
       Context.RewritePolicy policy) throws SemanticException {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     List<PartitionField> partitionFields = IcebergTableUtil.getPartitionFields(table,
         policy != Context.RewritePolicy.PARTITION);
     validatePartSpecImpl(hmsTable, partitionSpec, partitionFields);
@@ -2029,7 +2029,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
 
   private void validatePartSpecImpl(org.apache.hadoop.hive.ql.metadata.Table hmsTable,
       Map<String, String> partitionSpec, List<PartitionField> partitionFields) throws SemanticException {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     if (hmsTable.getSnapshotRef() != null && hasUndergonePartitionEvolution(table)) {
       // for this case we rewrite the query as delete query, so validations would be done as part of delete.
       return;
@@ -2076,7 +2076,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
   @Override
   public boolean canUseTruncate(org.apache.hadoop.hive.ql.metadata.Table hmsTable, Map<String, String> partitionSpec)
       throws SemanticException {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     if (MapUtils.isEmpty(partitionSpec) || !hasUndergonePartitionEvolution(table)) {
       return true;
     } else if (hmsTable.getSnapshotRef() != null) {
@@ -2111,7 +2111,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
   @Override
   public List<Partition> getPartitions(org.apache.hadoop.hive.ql.metadata.Table table,
       Map<String, String> partitionSpec, boolean latestSpecOnly) throws SemanticException {
-    Table icebergTable = IcebergTableUtil.getTable(conf, table.getTTable());
+    Table icebergTable = IcebergTableUtil.getTable(conf, table);
     return IcebergTableUtil.getPartitionNames(icebergTable, partitionSpec, latestSpecOnly).stream()
         .map(partName -> {
           Map<String, String> partSpecMap = Maps.newLinkedHashMap();
@@ -2126,7 +2126,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
         !hmsTable.getTTable().isSetId()) {
       return false;
     }
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     return table.spec().isPartitioned();
   }
 
@@ -2156,7 +2156,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
    */
   public List<String> getPartitionNames(org.apache.hadoop.hive.ql.metadata.Table hmsTable,
       Map<String, String> partitionSpec) throws SemanticException {
-    Table icebergTable = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table icebergTable = IcebergTableUtil.getTable(conf, hmsTable);
     return IcebergTableUtil.getPartitionNames(icebergTable, partitionSpec, true);
   }
 
@@ -2171,7 +2171,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
   @Override
   public ColumnInfo getColumnInfo(org.apache.hadoop.hive.ql.metadata.Table hmsTable, String colName)
       throws SemanticException {
-    Table icebergTbl = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table icebergTbl = IcebergTableUtil.getTable(conf, hmsTable);
     Deserializer deserializer = hmsTable.getDeserializer();
     Types.NestedField field = icebergTbl.schema().findField(colName);
     if (field != null) {
@@ -2209,7 +2209,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
               " continuing without metadata delete: ", e);
       return false;
     }
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
 
     // The following code is inspired & copied from Iceberg's SparkTable.java#canDeleteUsingMetadata
     if (ExpressionUtil.selectsPartitions(exp, table, false)) {
@@ -2244,7 +2244,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     if (!hmsTable.getTTable().isSetId()) {
       return Collections.emptyList();
     }
-    Table icebergTable = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table icebergTable = IcebergTableUtil.getTable(conf, hmsTable);
     return IcebergTableUtil.getPartitionKeys(icebergTable, icebergTable.spec().specId());
   }
 
@@ -2261,7 +2261,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
     if (exp == null) {
       return ImmutableList.of();
     }
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     int tableSpecId = table.spec().specId();
     Set<Partition> partitions = Sets.newHashSet();
 
@@ -2290,7 +2290,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
   public boolean hasDataMatchingFilterExpr(org.apache.hadoop.hive.ql.metadata.Table hmsTable, ExprNodeDesc filter) {
     SearchArgument sarg = ConvertAstToSearchArg.create(conf, (ExprNodeGenericFuncDesc) filter);
     Expression exp = HiveIcebergFilterFactory.generateFilterExpression(sarg);
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     TableScan scan = table.newScan().filter(exp).caseSensitive(false).includeColumnStats().ignoreResiduals();
     boolean result = false;
 
@@ -2331,7 +2331,7 @@ public class HiveIcebergStorageHandler implements HiveStoragePredicateHandler, H
 
   @Override
   public boolean hasUndergonePartitionEvolution(org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
-    Table table = IcebergTableUtil.getTable(conf, hmsTable.getTTable());
+    Table table = IcebergTableUtil.getTable(conf, hmsTable);
     return hasUndergonePartitionEvolution(table);
   }
 

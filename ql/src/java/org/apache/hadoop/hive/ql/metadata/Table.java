@@ -110,6 +110,7 @@ public class Table implements Serializable {
 
   private transient HiveStorageHandler storageHandler;
   private transient StorageHandlerInfo storageHandlerInfo;
+  private transient Object tag;
   private transient MaterializedViewMetadata materializedViewMetadata;
 
   private TableSpec tableSpec;
@@ -394,6 +395,14 @@ public class Table implements Serializable {
 
   public void setStorageHandlerInfo(StorageHandlerInfo storageHandlerInfo) {
     this.storageHandlerInfo = storageHandlerInfo;
+  }
+
+  public void setTag(Object tag) {
+    this.tag = tag;
+  }
+
+  public <T> T getTag() {
+    return (T) tag;
   }
 
   final public Class<? extends InputFormat> getInputFormatClass() {

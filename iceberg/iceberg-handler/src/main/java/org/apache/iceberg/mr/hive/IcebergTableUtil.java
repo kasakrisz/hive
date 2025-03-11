@@ -118,6 +118,16 @@ public class IcebergTableUtil {
     return getTable(configuration, properties, skipCache);
   }
 
+  public static Table getTable(Configuration configuration, org.apache.hadoop.hive.ql.metadata.Table hmsTable) {
+    Table icebergTable = hmsTable.getTag();
+    if (icebergTable != null) {
+      return icebergTable;
+    }
+
+    hmsTable.setTag(getTable(configuration, hmsTable.getTTable(), false));
+    return hmsTable.getTag();
+  }
+
   public static Table getTable(Configuration configuration, org.apache.hadoop.hive.metastore.api.Table hmsTable) {
     return getTable(configuration, hmsTable, false);
   }

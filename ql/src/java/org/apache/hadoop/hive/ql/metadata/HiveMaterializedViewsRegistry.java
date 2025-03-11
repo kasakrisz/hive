@@ -238,6 +238,7 @@ public final class HiveMaterializedViewsRegistry {
   public HiveRelOptMaterialization createMaterialization(HiveConf conf, Table materializedViewTable) {
     // First we parse the view query and create the materialization object
     final String viewQuery = materializedViewTable.getViewExpandedText();
+    materializedViewTable.getStorageHandler().getPartitionKeys(materializedViewTable);
     final RelNode viewScan = createMaterializedViewScan(conf, materializedViewTable);
     if (viewScan == null) {
       LOG.warn("Materialized view " + materializedViewTable.getCompleteName() +
