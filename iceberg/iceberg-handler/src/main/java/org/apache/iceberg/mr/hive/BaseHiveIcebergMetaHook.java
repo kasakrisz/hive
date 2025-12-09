@@ -132,7 +132,6 @@ public class BaseHiveIcebergMetaHook implements HiveMetaHook {
     this.catalogProperties = CatalogUtils.getCatalogProperties(hmsTable);
 
     // Set the table type even for non HiveCatalog based tables
-    // Set the table type even for non HiveCatalog based tables
     switch (Enum.valueOf(TableType.class, hmsTable.getTableType())) {
       case EXTERNAL_TABLE:
       case MANAGED_TABLE:
@@ -143,6 +142,14 @@ public class BaseHiveIcebergMetaHook implements HiveMetaHook {
       case MATERIALIZED_VIEW:
         hmsTable.getParameters().put(BaseMetastoreTableOperations.TABLE_TYPE_PROP,
                 HiveOperationsBase.ICEBERG_VIEW_TYPE_VALUE.toUpperCase());
+        String viewOriginalText = hmsTable.getViewOriginalText();
+        String viewExpandedText = hmsTable.getViewExpandedText();
+
+        hmsTable.putToParameters(Catalogs.MATERIALIZED_VIEW_ORIGINAL_TEXT, viewOriginalText);
+        hmsTable.putToParameters(Catalogs.MATERIALIZED_VIEW_EXPANDED_TEXT, viewExpandedText);
+
+        hmsTable.setViewOriginalText(null);
+        hmsTable.setViewExpandedText(null);
         break;
       default:
         throw new UnsupportedOperationException("The database object type " + hmsTable.getTableType() +
@@ -498,7 +505,10 @@ public class BaseHiveIcebergMetaHook implements HiveMetaHook {
 
           case MATERIALIZED_VIEW:
             Catalogs.MaterializedView mv = IcebergTableUtil.getMaterializedView(conf, hmsTable, false);
-            formatVersion = String.valueOf(((BaseTable) mv.getStotageTable()).operations().current().formatVersion());
+            formatVersion = String.valueOf(((BaseTable) mv.getStorageTable()).operations().current().formatVersion());
+
+            hmsTable.setViewOriginalText(mv.getView().properties().get(Catalogs.MATERIALIZED_VIEW_ORIGINAL_TEXT));
+            hmsTable.setViewExpandedText(mv.getView().sqlFor("hive").sql());
             break;
 
           default:

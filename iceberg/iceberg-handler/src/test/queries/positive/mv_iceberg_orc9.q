@@ -21,6 +21,9 @@ insert into tbl_ice values (1, 'one', 50), (2, 'two', 51), (3, 'three', 52), (4,
 create materialized view mat1 stored by iceberg stored as orc tblproperties ('format-version'='1') as
 select tbl_ice.b, tbl_ice.c from tbl_ice where tbl_ice.c > 52;
 
+show create table mat1;
+describe formatted mat1;
+
 select * from mat1;
 
 show tables;

@@ -63,6 +63,7 @@ import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.expressions.Expressions;
 import org.apache.iceberg.hadoop.HadoopConfigurable;
 import org.apache.iceberg.hadoop.HadoopFileIO;
+import org.apache.iceberg.hadoop.HadoopTables;
 import org.apache.iceberg.hadoop.Util;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.OutputFile;
@@ -302,6 +303,23 @@ public class HiveTableUtil {
     String filePath = generateTableObjectLocation(table.location(), conf);
     String bytes = serializeTable(table, conf, null, null);
     OutputFile serializedTableFile = table.io().newOutputFile(filePath);
+    try (ObjectOutputStream oos = new ObjectOutputStream(serializedTableFile.createOrOverwrite())) {
+      oos.writeObject(bytes);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
+    }
+    LOG.debug("Iceberg table metadata file is created {}", serializedTableFile);
+  }
+
+  static void createFileForTableObject(Table table, Configuration conf, String location) {
+    String filePath = generateTableObjectLocation(location, conf);
+    Table newTable = new HadoopTables(conf).buildTable(location, table.schema())
+              .withProperties(table.properties())
+              .withPartitionSpec(table.spec())
+              .withSortOrder(table.sortOrder())
+              .create();
+    String bytes = serializeTable(newTable, conf, null, null);
+    OutputFile serializedTableFile = newTable.io().newOutputFile(filePath);
     try (ObjectOutputStream oos = new ObjectOutputStream(serializedTableFile.createOrOverwrite())) {
       oos.writeObject(bytes);
     } catch (IOException ex) {

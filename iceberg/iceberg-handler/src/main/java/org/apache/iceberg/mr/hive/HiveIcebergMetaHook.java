@@ -188,14 +188,34 @@ public class HiveIcebergMetaHook extends BaseHiveIcebergMetaHook {
       if (metadataLocation != null) {
         table = Catalogs.registerTable(conf, catalogProperties, metadataLocation);
       } else if ("MATERIALIZED_VIEW".equals(hmsTable.getTableType())) {
+
+        String viewOriginalText = hmsTable.getParameters().get(Catalogs.MATERIALIZED_VIEW_ORIGINAL_TEXT);
+        String viewExpandedText = hmsTable.getParameters().get(Catalogs.MATERIALIZED_VIEW_EXPANDED_TEXT);
+        hmsTable.setViewOriginalText(viewOriginalText);
+        hmsTable.setViewExpandedText(viewExpandedText);
+        hmsTable.getParameters().remove(Catalogs.MATERIALIZED_VIEW_ORIGINAL_TEXT);
+        hmsTable.getParameters().remove(Catalogs.MATERIALIZED_VIEW_EXPANDED_TEXT);
+
         Catalogs.MaterializedView mv =
-                Catalogs.createMaterializedView(conf, catalogProperties, hmsTable.getViewExpandedText());
+            Catalogs.createMaterializedView(
+                  conf,
+                  catalogProperties,
+                  hmsTable.getViewOriginalText(),
+                  hmsTable.getViewExpandedText());
 
         String tableIdentifier = catalogProperties.getProperty(Catalogs.NAME);
         SessionStateUtil.addResource(conf, InputFormatConfig.CTAS_TABLE_NAME, tableIdentifier);
         SessionStateUtil.addResource(conf, tableIdentifier, mv);
 
-        HiveTableUtil.createFileForTableObject(mv.getStotageTable(), conf);
+        catalogProperties.put(
+                Catalogs.NAME,
+                tableIdentifier + Catalogs.MATERIALIZED_VIEW_STORAGE_TABLE_IDENTIFIER_SUFFIX);
+        catalogProperties.put("hive.skip.store.materialized.view.table", "true");
+
+
+        Table storageTable = Catalogs.createTable(conf, catalogProperties);
+
+        HiveTableUtil.createFileForTableObject(storageTable, conf, hmsTable.getSd().getLocation());
         return;
       } else {
         table = Catalogs.createTable(conf, catalogProperties);

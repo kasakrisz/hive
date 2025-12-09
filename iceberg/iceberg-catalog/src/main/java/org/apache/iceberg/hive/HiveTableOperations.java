@@ -131,6 +131,7 @@ public class HiveTableOperations extends BaseMetastoreTableOperations
   protected void doCommit(TableMetadata base, TableMetadata metadata) {
     boolean newTable = base == null;
     String newMetadataLocation = writeNewMetadataIfRequired(newTable, metadata);
+
     boolean hiveEngineEnabled = hiveEngineEnabled(metadata, conf);
     boolean keepHiveStats = conf.getBoolean(ConfigProperties.KEEP_HIVE_STATS, false);
 
@@ -199,9 +200,13 @@ public class HiveTableOperations extends BaseMetastoreTableOperations
 
       lock.ensureActive();
       try {
-        persistTable(
-            tbl, updateHiveTable, hiveLockEnabled(base, conf) ? null : baseMetadataLocation);
-        lock.ensureActive();
+        if (!metadata.propertyAsBoolean("hive.skip.store.materialized.view.table", false)) {
+          persistTable(
+                  tbl, updateHiveTable, hiveLockEnabled(base, conf) ? null : baseMetadataLocation);
+          lock.ensureActive();
+        } else {
+          this.refreshFromMetadataLocation(newMetadataLocation, metadataRefreshMaxRetries);
+        }
 
         commitStatus = BaseMetastoreOperations.CommitStatus.SUCCESS;
       } catch (LockException le) {
