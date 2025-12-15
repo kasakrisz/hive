@@ -34,6 +34,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.ddl.DDLDescWithTableProperties;
 import org.apache.hadoop.hive.ql.ddl.DDLUtils;
 import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Table;
@@ -231,6 +232,14 @@ public class CreateMaterializedViewDesc extends DDLDescWithTableProperties imple
     }
 
     HiveStorageHandler storageHandler = tbl.getStorageHandler();
+
+    if (storageHandler != null) {
+       tbl.setTableType(
+              storageHandler.getClass().equals(DefaultStorageHandler.class) ?
+                      TableType.MATERIALIZED_VIEW :
+                      TableType.EXTERNAL_MATERIALIZED_VIEW
+      );
+    }
 
     setColumnsAndStorePartitionTransformSpecOfTable(getCols(), getPartCols(), conf, tbl);
 
