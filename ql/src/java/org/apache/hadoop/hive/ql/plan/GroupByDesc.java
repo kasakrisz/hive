@@ -49,6 +49,8 @@ public class GroupByDesc extends AbstractOperatorDesc {
    * HASH: For non-distinct the same as PARTIAL1 but use hash-table-based aggregation
    * MERGEPARTIAL: FINAL for non-distinct aggregations, COMPLETE for distinct
    * aggregations.
+   * PARTIAL_HASH: HASH with no shuffle and no merge after it; an aggregation above
+   * (past a join) merges its results.
    */
   private static final long serialVersionUID = 1L;
 
@@ -57,15 +59,18 @@ public class GroupByDesc extends AbstractOperatorDesc {
    *
    */
   public static enum Mode {
-    COMPLETE, PARTIAL1, PARTIAL2, PARTIALS, FINAL, HASH, MERGEPARTIAL
+    COMPLETE, PARTIAL1, PARTIAL2, PARTIALS, FINAL, HASH, MERGEPARTIAL, PARTIAL_HASH;
+
+    /** Whether this is a hash-table-based aggregation: HASH or PARTIAL_HASH. */
+    public boolean isHash() {
+      return this == HASH || this == PARTIAL_HASH;
+    }
   };
 
   private Mode mode;
 
   // no hash aggregations for group by
   private boolean bucketGroup;
-  // map-side hash aggregation with no shuffle and no merge; an aggregation above merges its results
-  private boolean partialOnly;
 
   private List<ExprNodeDesc> keys;
   private List<Long> listGroupingSets;
@@ -156,6 +161,8 @@ public class GroupByDesc extends AbstractOperatorDesc {
       return "final";
     case MERGEPARTIAL:
       return "mergepartial";
+    case PARTIAL_HASH:
+      return "partialhash";
     }
 
     return "unknown";
@@ -236,7 +243,7 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   @Explain(displayName = "minReductionHashAggr")
   public String getMinReductionHashAggrString() {
-    return mode == Mode.HASH ? Float.toString(minReductionHashAggr) : null;
+    return mode.isHash() ? Float.toString(minReductionHashAggr) : null;
   }
 
   @Explain(displayName = "aggregations", explainLevels = { Level.USER, Level.DEFAULT, Level.EXTENDED })
@@ -272,16 +279,6 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   public void setBucketGroup(boolean bucketGroup) {
     this.bucketGroup = bucketGroup;
-  }
-
-  @Explain(displayName = "partialOnly", displayOnlyOnTrue = true)
-  @Signature
-  public boolean isPartialOnly() {
-    return partialOnly;
-  }
-
-  public void setPartialOnly(boolean partialOnly) {
-    this.partialOnly = partialOnly;
   }
 
   /**
@@ -371,12 +368,10 @@ public class GroupByDesc extends AbstractOperatorDesc {
     aggregators.addAll(this.aggregators);
     List<Long> listGroupingSets = new ArrayList<>();
     listGroupingSets.addAll(this.listGroupingSets);
-    GroupByDesc clone = new GroupByDesc(this.mode, outputColumnNames, keys, aggregators,
+    return new GroupByDesc(this.mode, outputColumnNames, keys, aggregators,
         this.groupByMemoryUsage, this.memoryThreshold, this.minReductionHashAggr, this.minReductionHashAggrLowerBound,
         this.hashAggrFlushPercent, listGroupingSets, this.groupingSetsPresent,
         this.groupingSetPosition, this.isDistinct);
-    clone.setPartialOnly(partialOnly);
-    return clone;
   }
 
   public class GroupByOperatorExplainVectorization extends OperatorExplainVectorization {

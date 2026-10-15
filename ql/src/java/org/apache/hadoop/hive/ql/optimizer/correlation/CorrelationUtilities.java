@@ -51,7 +51,6 @@ import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.GroupByDesc;
-import org.apache.hadoop.hive.ql.plan.GroupByDesc.Mode;
 import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
 import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
@@ -308,7 +307,7 @@ public final class CorrelationUtilities {
           || cursor instanceof ScriptOperator
           || (cursor instanceof GroupByOperator
               && (!preserveSortOrder
-                  || ((GroupByOperator) cursor).getConf().getMode() != Mode.HASH)) // Not order preserving
+                  || !((GroupByOperator) cursor).getConf().getMode().isHash())) // Not order preserving
           || cursor instanceof ReduceSinkOperator)) {
         return null;
       }

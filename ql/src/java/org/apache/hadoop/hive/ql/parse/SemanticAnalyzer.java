@@ -5386,6 +5386,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     case COMPLETE:
       return GenericUDAFEvaluator.Mode.COMPLETE;
     case HASH:
+    case PARTIAL_HASH:
     case PARTIAL1:
       return GenericUDAFEvaluator.Mode.PARTIAL1;
     case PARTIAL2:
@@ -6925,7 +6926,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     GroupByOperator groupByOperator = (GroupByOperator) genGroupByPlanMapGroupByOperator(qb, dest,
         grpByExprsGroupingSets.getLeft(), input, null, grpByExprsGroupingSets.getRight(), false);
     GroupByDesc desc = groupByOperator.getConf();
-    desc.setPartialOnly(true);
+    // planned as HASH (PARTIAL1 evaluators), marked as having no merge after it
+    desc.setMode(GroupByDesc.Mode.PARTIAL_HASH);
     desc.setMinReductionHashAggr(Math.min(desc.getMinReductionHashAggr(),
         HiveConf.getFloatVar(conf, ConfVars.PARTIAL_AGGR_JOIN_TRANSPOSE_MIN_REDUCTION)));
     groupOpToInputTables.put(groupByOperator, opParseCtx.get(input).getRowResolver().getTableNames());

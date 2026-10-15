@@ -1204,7 +1204,8 @@ public class VectorGroupByOperator extends Operator<GroupByDesc>
     forwardCache = new Object[outputKeyLength + aggregators.length];
 
     setupGroupingSets();
-    passThroughAggregates = conf.isPartialOnly() && !groupingSetsPresent ? createPassThroughAggregates() : null;
+    passThroughAggregates = conf.getMode() == GroupByDesc.Mode.PARTIAL_HASH && !groupingSetsPresent
+        ? createPassThroughAggregates() : null;
 
     switch (vectorDesc.getProcessingMode()) {
     case GLOBAL:
@@ -1325,7 +1326,7 @@ public class VectorGroupByOperator extends Operator<GroupByDesc>
   }
 
   /**
-   * Pass-through mode of a partial aggregate pushed below a join ({@link GroupByDesc#isPartialOnly()}) whose hash
+   * Pass-through mode of a partial aggregate pushed below a join ({@link GroupByDesc.Mode#PARTIAL_HASH}) whose hash
    * mode stopped reducing its input: every row is forwarded as its own partial result, as Trino's adaptive partial
    * aggregation does. The aggregate above the join merges the partial results.
    */

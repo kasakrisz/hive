@@ -1536,7 +1536,7 @@ public class StatsRulesProcFactory {
                 .orElse(-1);
         if (interReduction) {
 
-          if (gop.getConf().isPartialOnly()) {
+          if (gop.getConf().getMode() == GroupByDesc.Mode.PARTIAL_HASH) {
             // A partial-only aggregation is not assumed to reduce its input
             cardinality = parentNumRows;
           } else if (hashAgg) {
@@ -1810,7 +1810,7 @@ public class StatsRulesProcFactory {
       GroupByDesc desc = gop.getConf();
       GroupByDesc.Mode mode = desc.getMode();
 
-      if (mode.equals(GroupByDesc.Mode.HASH)) {
+      if (mode.isHash()) {
         float hashAggMem = conf.getFloatVar(HiveConf.ConfVars.HIVE_MAP_AGGR_HASH_MEMORY);
         float hashAggMaxThreshold = conf.getFloatVar(HiveConf.ConfVars.HIVE_MAP_AGGR_MEMORY_THRESHOLD);
 
