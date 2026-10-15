@@ -6916,9 +6916,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
    * grouping keys: group by expressions + grouping id.
    */
   /**
-   * Generate a map-side hash Group By with no shuffle and no merge: a partial aggregation whose results
-   * are merged by an aggregation further up the plan. Its hash mode turns off at the lower
-   * hive.optimize.partial.aggr.join.transpose.min.reduction, as Trino's adaptive partial aggregation does.
+   * Generate a map-side hash Group By that is not followed by its own ReduceSink and MERGEPARTIAL Group By:
+   * a partial aggregation whose results go through a join and are merged by the aggregation above it. Its hash
+   * mode turns off at the lower hive.optimize.partial.aggr.join.transpose.min.reduction, as Trino's adaptive
+   * partial aggregation does.
    */
   private Operator genGroupByPlanPartialOnly(String dest, QB qb, Operator input) throws SemanticException {
     Pair<List<ASTNode>, List<Long>> grpByExprsGroupingSets =
@@ -6926,7 +6927,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     GroupByOperator groupByOperator = (GroupByOperator) genGroupByPlanMapGroupByOperator(qb, dest,
         grpByExprsGroupingSets.getLeft(), input, null, grpByExprsGroupingSets.getRight(), false);
     GroupByDesc desc = groupByOperator.getConf();
-    // planned as HASH (PARTIAL1 evaluators), marked as having no merge after it
+    // planned as HASH (PARTIAL1 evaluators); PARTIAL_HASH marks that no merge Group By of its own follows
     desc.setMode(GroupByDesc.Mode.PARTIAL_HASH);
     desc.setMinReductionHashAggr(Math.min(desc.getMinReductionHashAggr(),
         HiveConf.getFloatVar(conf, ConfVars.PARTIAL_AGGR_JOIN_TRANSPOSE_MIN_REDUCTION)));
