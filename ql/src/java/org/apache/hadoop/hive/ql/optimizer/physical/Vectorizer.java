@@ -2715,7 +2715,7 @@ public class Vectorizer implements PhysicalPlanResolver {
 
     GroupByDesc desc = op.getConf();
 
-    if (desc.getMode() != GroupByDesc.Mode.HASH && desc.isDistinct()) {
+    if (!desc.getMode().isHash() && desc.isDistinct()) {
       setOperatorIssue("DISTINCT not supported");
       return false;
     }
@@ -2810,7 +2810,8 @@ public class Vectorizer implements PhysicalPlanResolver {
      *
      *         Mode.COMPLETE      --> (numKeys == 0 ? ProcessingMode.GLOBAL : ProcessingMode.STREAMING)
      *
-     *         Mode.HASH          --> ProcessingMode.HASH
+     *         Mode.HASH,
+     *         Mode.PARTIAL_HASH  --> ProcessingMode.HASH
      *
      *         Mode.MERGEPARTIAL  --> (numKeys == 0 ? ProcessingMode.GLOBAL : ProcessingMode.MERGE_PARTIAL)
      *
@@ -3292,7 +3293,7 @@ public class Vectorizer implements PhysicalPlanResolver {
     }
 
     // The planner seems to pull this one out.
-    if (groupByMode != GroupByDesc.Mode.HASH && aggDesc.getDistinct()) {
+    if (!groupByMode.isHash() && aggDesc.getDistinct()) {
       setExpressionIssue("Aggregation Function", "DISTINCT not supported");
       return false;
     }
