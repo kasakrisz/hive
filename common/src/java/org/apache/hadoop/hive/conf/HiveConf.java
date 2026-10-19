@@ -1814,6 +1814,44 @@ public class HiveConf extends Configuration {
     AGGR_JOIN_TRANSPOSE("hive.transpose.aggr.join", false, "push aggregates through join"),
     AGGR_JOIN_TRANSPOSE_UNIQUE("hive.transpose.aggr.join.unique", true, "push aggregates through join(s) in "
         + "case data is regrouped on a previously unique column"),
+    HIVE_OPTIMIZE_UNWRAP_CAST_IN_COMPARISON("hive.optimize.unwrap.cast.in.comparison", false,
+        "Whether CBO compares a DATE cast to TIMESTAMP with a TIMESTAMP literal as a DATE: CAST(d AS TIMESTAMP) < t\n"
+        + "becomes d < DATE, and CAST(d AS TIMESTAMP) BETWEEN t1 AND t2 becomes d BETWEEN DATE1 AND DATE2, so the\n"
+        + "column's statistics estimate it. d BETWEEN date AND date + N days compares timestamps otherwise."),
+    HIVE_OPTIMIZE_JOIN_PUSH_THROUGH_OUTER_JOIN("hive.optimize.join.push.through.outer.join", false,
+        "Whether CBO moves an inner join below the LEFT outer join that is its left input when the inner join's\n"
+        + "condition references only the outer join's preserved side and does not increase its rows:\n"
+        + "(A LEFT JOIN B) JOIN C becomes (A JOIN C) LEFT JOIN B. Join ordering then orders C with A's other inner\n"
+        + "joins, and C filters A before the outer join."),
+    GROUPBY_UNSORTED_SHUFFLE("hive.optimize.groupby.unsorted.shuffle", false,
+        "Whether a reduce-side GROUP BY of SUM, COUNT, MIN and MAX whose reducer does not rely on key order reads\n"
+        + "an unsorted, hash partitioned shuffle and aggregates in a hash table, instead of sorting the shuffle and\n"
+        + "merging runs. The hash table spills key-sorted runs under memory pressure and merges them at close; a\n"
+        + "reducer that does not vectorize reads the sorted shuffle."),
+    PARTIAL_AGGR_JOIN_TRANSPOSE("hive.optimize.partial.aggr.join.transpose", false,
+        "Whether to push a map-side partial aggregate below an inner join, to the join input that holds all\n"
+        + "aggregate arguments. The pushed aggregate runs in the vertex of the join input, before its existing\n"
+        + "shuffle. See hive.optimize.partial.aggr.join.transpose.merge.above.join for the merge of its results."),
+    PARTIAL_AGGR_JOIN_TRANSPOSE_MERGE_ABOVE_JOIN("hive.optimize.partial.aggr.join.transpose.merge.above.join", true,
+        "Whether the map-side aggregate above the join stays when a partial aggregate is pushed below the join, and\n"
+        + "merges the partial results before the shuffle of the aggregate. When false, the join output is shuffled\n"
+        + "as it is and only the reduce-side aggregate merges the partial results."),
+    PARTIAL_AGGR_JOIN_TRANSPOSE_MIN_REDUCTION("hive.optimize.partial.aggr.join.transpose.min.reduction", 0.8f,
+        "Hash aggregation of a pushed partial aggregate is turned off when the ratio between hash table size and\n"
+        + "input rows is bigger than this number, and its rows then pass through as partial results."
+        + " hive.map.aggr.hash.min.reduction stays the upper bound, and with\n"
+        + "hive.map.aggr.hash.min.reduction.stats the statistics may lower it further."),
+    PARTIAL_AGGR_JOIN_TRANSPOSE_MAX_JOIN_REDUCTION("hive.optimize.partial.aggr.join.transpose.max.join.reduction", 10f,
+        "A partial aggregate is not pushed below a join estimated to reduce the pushed input by more than this\n"
+        + "factor: a map join has no dynamic filter on its probe side, so the pushed aggregate would process every\n"
+        + "row the join discards. 0 disables the check."),
+    PARTIAL_AGGR_JOIN_TRANSPOSE_MAX_JOIN_EXPANSION("hive.optimize.partial.aggr.join.transpose.max.join.expansion",
+        1.1f,
+        "A partial aggregate is not pushed below a join estimated to output more rows than this factor times the\n"
+        + "rows of the pushed input."),
+    PARTIAL_AGGR_JOIN_TRANSPOSE_MAX_KEY_NDV_RATIO("hive.optimize.partial.aggr.join.transpose.max.key.ndv.ratio", 0.5f,
+        "A partial aggregate is not pushed when the estimated number of distinct values of one of its keys is more\n"
+        + "than this fraction of the pushed input rows, since it would reduce its input too little."),
     SEMIJOIN_CONVERSION("hive.optimize.semijoin.conversion", true, "convert group by followed by inner equi join into semijoin"),
     HIVE_COLUMN_ALIGNMENT("hive.order.columnalignment", true, "Flag to control whether we want to try to align" +
         "columns in operators such as Aggregate or Join so that we try to reduce the number of shuffling stages"),
@@ -6739,6 +6777,7 @@ public class HiveConf extends Configuration {
    */
   private static final String[] SQL_STD_AUTH_SAFE_VAR_NAMES = new String[] {
       ConfVars.AGGR_JOIN_TRANSPOSE.varname,
+      ConfVars.PARTIAL_AGGR_JOIN_TRANSPOSE.varname,
       ConfVars.BYTES_PER_REDUCER.varname,
       ConfVars.CLIENT_STATS_COUNTERS.varname,
       ConfVars.CREATE_TABLES_AS_ACID.varname,
