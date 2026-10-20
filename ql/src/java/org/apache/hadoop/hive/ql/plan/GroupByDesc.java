@@ -64,13 +64,8 @@ public class GroupByDesc extends AbstractOperatorDesc {
 
   // no hash aggregations for group by
   private boolean bucketGroup;
-<<<<<<< HEAD
-  // map-side hash aggregation with no shuffle and no merge; an aggregation above merges its results
-  private boolean partialOnly;
   // reduce-side aggregation of an unsorted shuffle: a hash aggregation holding every group of its partition
   private boolean unsortedInput;
-=======
->>>>>>> parent of e27a2d9b16 (HIVE-XXXXX: Push a partial aggregation through a join (Trino-style, hive.optimize.partial.aggr.join.transpose, default false))
 
   private List<ExprNodeDesc> keys;
   private List<Long> listGroupingSets;
@@ -279,17 +274,6 @@ public class GroupByDesc extends AbstractOperatorDesc {
     this.bucketGroup = bucketGroup;
   }
 
-<<<<<<< HEAD
-  @Explain(displayName = "partialOnly", displayOnlyOnTrue = true)
-  @Signature
-  public boolean isPartialOnly() {
-    return partialOnly;
-  }
-
-  public void setPartialOnly(boolean partialOnly) {
-    this.partialOnly = partialOnly;
-  }
-
   @Explain(displayName = "unsortedInput", displayOnlyOnTrue = true)
   public boolean isUnsortedInput() {
     return unsortedInput;
@@ -299,8 +283,6 @@ public class GroupByDesc extends AbstractOperatorDesc {
     this.unsortedInput = unsortedInput;
   }
 
-=======
->>>>>>> parent of e27a2d9b16 (HIVE-XXXXX: Push a partial aggregation through a join (Trino-style, hive.optimize.partial.aggr.join.transpose, default false))
   /**
    * Checks if this grouping is like distinct, which means that all non-distinct grouping
    * columns behave like they were distinct - for example min and max operators.
