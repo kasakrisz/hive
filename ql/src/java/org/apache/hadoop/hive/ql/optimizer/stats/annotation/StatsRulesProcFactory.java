@@ -1538,10 +1538,7 @@ public class StatsRulesProcFactory {
                 .orElse(-1);
         if (interReduction) {
 
-          if (gop.getConf().isPartialOnly()) {
-            // A partial-only aggregation is not assumed to reduce its input
-            cardinality = parentNumRows;
-          } else if (hashAgg) {
+          if (hashAgg) {
             if (containsGroupingSet) {
               // Case 4: column stats, hash aggregation, grouping sets
               cardinality = Math.min(
