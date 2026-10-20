@@ -1826,19 +1826,6 @@ public class HiveConf extends Configuration {
         + "condition references only the outer join's preserved side and does not increase its rows:\n"
         + "(A LEFT JOIN B) JOIN C becomes (A JOIN C) LEFT JOIN B. Join ordering then orders C with A's other inner\n"
         + "joins, and C filters A before the outer join."),
-    PARTIAL_AGGR_JOIN_TRANSPOSE("hive.optimize.partial.aggr.join.transpose", false,
-        "Whether to push a map-side partial aggregate below an inner join, to the join input that holds all\n"
-        + "aggregate arguments. The original aggregate stays above the join and merges the partial results.\n"
-        + "The pushed aggregate runs in the vertex of the join input, before its existing shuffle."),
-    PARTIAL_AGGR_JOIN_TRANSPOSE_MIN_REDUCTION("hive.optimize.partial.aggr.join.transpose.min.reduction", 0.8f,
-        "Hash aggregation of a pushed partial aggregate is turned off when the ratio between hash table size and\n"
-        + "input rows is bigger than this number (Trino's adaptive partial aggregation threshold), and its rows then\n"
-        + "pass through as partial results. hive.map.aggr.hash.min.reduction stays the upper bound, and with\n"
-        + "hive.map.aggr.hash.min.reduction.stats the statistics may lower it further."),
-    PARTIAL_AGGR_JOIN_TRANSPOSE_MAX_JOIN_REDUCTION("hive.optimize.partial.aggr.join.transpose.max.join.reduction", 10f,
-        "A partial aggregate is not pushed below a join estimated to reduce the pushed input by more than this\n"
-        + "factor: a map join has no dynamic filter on its probe side, so the pushed aggregate would process every\n"
-        + "row the join discards. 0 disables the check."),
     GROUPBY_UNSORTED_SHUFFLE("hive.optimize.groupby.unsorted.shuffle", false,
         "Whether a reduce-side GROUP BY of SUM, COUNT, MIN and MAX whose reducer does not rely on key order reads\n"
         + "an unsorted, hash partitioned shuffle and aggregates in a hash table, instead of sorting the shuffle and\n"
@@ -6791,7 +6778,6 @@ public class HiveConf extends Configuration {
    */
   private static final String[] SQL_STD_AUTH_SAFE_VAR_NAMES = new String[] {
       ConfVars.AGGR_JOIN_TRANSPOSE.varname,
-      ConfVars.PARTIAL_AGGR_JOIN_TRANSPOSE.varname,
       ConfVars.BYTES_PER_REDUCER.varname,
       ConfVars.CLIENT_STATS_COUNTERS.varname,
       ConfVars.CREATE_TABLES_AS_ACID.varname,
