@@ -186,12 +186,8 @@ public class TezCompiler extends TaskCompiler {
     // Create the context for the walker
     OptimizeTezProcContext procCtx = new OptimizeTezProcContext(conf, pCtx);
 
-    perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.TEZ_COMPILER);
-    runTopNKeyOptimization(procCtx);
-    perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.TEZ_COMPILER, "Run top n key optimization");
-
-    // push map-side group bys below inner joins; needs the statistics, and runs before the dynamic partition
-    // pruning so that its branches do not block a push and read from the pushed group bys
+    // push map-side group bys below inner joins; needs the statistics, and runs before the top n key
+    // optimization and the dynamic partition pruning so that their operators do not block a push
     if (procCtx.conf.getBoolVar(ConfVars.PARTIAL_AGGR_JOIN_TRANSPOSE)
         && procCtx.conf.getBoolVar(ConfVars.HIVE_MAPSIDE_AGGREGATE)
         && !procCtx.conf.getBoolVar(ConfVars.HIVE_GROUPBY_SKEW)) {
@@ -200,6 +196,10 @@ public class TezCompiler extends TaskCompiler {
       new PartialGroupByJoinTransposeOptimizer().transform(procCtx.parseContext);
       perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.TEZ_COMPILER, "Partial group by join transpose");
     }
+
+    perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.TEZ_COMPILER);
+    runTopNKeyOptimization(procCtx);
+    perfLogger.perfLogEnd(this.getClass().getName(), PerfLogger.TEZ_COMPILER, "Run top n key optimization");
 
     perfLogger.perfLogBegin(this.getClass().getName(), PerfLogger.TEZ_COMPILER);
     // setup dynamic partition pruning where possible
@@ -496,6 +496,11 @@ public class TezCompiler extends TaskCompiler {
         component.add(current);
       } while (current != o);
     }
+  }
+
+  private void runStatsAnnotation(OptimizeTezProcContext procCtx) throws SemanticException {
+    new AnnotateWithStatistics().transform(procCtx.parseContext);
+    new AnnotateWithOpTraits().transform(procCtx.parseContext);
   }
 
   private void runStatsDependentOptimizations(OptimizeTezProcContext procCtx) throws SemanticException {

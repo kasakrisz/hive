@@ -125,7 +125,9 @@ import org.slf4j.LoggerFactory;
  * join it moves below: a Select projecting its keys and the partial results replaces it.
  *
  * <p>The criteria need operator statistics, so this runs in {@code TezCompiler} after a statistics annotation.
- * It runs before the dynamic partition pruning: its semijoin branches would hang off the join inputs and the joins,
+ * It runs before the top n key optimization: a Top N Key operator pushed down to the join output would sit between
+ * the join and the GROUP BY. It runs before the dynamic partition pruning: its semijoin branches would hang off the
+ * join inputs and the joins,
  * so the GROUP BY could not move below them, and built afterwards they read from the pushed GROUP BY. The
  * synthetic join predicates of residual join filters that read the values of a pushed join input are moved to the
  * pushed GROUP BY output.
