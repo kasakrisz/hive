@@ -1817,6 +1817,11 @@ public class HiveConf extends Configuration {
     AGGR_JOIN_TRANSPOSE("hive.transpose.aggr.join", false, "push aggregates through join"),
     AGGR_JOIN_TRANSPOSE_UNIQUE("hive.transpose.aggr.join.unique", true, "push aggregates through join(s) in "
         + "case data is regrouped on a previously unique column"),
+    HIVE_OPTIMIZE_JOIN_PUSH_THROUGH_OUTER_JOIN("hive.optimize.join.push.through.outer.join", false,
+        "Whether CBO moves an inner join below the LEFT outer join that is its left input when the inner join's\n"
+        + "condition references only the outer join's preserved side and does not increase its rows:\n"
+        + "(A LEFT JOIN B) JOIN C becomes (A JOIN C) LEFT JOIN B. Join ordering then orders C with A's other inner\n"
+        + "joins, and C filters A before the outer join."),
     PARTIAL_AGGR_JOIN_TRANSPOSE("hive.optimize.partial.aggr.join.transpose", false,
         "Whether to push a map-side partial aggregate below an inner join, to the join input that holds all\n"
         + "aggregate arguments. The original aggregate stays above the join and merges the partial results.\n"
