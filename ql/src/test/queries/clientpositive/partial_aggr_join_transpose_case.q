@@ -1,8 +1,8 @@
 -- SORT_QUERY_RESULTS
 -- A partial aggregate pushed through an inner join when its arguments are CASEs whose condition is on one join input
 -- and whose value is on the other (TPC-DS q2, q43): the value is aggregated below the join and the CASE applied to the
--- partial result above it. Each query runs with the rule off, on, and on without vectorization; the results must be
--- identical.
+-- partial result above it (hive.optimize.partial.aggr.join.transpose). Each query runs with the optimization off, on,
+-- and on without vectorization; the results must be identical.
 
 create table pc_date (d_date_sk int, d_year int, d_week_seq int, d_day_name string);
 create table pc_store (s_store_sk int, s_store_id string, s_store_name string);
@@ -24,7 +24,7 @@ analyze table pc_sales compute statistics for columns;
 
 -- q43: keys on the sales side, CASE conditions on the date side
 set hive.optimize.partial.aggr.join.transpose=true;
-explain cbo
+explain
 select ss_store_sk,
   sum(case when d_day_name = 'Sunday' then ss_sales_price else null end) sun,
   sum(case when d_day_name = 'Monday' then ss_sales_price else null end) mon,
@@ -73,9 +73,69 @@ where d_year = 2000
 group by ss_store_sk;
 set hive.vectorized.execution.enabled=true;
 
+-- the GROUP BY above the join merges IF(condition, partial result, NULL) vectorized
+explain vectorization detail
+select ss_store_sk,
+  sum(case when d_day_name = 'Sunday' then ss_sales_price else null end) sun,
+  count(case when d_day_name = 'Tuesday' then ss_quantity end) tue_cnt
+from pc_sales join pc_date on ss_sold_date_sk = d_date_sk
+where d_year = 2000
+group by ss_store_sk;
+
+-- q43 with the store join: the GROUP BY is pushed below the store join, then below the date join, where a Select
+-- applies the CASE conditions to the partial results
+set hive.optimize.partial.aggr.join.transpose=true;
+explain
+select s_store_name, s_store_id,
+  sum(case when d_day_name = 'Sunday' then ss_sales_price else null end) sun,
+  sum(case when d_day_name = 'Monday' then ss_sales_price else null end) mon,
+  count(case when d_day_name = 'Tuesday' then ss_quantity end) tue_cnt,
+  sum(case when d_day_name = 'Friday' then ss_sales_price * ss_quantity else 0 end) fri_amt
+from pc_sales join pc_date on ss_sold_date_sk = d_date_sk join pc_store on ss_store_sk = s_store_sk
+where d_year = 2000
+group by s_store_name, s_store_id;
+
+set hive.optimize.partial.aggr.join.transpose=false;
+select s_store_name, s_store_id,
+  sum(case when d_day_name = 'Sunday' then ss_sales_price else null end) sun,
+  sum(case when d_day_name = 'Monday' then ss_sales_price else null end) mon,
+  count(case when d_day_name = 'Tuesday' then ss_quantity end) tue_cnt,
+  sum(case when d_day_name = 'Friday' then ss_sales_price * ss_quantity else 0 end) fri_amt
+from pc_sales join pc_date on ss_sold_date_sk = d_date_sk join pc_store on ss_store_sk = s_store_sk
+where d_year = 2000
+group by s_store_name, s_store_id;
+
+set hive.optimize.partial.aggr.join.transpose=true;
+select s_store_name, s_store_id,
+  sum(case when d_day_name = 'Sunday' then ss_sales_price else null end) sun,
+  sum(case when d_day_name = 'Monday' then ss_sales_price else null end) mon,
+  count(case when d_day_name = 'Tuesday' then ss_quantity end) tue_cnt,
+  sum(case when d_day_name = 'Friday' then ss_sales_price * ss_quantity else 0 end) fri_amt
+from pc_sales join pc_date on ss_sold_date_sk = d_date_sk join pc_store on ss_store_sk = s_store_sk
+where d_year = 2000
+group by s_store_name, s_store_id;
+
+set hive.vectorized.execution.enabled=false;
+select s_store_name, s_store_id,
+  sum(case when d_day_name = 'Sunday' then ss_sales_price else null end) sun,
+  sum(case when d_day_name = 'Monday' then ss_sales_price else null end) mon,
+  count(case when d_day_name = 'Tuesday' then ss_quantity end) tue_cnt,
+  sum(case when d_day_name = 'Friday' then ss_sales_price * ss_quantity else 0 end) fri_amt
+from pc_sales join pc_date on ss_sold_date_sk = d_date_sk join pc_store on ss_store_sk = s_store_sk
+where d_year = 2000
+group by s_store_name, s_store_id;
+set hive.vectorized.execution.enabled=true;
+
+-- an ELSE other than NULL or 0 adds to the result for the rows failing the condition: not pushed below the date join
+set hive.optimize.partial.aggr.join.transpose=true;
+explain
+select ss_store_sk, sum(case when d_day_name = 'Sunday' then ss_sales_price else 1 end) sun
+from pc_sales join pc_date on ss_sold_date_sk = d_date_sk
+group by ss_store_sk;
+
 -- q2: the key on the date side, so the date key is the only pushed key
 set hive.optimize.partial.aggr.join.transpose=true;
-explain cbo
+explain
 select d_week_seq, sum(case when d_day_name = 'Sunday' then ss_sales_price end) sun,
   sum(case when d_day_name = 'Saturday' then ss_sales_price end) sat
 from pc_sales join pc_date on ss_sold_date_sk = d_date_sk
@@ -95,12 +155,12 @@ group by d_week_seq;
 
 -- a division the plan computes below the join, for every row already, is pushed; a COUNT whose ELSE counts is not
 set hive.optimize.partial.aggr.join.transpose=true;
-explain cbo
+explain
 select ss_store_sk, sum(case when d_day_name = 'Sunday' then ss_sales_price / ss_quantity end) sun
 from pc_sales join pc_date on ss_sold_date_sk = d_date_sk
 group by ss_store_sk;
 
-explain cbo
+explain
 select ss_store_sk, count(case when d_day_name = 'Sunday' then ss_quantity else 0 end) sun
 from pc_sales join pc_date on ss_sold_date_sk = d_date_sk
 group by ss_store_sk;

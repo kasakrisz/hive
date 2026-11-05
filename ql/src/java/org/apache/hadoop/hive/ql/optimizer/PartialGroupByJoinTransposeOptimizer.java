@@ -33,6 +33,7 @@ import java.util.Stack;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
 import org.apache.hadoop.hive.ql.exec.FilterOperator;
@@ -59,6 +60,7 @@ import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer;
 import org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.GenericUDAFInfo;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
+import org.apache.hadoop.hive.ql.parse.type.ExprNodeTypeCheck;
 import org.apache.hadoop.hive.ql.plan.AggregationDesc;
 import org.apache.hadoop.hive.ql.plan.ColStatistics;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
@@ -77,6 +79,13 @@ import org.apache.hadoop.hive.ql.plan.SelectDesc;
 import org.apache.hadoop.hive.ql.plan.Statistics;
 import org.apache.hadoop.hive.ql.stats.StatsUtils;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFIf;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPMinus;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPMultiply;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPPlus;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFWhen;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,14 +115,20 @@ import org.slf4j.LoggerFactory;
  *   <li>the GROUP BY is over the join through Select operators only; it has keys, no grouping sets and no
  *   distinct aggregation, and only SUM, $SUM0, COUNT, MIN and MAX aggregations: their partial result is a plain
  *   value, merged by SUM (counts) or the function itself;</li>
- *   <li>every key and aggregation argument is deterministic and references one join input at most;</li>
+ *   <li>every key and aggregation argument is deterministic and references one join input at most, or the argument
+ *   is an IF or CASE whose condition references one join input and whose value the other (TPC-DS q2, q43:
+ *   {@code sum(if(d_day_name = 'Sunday', ss_sales_price, null))}): the value is aggregated below the join and the
+ *   condition, a function of the other input's row, is applied to the partial result above it. Every row of a pushed
+ *   group has the same join key, so it joins the same rows of the other input. The value is aggregated over the rows
+ *   whose condition is false too, so it must not fail on them: columns, constants, +, -, * and casts. The ELSE is
+ *   NULL, or 0 for a SUM;</li>
  *   <li>the GROUP BY is pushed to the input holding every aggregation argument; an aggregation without
  *   arguments goes to the larger input (example: count(*));</li>
  *   <li>the pushed keys are the original keys available on that input plus its join keys and its columns used
  *   by residual join filters;</li>
  *   <li>the push is skipped when the join expands its input by more than
  *   {@code hive.optimize.partial.aggr.join.transpose.max.join.expansion}, when the pushed keys outnumber the
- *   original keys or are empty, or when a pushed key has an NDV of more than
+ *   original keys and the columns of the IF conditions or are empty, or when a pushed key has an NDV of more than
  *   {@code hive.optimize.partial.aggr.join.transpose.max.key.ndv.ratio} x input rows; missing statistics also
  *   skip it;</li>
  *   <li>the push is also skipped when the join reduces the pushed input by more than
@@ -293,9 +308,22 @@ public class PartialGroupByJoinTransposeOptimizer extends Transform {
       }
     }
     List<List<ExprNodeDesc>> params = new ArrayList<>();
+    List<CaseSplit> splits = new ArrayList<>();
+    Set<String> conditionCols = new HashSet<>();
     int side = NO_INPUT;
     for (AggregationDesc agg : aggs) {
       List<ExprNodeDesc> aggParams = ExprNodeDescUtils.backtrack(agg.getParameters(), gby, bottom);
+      CaseSplit split = null;
+      if (aggParams.size() == 1 && inputOf(aggParams.get(0), reversedExprs) == INVALID) {
+        // the value is aggregated below the join, on the input other than the condition's
+        split = splitCase(agg, aggParams.get(0), reversedExprs);
+        if (split == null) {
+          return null;
+        }
+        conditionCols.addAll(split.conditionCols);
+        aggParams = new ArrayList<>(Arrays.asList(split.value));
+      }
+      splits.add(split);
       for (ExprNodeDesc param : aggParams) {
         int input = inputOf(param, reversedExprs);
         if (input == INVALID || input != NO_INPUT && side != NO_INPUT && input != side) {
@@ -363,7 +391,9 @@ public class PartialGroupByJoinTransposeOptimizer extends Transform {
         }
       }
     }
-    if (pushedKeys.isEmpty() || pushedKeys.size() > keys.size()) {
+    // the columns of the IF conditions split the rows of the GROUP BY as its keys do (Trino's
+    // PreAggregateCaseAggregations groups by them)
+    if (pushedKeys.isEmpty() || pushedKeys.size() > keys.size() + conditionCols.size()) {
       return null;
     }
     List<ExprNodeDesc> partitionCols = rsDesc.getPartitionCols();
@@ -568,7 +598,20 @@ public class PartialGroupByJoinTransposeOptimizer extends Transform {
     List<ExprNodeDesc> partialRefs = new ArrayList<>();
     for (int a = 0; a < aggs.size(); a++) {
       int i = numPushedKeys + a;
-      partialRefs.add(new ExprNodeColumnDesc(pushedCols.get(i).getType(), joinNames[i], null, false));
+      ExprNodeDesc partial = new ExprNodeColumnDesc(pushedCols.get(i).getType(), joinNames[i], null, false);
+      CaseSplit split = splits.get(a);
+      if (split != null) {
+        // a COUNT whose rows all fail the condition is 0; the other functions keep the ELSE
+        TypeInfo type = partial.getTypeInfo();
+        boolean count = "count".equalsIgnoreCase(aggs.get(a).getGenericUDAFName());
+        ExprNodeConstantDesc otherwise = count || split.zero ? zeroOf(type) : new ExprNodeConstantDesc(type, null);
+        if (otherwise == null) {
+          return null;
+        }
+        partial = ExprNodeGenericFuncDesc.newInstance(new GenericUDFIf(),
+            new ArrayList<>(Arrays.asList(split.condition.clone(), partial, otherwise)));
+      }
+      partialRefs.add(partial);
     }
 
     LOG.debug("Pushing {} below {} to input {}", gby, join, side);
@@ -703,6 +746,119 @@ public class PartialGroupByJoinTransposeOptimizer extends Transform {
       input = tag;
     }
     return input;
+  }
+
+  /** An aggregation argument IF(condition, value, otherwise) split around the join. */
+  private static final class CaseSplit {
+    private final ExprNodeDesc condition;
+    // cast to the type of the IF, so the partial result has the type of the original one
+    private final ExprNodeDesc value;
+    // the ELSE is 0, otherwise NULL
+    private final boolean zero;
+    private final Set<String> conditionCols;
+
+    private CaseSplit(ExprNodeDesc condition, ExprNodeDesc value, boolean zero, Set<String> conditionCols) {
+      this.condition = condition;
+      this.value = value;
+      this.zero = zero;
+      this.conditionCols = conditionCols;
+    }
+  }
+
+  /**
+   * The argument as an IF or CASE that can be split around the join, or null: IF(condition, value, otherwise) with
+   * the condition on one join input and the value on the other. The value is aggregated over rows whose condition
+   * is false too, so it must not fail on them: columns, constants, +, -, * and casts. Otherwise is NULL, or 0 for a
+   * SUM, which adds nothing; a COUNT counts the rows whose condition holds and whose value is not NULL.
+   */
+  private static CaseSplit splitCase(AggregationDesc agg, ExprNodeDesc param, Map<String, Byte> reversedExprs)
+      throws SemanticException {
+    if (!(param instanceof ExprNodeGenericFuncDesc) || !ExprNodeDescUtils.isDeterministic(param)) {
+      return null;
+    }
+    GenericUDF udf = ((ExprNodeGenericFuncDesc) param).getGenericUDF();
+    List<ExprNodeDesc> children = param.getChildren();
+    boolean when = udf instanceof GenericUDFWhen && (children.size() == 2 || children.size() == 3);
+    if (!when && !(udf instanceof GenericUDFIf && children.size() == 3)) {
+      return null;
+    }
+    ExprNodeDesc condition = children.get(0);
+    ExprNodeDesc value = children.get(1);
+    int conditionInput = inputOf(condition, reversedExprs);
+    int valueInput = inputOf(value, reversedExprs);
+    if (conditionInput < 0 || valueInput < 0 || conditionInput == valueInput || !cannotFail(value)) {
+      return null;
+    }
+    String udafName = agg.getGenericUDAFName().toLowerCase();
+    boolean zero = false;
+    if (children.size() == 3 && !isNull(children.get(2))) {
+      if (!("sum".equals(udafName) || "$sum0".equals(udafName)) || !isZero(children.get(2))) {
+        return null;
+      }
+      zero = true;
+    }
+    if (!value.getTypeInfo().equals(param.getTypeInfo())) {
+      if (!(param.getTypeInfo() instanceof PrimitiveTypeInfo)) {
+        return null;
+      }
+      value = ExprNodeTypeCheck.getExprNodeDefaultExprProcessor()
+          .createConversionCast(value, (PrimitiveTypeInfo) param.getTypeInfo());
+    }
+    Set<String> conditionCols = new HashSet<>();
+    for (ExprNodeColumnDesc col : columnsOf(condition)) {
+      conditionCols.add(col.getColumn());
+    }
+    return new CaseSplit(condition, value, zero, conditionCols);
+  }
+
+  private static boolean cannotFail(ExprNodeDesc expr) {
+    if (expr instanceof ExprNodeColumnDesc || expr instanceof ExprNodeConstantDesc) {
+      return true;
+    }
+    if (!(expr instanceof ExprNodeGenericFuncDesc)) {
+      return false;
+    }
+    GenericUDF udf = ((ExprNodeGenericFuncDesc) expr).getGenericUDF();
+    if (!(udf instanceof GenericUDFOPPlus || udf instanceof GenericUDFOPMinus || udf instanceof GenericUDFOPMultiply
+        || FunctionRegistry.isOpNegative(expr) || FunctionRegistry.isOpCast(expr))) {
+      return false;
+    }
+    for (ExprNodeDesc child : expr.getChildren()) {
+      if (!cannotFail(child)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean isNull(ExprNodeDesc expr) {
+    return expr instanceof ExprNodeConstantDesc && ((ExprNodeConstantDesc) expr).getValue() == null;
+  }
+
+  private static boolean isZero(ExprNodeDesc expr) {
+    if (!(expr instanceof ExprNodeConstantDesc)) {
+      return false;
+    }
+    Object value = ((ExprNodeConstantDesc) expr).getValue();
+    return value instanceof HiveDecimal ? ((HiveDecimal) value).signum() == 0
+        : value instanceof Number && ((Number) value).doubleValue() == 0;
+  }
+
+  /** A zero of a SUM or COUNT partial result type, or null for another type. */
+  private static ExprNodeConstantDesc zeroOf(TypeInfo type) {
+    if (!(type instanceof PrimitiveTypeInfo)) {
+      return null;
+    }
+    switch (((PrimitiveTypeInfo) type).getPrimitiveCategory()) {
+    case LONG:
+      return new ExprNodeConstantDesc(type, 0L);
+    case DOUBLE:
+      return new ExprNodeConstantDesc(type, 0.0d);
+    case DECIMAL:
+      return new ExprNodeConstantDesc(type, HiveDecimal.ZERO);
+    default:
+      return null;
+    }
   }
 
   /** The join input with the most rows, or NO_INPUT without statistics. */
